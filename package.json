@@ -1,0 +1,14 @@
+{
+  "name": "special-education-mvp",
+  "version": "1.0.0",
+  "description": "特殊教育智能辅助干预系统 - 微信小程序",
+  "main": "miniprogram/app.js",
+  "scripts": {
+    "lint": "eslint miniprogram/**/*.js"
+  },
+  "devDependencies": {
+    "eslint": "^8.50.0"
+  },
+  "author": "",
+  "license": "UNLICENSED"
+}

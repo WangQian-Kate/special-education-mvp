@@ -1,0 +1,100 @@
+/* pages/index/index.wxss */
+.container {
+  padding: var(--spacing-lg);
+  min-height: 100vh;
+}
+
+.page-header {
+  text-align: center;
+  padding: var(--spacing-xl) 0;
+}
+
+.title {
+  display: block;
+  font-size: var(--font-size-xl);
+  font-weight: bold;
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.subtitle {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.section-title {
+  display: block;
+  font-size: var(--font-size-lg);
+  font-weight: bold;
+  margin-bottom: var(--spacing-md);
+}
+
+/* 角色选择 */
+.role-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.role-options {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.role-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-lg) var(--spacing-md);
+  background: var(--color-bg-white);
+  border-radius: var(--radius-md);
+  border: 2rpx solid var(--color-border);
+  transition: all 0.3s;
+}
+
+.role-card.active {
+  border-color: var(--color-primary);
+  background: #EBF3FC;
+}
+
+.role-icon {
+  font-size: 48rpx;
+  margin-bottom: var(--spacing-sm);
+}
+
+.role-name {
+  font-size: var(--font-size-lg);
+  font-weight: bold;
+  margin-bottom: var(--spacing-xs);
+}
+
+.role-desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+/* 功能入口 */
+.feature-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.feature-item {
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-lg);
+  box-sizing: border-box;
+}
+
+.feature-icon {
+  font-size: 48rpx;
+  margin-bottom: var(--spacing-xs);
+}
+
+.feature-name {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+}

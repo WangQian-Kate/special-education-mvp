@@ -1,0 +1,51 @@
+<!-- pages/statistics/statistics.wxml -->
+<view class="container">
+  <text class="page-title">统计分析</text>
+
+  <!-- 时间筛选 -->
+  <view class="date-filter">
+    <view class="filter-item {{dateRange === 'week' ? 'active' : ''}}"
+          data-range="week"
+          bindtap="handleDateRangeChange">
+      <text>本周</text>
+    </view>
+    <view class="filter-item {{dateRange === 'month' ? 'active' : ''}}"
+          data-range="month"
+          bindtap="handleDateRangeChange">
+      <text>本月</text>
+    </view>
+    <view class="filter-item {{dateRange === 'semester' ? 'active' : ''}}"
+          data-range="semester"
+          bindtap="handleDateRangeChange">
+      <text>本学期</text>
+    </view>
+  </view>
+
+  <!-- 概览卡片 -->
+  <view class="summary-cards">
+    <view class="summary-card">
+      <text class="card-value">{{summary.totalRecords}}</text>
+      <text class="card-label">行为记录总数</text>
+    </view>
+    <view class="summary-card">
+      <text class="card-value">{{summary.intensityAvg}}</text>
+      <text class="card-label">平均行为强度</text>
+    </view>
+  </view>
+
+  <!-- 图表区域（预留） -->
+  <view class="chart-section">
+    <text class="section-title">行为趋势</text>
+    <view class="chart-placeholder">
+      <text class="placeholder-text">📈 图表区域（后续集成图表库）</text>
+    </view>
+  </view>
+
+  <!-- 行为分布（预留） -->
+  <view class="chart-section">
+    <text class="section-title">行为类型分布</text>
+    <view class="chart-placeholder">
+      <text class="placeholder-text">📊 分布图表（后续集成图表库）</text>
+    </view>
+  </view>
+</view>

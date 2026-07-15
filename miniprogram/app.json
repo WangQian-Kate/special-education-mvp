@@ -1,0 +1,17 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/record/record",
+    "pages/students/students",
+    "pages/statistics/statistics",
+    "pages/report/report"
+  ],
+  "window": {
+    "navigationBarTitleText": "特殊教育辅助系统",
+    "navigationBarBackgroundColor": "#4A90D9",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#F5F5F5"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}
