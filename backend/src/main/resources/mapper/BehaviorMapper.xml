@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.specialed.assistant.mapper.BehaviorMapper">
+    <resultMap id="BehaviorRecordMap" type="com.specialed.assistant.entity.BehaviorRecordEntity">
+        <id property="id" column="record_id"/>
+        <result property="observationSessionId" column="observation_session_id"/>
+        <result property="studentId" column="student_id"/>
+        <result property="creatorId" column="creator_id"/>
+        <result property="recordTime" column="record_time"/>
+        <result property="antecedentCode" column="antecedent_code"/>
+        <result property="antecedentLabel" column="antecedent_label"/>
+        <result property="behaviorCode" column="behavior_code"/>
+        <result property="behaviorLabel" column="behavior_label"/>
+        <result property="consequenceCode" column="consequence_code"/>
+        <result property="consequenceLabel" column="consequence_label"/>
+        <result property="assistanceResult" column="assistance_result"/>
+        <result property="assistanceOtherDescription" column="assistance_other_description"/>
+        <result property="frequency" column="frequency"/>
+        <result property="durationSeconds" column="duration_seconds"/>
+        <result property="remark" column="remark"/>
+        <association property="observationSession" javaType="com.specialed.assistant.entity.ObservationSessionEntity">
+            <id property="id" column="session_id"/>
+            <result property="studentId" column="session_student_id"/>
+            <result property="creatorId" column="session_creator_id"/>
+            <result property="observationDate" column="session_observation_date"/>
+            <result property="courseCode" column="session_course_code"/>
+            <result property="courseLabel" column="session_course_label"/>
+            <result property="courseOtherDescription" column="session_course_other_description"/>
+            <result property="environmentCode" column="session_environment_code"/>
+            <result property="environmentLabel" column="session_environment_label"/>
+            <result property="environmentOtherDescription" column="session_environment_other_description"/>
+            <result property="observationDurationMinutes" column="session_duration_minutes"/>
+            <result property="periodBehaviorRemark" column="session_period_behavior_remark"/>
+        </association>
+        <collection property="assistanceMethods" ofType="com.specialed.assistant.entity.CodeLabelEntity"
+                    notNullColumn="assistance_code">
+            <id property="code" column="assistance_code"/>
+            <result property="label" column="assistance_label"/>
+        </collection>
+    </resultMap>
+
+    <sql id="BehaviorSelectColumns">
+        SELECT r.id AS record_id, r.observation_session_id, r.student_id, r.creator_id,
+               r.record_time, r.antecedent_code, ant.label AS antecedent_label,
+               r.behavior_code, bt.label AS behavior_label,
+               r.consequence_code, ct.label AS consequence_label,
+               r.assistance_result, r.assistance_other_description,
+               r.frequency, r.duration_seconds, r.remark,
+               os.id AS session_id, os.student_id AS session_student_id,
+               os.creator_id AS session_creator_id, os.observation_date AS session_observation_date,
+               os.course_code AS session_course_code, course.label AS session_course_label,
+               os.course_other_description AS session_course_other_description,
+               os.environment_code AS session_environment_code, env.label AS session_environment_label,
+               os.environment_other_description AS session_environment_other_description,
+               os.observation_duration_minutes AS session_duration_minutes,
+               os.period_behavior_remark AS session_period_behavior_remark,
+               at.code AS assistance_code, at.label AS assistance_label
+        FROM behavior_record r
+        JOIN observation_session os ON os.id = r.observation_session_id
+        JOIN course_type course ON course.code = os.course_code
+        JOIN environment_type env ON env.code = os.environment_code
+        LEFT JOIN antecedent_type ant ON ant.code = r.antecedent_code
+        JOIN behavior_type bt ON bt.code = r.behavior_code
+        LEFT JOIN consequence_type ct ON ct.code = r.consequence_code
+        LEFT JOIN behavior_record_assistance bra ON bra.behavior_record_id = r.id
+        LEFT JOIN assistance_type at ON at.code = bra.assistance_code
+    </sql>
+
+    <insert id="insert" parameterType="com.specialed.assistant.entity.BehaviorRecordEntity"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO behavior_record
+            (observation_session_id, student_id, creator_id, record_time,
+             antecedent_code, behavior_code, consequence_code,
+             assistance_result, assistance_other_description,
+             frequency, duration_seconds, remark)
+        VALUES
+            (#{observationSessionId}, #{studentId}, #{creatorId}, #{recordTime},
+             #{antecedentCode}, #{behaviorCode}, #{consequenceCode},
+             #{assistanceResult}, #{assistanceOtherDescription},
+             #{frequency}, #{durationSeconds}, #{remark})
+    </insert>
+
+    <insert id="insertAssistances">
+        INSERT INTO behavior_record_assistance (behavior_record_id, assistance_code)
+        VALUES
+        <foreach collection="assistanceCodes" item="code" separator=",">
+            (#{recordId}, #{code})
+        </foreach>
+    </insert>
+
+    <select id="findById" resultMap="BehaviorRecordMap">
+        <include refid="BehaviorSelectColumns"/>
+        WHERE r.id = #{id}
+        ORDER BY at.code
+    </select>
+
+    <select id="findByStudent" resultMap="BehaviorRecordMap">
+        <include refid="BehaviorSelectColumns"/>
+        WHERE r.student_id = #{studentId}
+        <if test="startDate != null">
+            AND r.record_time &gt;= #{startDate}
+            AND r.record_time &lt; DATE_ADD(#{endDate}, INTERVAL 1 DAY)
+        </if>
+        <if test="courseCode != null">
+            AND os.course_code = #{courseCode}
+        </if>
+        <if test="environmentCode != null">
+            AND os.environment_code = #{environmentCode}
+        </if>
+        <if test="observationSessionId != null">
+            AND r.observation_session_id = #{observationSessionId}
+        </if>
+        ORDER BY r.record_time DESC, r.id DESC, at.code
+    </select>
+
+    <update id="update" parameterType="com.specialed.assistant.entity.BehaviorRecordEntity">
+        UPDATE behavior_record
+        SET record_time = #{recordTime},
+            antecedent_code = #{antecedentCode},
+            behavior_code = #{behaviorCode},
+            consequence_code = #{consequenceCode},
+            assistance_result = #{assistanceResult},
+            assistance_other_description = #{assistanceOtherDescription},
+            frequency = #{frequency},
+            duration_seconds = #{durationSeconds},
+            remark = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteAssistances">
+        DELETE FROM behavior_record_assistance WHERE behavior_record_id = #{recordId}
+    </delete>
+
+    <delete id="delete">
+        DELETE FROM behavior_record WHERE id = #{id}
+    </delete>
+</mapper>

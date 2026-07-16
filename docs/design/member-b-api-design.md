@@ -96,6 +96,7 @@ POST /observation-session
 
 | 字段 | 必填 | 说明 |
 |---|---|---|
+| `studentId` | 是 | 当前被观察学生 ID |
 | `creatorId` | 是 | 当前记录教师 ID |
 | `observationDate` | 是 | 观察日期 |
 | `courseCode` | 是 | 课程 code |
@@ -109,6 +110,7 @@ POST /observation-session
 
 ```json
 {
+  "studentId": 1,
   "creatorId": 1,
   "observationDate": "2026-07-16",
   "courseCode": "CHINESE",
@@ -118,7 +120,7 @@ POST /observation-session
 }
 ```
 
-成功返回 `201 Created` 和完整观察周期对象。
+成功返回 `201 Created` 和完整观察周期对象，响应中包含不可修改的 `studentId`。
 
 ### 6.2 查询观察周期
 
@@ -144,7 +146,9 @@ PATCH /observation-session/{sessionId}
 - `observationDurationMinutes`
 - `periodBehaviorRemark`
 
-该接口供前端对顶部观察信息和本周期行为备注执行实时保存。`creatorId` 创建后不允许修改。
+该接口供前端对顶部观察信息和本周期行为备注执行实时保存。`studentId` 和 `creatorId` 创建后不允许修改。
+
+课程或环境从 `OTHER` 改为普通 code 时，后端自动清空对应的其他说明。
 
 ## 7. 行为记录接口
 
@@ -323,10 +327,11 @@ GET /statistics/{studentId}
 4. B 行为必填；A 和 C 允许为空。
 5. 课程或环境为 `OTHER` 时，对应说明必填。
 6. 辅助方式包含 `OTHER` 时，`assistanceOtherDescription` 必填。
-7. `frequency` 必须大于 0。
-8. `durationSeconds` 必须大于或等于 0。
-9. 日期范围必须同时提供开始和结束日期，开始日期不能晚于结束日期。
-10. 删除不存在的记录返回 `404`，不把重复删除伪装成成功。
+7. 课程、环境或辅助方式不再使用 `OTHER` 时，自动清空对应的其他说明。
+8. `frequency` 必须大于 0。
+9. `durationSeconds` 必须大于或等于 0。
+10. 日期范围必须同时提供开始和结束日期，开始日期不能晚于结束日期。
+11. 删除不存在的记录返回 `404`，不把重复删除伪装成成功。
 
 ## 11. 与数据模型的对应关系
 
@@ -340,7 +345,9 @@ GET /statistics/{studentId}
 | 辅助方式中文名称 | `assistance_type` |
 | 统计结果 | 对 `behavior_record` 和观察周期实时聚合 |
 
-## 12. 当前代码与接口契约的差异
+## 12. 任务 6 实施前的代码差异
+
+下表记录任务 3 设计接口时的旧代码差异，所列目标已在任务 6 的接口框架与持久层适配中完成。
 
 | 当前实现 | 本任务确定的目标 |
 |---|---|
@@ -372,6 +379,7 @@ GET /statistics/{studentId}
 以下内容不阻塞当前任务，但在正式联调前需要前端确认：
 
 - 前端请求使用 code，界面显示使用后端返回的 label；
+- 创建观察周期时必须发送当前 `studentId`；
 - 快速记录后保存记录 ID，用于减少、编辑和删除；
 - 查询参数采用 `startDate`、`endDate`、`courseCode`、`environmentCode` 和 `observationSessionId`；
 - 成功响应不使用统一外层包装，失败响应使用 `code + message`；

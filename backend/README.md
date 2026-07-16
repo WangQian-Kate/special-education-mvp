@@ -43,12 +43,22 @@ $env:DB_PASSWORD='<本地开发密码>'
 
 健康检查接口为 `GET http://localhost:8080/health`。
 
-## 当前成员 B 接口骨架
+## 当前成员 B 接口
 
-- `POST /behavior`：创建结构化 ABC 行为记录。
-- `GET /behavior/{studentId}`：查询学生行为记录。
-- `GET /statistics/{studentId}`：按行为类型统计学生记录。
+- `GET /health`：服务健康检查。
+- `POST /observation-session`：创建观察周期。
+- `GET /observation-session/{sessionId}`：查询观察周期。
+- `PATCH /observation-session/{sessionId}`：实时更新观察信息和本周期行为备注。
+- `POST /behavior`：创建快速或详细行为记录。
+- `GET /behavior/{studentId}`：按日期、课程、环境或观察周期查询行为记录。
+- `PATCH /behavior/records/{recordId}`：补充或编辑行为详细记录。
+- `DELETE /behavior/records/{recordId}`：删除行为记录。
+- `GET /statistics/{studentId}`：查询行为频次、占比、日期趋势和环境分布。
 
-可将 `docs/openapi.yaml` 手动导入 Apifox。种子脚本创建 ID 为 `1` 的演示教师、演示学生及其绑定关系。
+接口使用稳定字典 code，响应同时返回中文 label。行为发生时间按上海时区保存并以 `+08:00` 返回，统计占比按 `frequency` 计算并保留两位小数。
 
-当前接口和 Mapper 是正式数据库创建前的早期骨架，其中行为记录 SQL 仍使用旧字段。健康接口和数据库连接已经验证；行为接口将在下一项“接口框架与持久层适配”任务中统一切换到正式表结构，切换前不要将早期行为接口作为可联调版本。
+## 测试说明
+
+Controller 和 Service 测试不依赖数据库。Mapper 集成测试会在存在 `DB_PASSWORD` 环境变量时连接本机正式数据库，并在事务中执行后自动回滚；没有该变量时只跳过数据库集成测试。
+
+种子脚本创建 ID 为 `1` 的演示教师、演示学生及其绑定关系，供本地联调使用。完整接口契约位于 `docs/openapi.yaml`，更新后需要重新手动导入 Apifox。

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 特殊教育课堂助手 API
-  version: 0.2.0
+  version: 0.3.0
   description: |
     成员 B 当前阶段负责的观察周期、行为记录与行为统计接口。
     本文件可直接导入 Apifox。当前不包含认证、微信登录、AI 分析和 PDF 导出。
@@ -50,7 +50,7 @@ paths:
         - 观察周期
       operationId: createObservationSession
       summary: 创建观察周期
-      description: 创建随班记录所需的日期、课程、环境、观察时长和本周期行为备注。
+      description: 创建指定学生的随班记录观察周期，包括日期、课程、环境、观察时长和本周期行为备注。
       requestBody:
         required: true
         content:
@@ -58,6 +58,7 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateObservationSessionRequest'
             example:
+              studentId: 1
               creatorId: 1
               observationDate: '2026-07-16'
               courseCode: CHINESE
@@ -73,6 +74,7 @@ paths:
                 $ref: '#/components/schemas/ObservationSession'
               example:
                 id: 1001
+                studentId: 1
                 creatorId: 1
                 observationDate: '2026-07-16'
                 courseCode: CHINESE
@@ -117,6 +119,7 @@ paths:
       description: |
         实时保存日期、课程、环境、观察时长和本周期行为备注。
         未出现的字段保持原值，显式传入 null 可清空允许为空的说明或备注。
+        课程或环境不再为 OTHER 时，后端自动清空对应的其他说明。
       requestBody:
         required: true
         content:
@@ -298,7 +301,7 @@ paths:
       description: |
         补充或修改 ABC、辅助方式、辅助结果、频次、持续时间和备注。
         未出现的字段保持原值；可空字段显式传入 null 时清空；
-        assistanceCodes 传入空数组时清空全部辅助方式。
+        assistanceCodes 传入空数组时清空全部辅助方式；移除 OTHER 时自动清空其他辅助说明。
       requestBody:
         required: true
         content:
@@ -536,12 +539,18 @@ components:
     CreateObservationSessionRequest:
       type: object
       required:
+        - studentId
         - creatorId
         - observationDate
         - courseCode
         - environmentCode
         - observationDurationMinutes
       properties:
+        studentId:
+          type: integer
+          format: int64
+          minimum: 1
+          description: 当前被观察学生 ID
         creatorId:
           type: integer
           format: int64
@@ -621,6 +630,7 @@ components:
       type: object
       required:
         - id
+        - studentId
         - creatorId
         - observationDate
         - courseCode
@@ -632,6 +642,10 @@ components:
         id:
           type: integer
           format: int64
+        studentId:
+          type: integer
+          format: int64
+          description: 当前被观察学生 ID
         creatorId:
           type: integer
           format: int64
@@ -885,6 +899,7 @@ components:
           format: double
           minimum: 0
           maximum: 100
+          description: 按 frequency 计算，四舍五入保留两位小数
 
     BehaviorTrendItem:
       type: object
@@ -921,6 +936,7 @@ components:
           format: double
           minimum: 0
           maximum: 100
+          description: 按 frequency 计算，四舍五入保留两位小数
 
     BehaviorStatistics:
       type: object

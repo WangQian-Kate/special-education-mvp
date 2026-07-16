@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.specialed.assistant.mapper.StatisticsMapper">
+    <sql id="StatisticsFilters">
+        WHERE r.student_id = #{studentId}
+        <if test="startDate != null">
+            AND r.record_time &gt;= #{startDate}
+            AND r.record_time &lt; DATE_ADD(#{endDate}, INTERVAL 1 DAY)
+        </if>
+        <if test="courseCode != null">
+            AND os.course_code = #{courseCode}
+        </if>
+        <if test="environmentCode != null">
+            AND os.environment_code = #{environmentCode}
+        </if>
+    </sql>
+
+    <select id="summarizeBehavior" resultType="com.specialed.assistant.entity.BehaviorStatisticsRow">
+        SELECT r.behavior_code AS behaviorCode, bt.label AS behaviorLabel,
+               SUM(r.frequency) AS frequency
+        FROM behavior_record r
+        JOIN observation_session os ON os.id = r.observation_session_id
+        JOIN behavior_type bt ON bt.code = r.behavior_code
+        <include refid="StatisticsFilters"/>
+        GROUP BY r.behavior_code, bt.label
+        ORDER BY frequency DESC, r.behavior_code
+    </select>
+
+    <select id="summarizeTrend" resultType="com.specialed.assistant.entity.BehaviorTrendRow">
+        SELECT DATE(r.record_time) AS date, SUM(r.frequency) AS totalFrequency
+        FROM behavior_record r
+        JOIN observation_session os ON os.id = r.observation_session_id
+        <include refid="StatisticsFilters"/>
+        GROUP BY DATE(r.record_time)
+        ORDER BY date
+    </select>
+
+    <select id="summarizeEnvironment" resultType="com.specialed.assistant.entity.EnvironmentDistributionRow">
+        SELECT os.environment_code AS environmentCode, et.label AS environmentLabel,
+               SUM(r.frequency) AS frequency
+        FROM behavior_record r
+        JOIN observation_session os ON os.id = r.observation_session_id
+        JOIN environment_type et ON et.code = os.environment_code
+        <include refid="StatisticsFilters"/>
+        GROUP BY os.environment_code, et.label
+        ORDER BY frequency DESC, os.environment_code
+    </select>
+</mapper>
