@@ -6,11 +6,11 @@
 
 | 内容 | 当前状态 |
 |---|---|
-| OpenAPI 契约 | `0.4.1`，共 24 个接口 |
+| OpenAPI 契约 | `0.5.0`，共 24 个接口 |
 | Java 实现 | 已完成，按前端页面分包 |
 | MySQL | `special_ed_assistant` 已迁移到 `2.1.0`，内置 165 项标准目标 |
 | 自动化测试 | 5 个数据库集成场景覆盖全部 24 个接口，已通过 |
-| Apifox | 当前已导入 0.4.0；需将 0.4.1 重新导入现有新版模块 |
+| Apifox | 需将 0.5.0 重新导入现有新版模块 |
 
 ## 页面模块
 
@@ -36,7 +36,7 @@ src/main/java/com/specialed/assistant/api/
 
 详细契约见：
 
-- `docs/openapi.yaml`：OpenAPI 0.4.1 统一契约。
+- `docs/openapi.yaml`：OpenAPI 0.5.0 统一契约。
 - `docs/接口文档.md`：中文接口总览。
 - `docs/api/`：按页面拆分的中文接口说明。
 - `../docs/design/member-b-v2-data-model.md`：V2 数据模型。
@@ -53,7 +53,7 @@ src/main/java/com/specialed/assistant/api/
 | Maven | 3.9.16，由 Maven Wrapper 提供 |
 | MyBatis | 4.0.0 |
 | MySQL | 8.0 |
-| 默认服务地址 | `http://127.0.0.1:8080` |
+| 默认服务地址 | `http://localhost:3000/api` |
 | 默认数据库 | `special_ed_assistant` |
 
 Windows 环境不需要单独安装 Maven，统一使用仓库中的 `mvnw.cmd`。
@@ -74,7 +74,8 @@ $env:DB_PASSWORD='<special_ed_app 的本地密码>'
 | `DB_URL` | `jdbc:mysql://localhost:3306/special_ed_assistant?...` | JDBC 地址 |
 | `DB_USERNAME` | `special_ed_app` | 数据库账号 |
 | `SPRING_PROFILES_ACTIVE` | `dev` | Spring 配置环境 |
-| `SERVER_PORT` | `8080` | HTTP 端口 |
+| `SERVER_ADDRESS` | `127.0.0.1` | HTTP 监听地址；内网穿透时可改为 `0.0.0.0` |
+| `SERVER_PORT` | `3000` | HTTP 端口 |
 
 运行测试和服务：
 
@@ -87,10 +88,40 @@ cd backend
 健康检查：
 
 ```powershell
-Invoke-RestMethod http://127.0.0.1:8080/health
+Invoke-RestMethod http://localhost:3000/api/health
 ```
 
-除健康检查外，当前业务接口使用请求头 `X-User-Id` 表示当前用户。未来接入认证后，由认证上下文替代。
+所有接口统一返回以下包体：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {}
+}
+```
+
+`code` 为 `0` 表示成功；非 `0` 时前端展示 `message`。删除成功同样返回 HTTP 200 和统一包体，其中 `data` 为 `null`。
+
+除健康检查外，当前业务接口暂时使用请求头 `X-User-Id` 表示当前用户。前端拟使用的 `X-Teacher-Id: t001/t002/t003` 映射本轮暂不实现，待教师 ID 与数据库用户的对应关系确定后再切换。
+
+## HTTPS 内网穿透
+
+本机已准备 cpolar 3.3.12 便携客户端：
+
+```text
+%LOCALAPPDATA%\Programs\cpolar-portable\cpolar.exe
+```
+
+cpolar 需要账号的 `authtoken` 才能创建公网隧道。取得令牌后执行：
+
+```powershell
+$cpolar = "$env:LOCALAPPDATA\Programs\cpolar-portable\cpolar.exe"
+& $cpolar authtoken '<cpolar 控制台中的令牌>'
+& $cpolar http 3000
+```
+
+命令输出的 `https://...cpolar...` 地址即为公网基址，前端应将其填写到 `BASE_URLS.tunnel`。当前工作区不包含前端的 `utils/request.js`，因此后端仓库不直接修改该文件。
 
 ## 数据库脚本
 

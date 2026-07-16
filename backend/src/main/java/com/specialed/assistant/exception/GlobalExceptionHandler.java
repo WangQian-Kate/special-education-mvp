@@ -1,6 +1,6 @@
 package com.specialed.assistant.exception;
 
-import com.specialed.assistant.dto.ErrorResponse;
+import com.specialed.assistant.dto.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +23,7 @@ public class GlobalExceptionHandler {
     private static final String INTERNAL_ERROR_MESSAGE = "服务内部错误";
 
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ErrorResponse> handleBusiness(BusinessException exception) {
+    public ResponseEntity<ApiResponse<Void>> handleBusiness(BusinessException exception) {
         return error(exception.getStatus(), exception.getCode(), safeMessage(exception));
     }
 
@@ -38,12 +38,12 @@ public class GlobalExceptionHandler {
             ConstraintViolationException.class,
             DataIntegrityViolationException.class
     })
-    public ResponseEntity<ErrorResponse> handleBadRequest(Exception exception) {
+    public ResponseEntity<ApiResponse<Void>> handleBadRequest(Exception exception) {
         return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_ERROR, validationMessage(exception));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleInternalError(Exception exception) {
+    public ResponseEntity<ApiResponse<Void>> handleInternalError(Exception exception) {
         LOGGER.error("未处理的服务异常", exception);
         return error(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, INTERNAL_ERROR_MESSAGE);
     }
@@ -75,7 +75,7 @@ public class GlobalExceptionHandler {
         return message == null || message.isBlank() ? DEFAULT_VALIDATION_MESSAGE : message;
     }
 
-    private ResponseEntity<ErrorResponse> error(HttpStatus status, ErrorCode code, String message) {
-        return ResponseEntity.status(status).body(new ErrorResponse(code.name(), message));
+    private ResponseEntity<ApiResponse<Void>> error(HttpStatus status, ErrorCode code, String message) {
+        return ResponseEntity.status(status).body(ApiResponse.error(code.value(), message));
     }
 }

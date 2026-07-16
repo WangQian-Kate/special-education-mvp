@@ -1,6 +1,7 @@
 package com.specialed.assistant.api.trainingplan;
 
 import jakarta.validation.Valid;
+import com.specialed.assistant.dto.ApiResponse;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
@@ -84,12 +85,12 @@ public class TrainingPlanController {
     }
 
     @DeleteMapping("/items/{itemId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(
+    public ApiResponse<Void> delete(
             @RequestHeader("X-User-Id") @Positive Long userId,
             @PathVariable @Positive Long itemId,
             @RequestParam(defaultValue = "false") boolean confirmed
     ) {
         service.delete(userId, itemId, confirmed);
+        return ApiResponse.success(null);
     }
 }

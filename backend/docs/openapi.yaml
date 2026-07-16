@@ -1,13 +1,14 @@
 openapi: 3.0.3
 info:
   title: 特殊教育课堂助手 API
-  version: 0.4.1
+  version: 0.5.0
   description: |
     根据 V2 软件原型重写的接口契约，按“随班记录、训练计划、学生评估、我的、系统”五个页面模块组织。
     当前尚未接入登录，业务接口使用 X-User-Id 请求头确定当前用户；接入认证后由认证上下文替代。
+    所有响应统一使用 { code, message, data } 包体；code 为 0 表示成功。
     AI 分析、学期报告、导出分享、学生管理、个人资料修改和退出登录暂不包含。
 servers:
-  - url: http://127.0.0.1:8080
+  - url: http://localhost:3000/api
     description: 本地开发环境
 security: []
 tags:
@@ -34,9 +35,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HealthResponse'
+                $ref: '#/components/schemas/HealthApiResponse'
               example:
-                status: UP
+                code: 0
+                message: ok
+                data:
+                  status: UP
 
   /me:
     parameters:
@@ -54,7 +58,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MyProfile'
+                $ref: '#/components/schemas/MyProfileApiResponse'
         '404':
           $ref: '#/components/responses/ResourceNotFound'
         '500':
@@ -73,9 +77,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/StudentSummary'
+                $ref: '#/components/schemas/StudentSummaryListApiResponse'
         '404':
           $ref: '#/components/responses/ResourceNotFound'
         '500':
@@ -103,7 +105,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StudentSummary'
+                $ref: '#/components/schemas/StudentSummaryApiResponse'
         '400':
           $ref: '#/components/responses/ValidationError'
         '404':
@@ -127,9 +129,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ClassRecordSummary'
+                $ref: '#/components/schemas/ClassRecordSummaryListApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -159,7 +159,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassRecordDetail'
+                $ref: '#/components/schemas/ClassRecordDetailApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -182,9 +182,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CodeLabel'
+                $ref: '#/components/schemas/CodeLabelListApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '500':
@@ -210,7 +208,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BehaviorCountStatistics'
+                $ref: '#/components/schemas/BehaviorCountStatisticsApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -232,7 +230,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassRecordDetail'
+                $ref: '#/components/schemas/ClassRecordDetailApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -258,7 +256,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClassRecordDetail'
+                $ref: '#/components/schemas/ClassRecordDetailApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -289,7 +287,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BehaviorCardMutationResult'
+                $ref: '#/components/schemas/BehaviorCardMutationResultApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -320,7 +318,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BehaviorCardMutationResult'
+                $ref: '#/components/schemas/BehaviorCardMutationResultApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -344,9 +342,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/BehaviorRecordListItem'
+                $ref: '#/components/schemas/BehaviorRecordListApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -368,7 +364,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BehaviorRecordDetail'
+                $ref: '#/components/schemas/BehaviorRecordDetailApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -381,8 +377,12 @@ paths:
       summary: 删除一条行为记录
       description: 前端根据记录的 detailSaved 决定是否先显示确认框。
       responses:
-        '204':
-          description: 删除成功，无响应正文
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptyApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -422,7 +422,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BehaviorRecordDetail'
+                $ref: '#/components/schemas/BehaviorRecordDetailApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -450,7 +450,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BehaviorCountStatistics'
+                $ref: '#/components/schemas/BehaviorCountStatisticsApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -471,9 +471,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TrainingGoalCategory'
+                $ref: '#/components/schemas/TrainingGoalCategoryListApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '500':
@@ -507,9 +505,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TrainingGoalLibraryItem'
+                $ref: '#/components/schemas/TrainingGoalLibraryListApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -549,9 +545,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TrainingPlanItem'
+                $ref: '#/components/schemas/TrainingPlanItemListApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -584,9 +578,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TrainingPlanItem'
+                $ref: '#/components/schemas/TrainingPlanItemListApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -618,7 +610,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TrainingPlanItem'
+                $ref: '#/components/schemas/TrainingPlanItemApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -651,7 +643,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TrainingPlanItem'
+                $ref: '#/components/schemas/TrainingPlanItemApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -671,8 +663,12 @@ paths:
             type: boolean
             default: false
       responses:
-        '204':
-          description: 删除成功，无响应正文
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptyApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -752,6 +748,161 @@ components:
         maxLength: 64
 
   schemas:
+    SuccessResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+          enum: [0]
+        message:
+          type: string
+          enum: [ok]
+
+    HealthApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/HealthResponse'
+
+    MyProfileApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/MyProfile'
+
+    StudentSummaryListApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/StudentSummary'
+
+    StudentSummaryApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StudentSummary'
+
+    ClassRecordSummaryListApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ClassRecordSummary'
+
+    ClassRecordDetailApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ClassRecordDetail'
+
+    CodeLabelListApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/CodeLabel'
+
+    BehaviorCountStatisticsApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BehaviorCountStatistics'
+
+    BehaviorCardMutationResultApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BehaviorCardMutationResult'
+
+    BehaviorRecordListApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/BehaviorRecordDetail'
+
+    BehaviorRecordDetailApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BehaviorRecordDetail'
+
+    TrainingGoalCategoryListApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/TrainingGoalCategory'
+
+    TrainingGoalLibraryListApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/TrainingGoalLibraryItem'
+
+    TrainingPlanItemListApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/TrainingPlanItem'
+
+    TrainingPlanItemApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/TrainingPlanItem'
+
+    EmptyApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              nullable: true
+              example: null
+
     HealthResponse:
       type: object
       required: [status]
@@ -762,14 +913,18 @@ components:
 
     ErrorResponse:
       type: object
-      required: [code, message]
+      required: [code, message, data]
       properties:
         code:
-          type: string
-          minLength: 1
+          type: integer
+          enum: [40001, 40002, 40401, 40901, 40902, 50000]
         message:
           type: string
           minLength: 1
+        data:
+          type: object
+          nullable: true
+          example: null
 
     UserRole:
       type: string
@@ -827,6 +982,7 @@ components:
         user:
           $ref: '#/components/schemas/UserProfile'
         currentStudent:
+          type: object
           allOf:
             - $ref: '#/components/schemas/StudentSummary'
           nullable: true
@@ -1345,8 +1501,9 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            code: VALIDATION_ERROR
+            code: 40001
             message: 请求参数不合法
+            data: null
     BusinessValidationError:
       description: 请求参数不合法，或当前用户尚未选择学生
       content:
@@ -1356,12 +1513,14 @@ components:
           examples:
             validation:
               value:
-                code: VALIDATION_ERROR
+                code: 40001
                 message: 请求参数不合法
+                data: null
             currentStudentRequired:
               value:
-                code: CURRENT_STUDENT_REQUIRED
+                code: 40002
                 message: 请先选择当前学生
+                data: null
     ResourceNotFound:
       description: 资源不存在
       content:
@@ -1369,8 +1528,9 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            code: RESOURCE_NOT_FOUND
+            code: 40401
             message: 资源不存在
+            data: null
     ResourceConflict:
       description: 资源状态冲突
       content:
@@ -1378,8 +1538,9 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            code: RESOURCE_CONFLICT
+            code: 40901
             message: 该训练目标已经分配给当前学生
+            data: null
     ProgressConfirmationRequired:
       description: 已产生进度，删除前需要二次确认
       content:
@@ -1387,8 +1548,9 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            code: PROGRESS_CONFIRMATION_REQUIRED
+            code: 40902
             message: 该目标已经产生进度，请确认后再删除
+            data: null
     InternalError:
       description: 服务内部错误
       content:
@@ -1396,5 +1558,6 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            code: INTERNAL_ERROR
+            code: 50000
             message: 服务内部错误
+            data: null

@@ -1,6 +1,7 @@
 package com.specialed.assistant.api.classrecord;
 
 import tools.jackson.databind.JsonNode;
+import com.specialed.assistant.dto.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
@@ -132,11 +133,11 @@ public class ClassRecordController {
     }
 
     @DeleteMapping("/behavior-records/{recordId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteBehaviorRecord(
+    public ApiResponse<Void> deleteBehaviorRecord(
             @RequestHeader("X-User-Id") @Positive Long userId,
             @PathVariable @Positive Long recordId
     ) {
         service.deleteBehaviorRecord(userId, recordId);
+        return ApiResponse.success(null);
     }
 }

@@ -69,7 +69,7 @@
 - 阶段不为 `1`。
 - 状态不为 `NOT_STARTED`。
 
-首次删除返回 `409 PROGRESS_CONFIRMATION_REQUIRED`；前端确认后使用 `confirmed=true` 重试。
+首次删除返回 HTTP 409、错误码 `40902`；前端确认后使用 `confirmed=true` 重试。删除成功返回 HTTP 200 和 `data: null`。
 
 ## 待提供数据
 
