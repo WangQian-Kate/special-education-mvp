@@ -1,6 +1,6 @@
 # 成员 B 核心接口与 Apifox 设计（任务 3）
 
-> 历史文档：本设计对应旧 V0.3 接口，已被 `member-b-v2-api-design.md` 和 OpenAPI 0.4.0 设计稿替代，不再作为后续实现依据。
+> 历史文档：本设计对应旧 V0.3 接口，已被 `member-b-v2-api-design.md` 和 OpenAPI 0.4.1 契约替代，不再作为后续实现依据。
 
 ## 1. 文档目的
 

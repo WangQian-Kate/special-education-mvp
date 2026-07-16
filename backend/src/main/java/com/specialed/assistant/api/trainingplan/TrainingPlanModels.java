@@ -25,6 +25,7 @@ public final class TrainingPlanModels {
 
     public record TrainingGoalLibraryItem(
             Long id,
+            Integer standardNumber,
             String categoryCode,
             String categoryLabel,
             String goalText,
@@ -52,6 +53,7 @@ public final class TrainingPlanModels {
     public record TrainingPlanItem(
             Long id,
             Long goalId,
+            Integer standardNumber,
             GoalType goalType,
             String categoryCode,
             String categoryLabel,

@@ -38,7 +38,8 @@ public class TrainingPlanService {
     public List<TrainingGoalLibraryItem> library(Long userId, String keyword, String categoryCode) {
         Long studentId = profileService.requireCurrentStudentId(userId);
         return mapper.findLibrary(studentId, normalizeFilter(keyword), normalizeFilter(categoryCode)).stream()
-                .map(value -> new TrainingGoalLibraryItem(value.getId(), value.getCategoryCode(),
+                .map(value -> new TrainingGoalLibraryItem(value.getId(), value.getStandardNumber(),
+                        value.getCategoryCode(),
                         value.getCategoryLabel(), value.getGoalText(), value.isAssigned()))
                 .toList();
     }
@@ -155,7 +156,8 @@ public class TrainingPlanService {
     }
 
     private TrainingPlanItem toItem(TrainingPlanItemEntity value) {
-        return new TrainingPlanItem(value.getId(), value.getGoalId(), GoalType.valueOf(value.getGoalType()),
+        return new TrainingPlanItem(value.getId(), value.getGoalId(), value.getStandardNumber(),
+                GoalType.valueOf(value.getGoalType()),
                 value.getCategoryCode(), value.getCategoryLabel(), value.getGoalText(), value.getInitialLevel(),
                 value.getCurrentLevel(), value.getPhase(), TrainingStatus.valueOf(value.getStatus()),
                 hasProgress(value));

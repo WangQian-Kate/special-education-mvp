@@ -180,15 +180,22 @@ migration: BEGIN
 
   CREATE TABLE IF NOT EXISTS training_goal (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    standard_number SMALLINT UNSIGNED NULL,
     category_code VARCHAR(64) NOT NULL,
     goal_text VARCHAR(500) NOT NULL,
     goal_type ENUM('STANDARD', 'CUSTOM') NOT NULL,
     owner_student_id BIGINT UNSIGNED NULL,
     PRIMARY KEY (id),
+    UNIQUE KEY uk_training_goal_standard_number (standard_number),
     KEY idx_training_goal_category_type (category_code, goal_type),
     KEY idx_training_goal_owner (owner_student_id),
     CONSTRAINT chk_training_goal_text
       CHECK (CHAR_LENGTH(TRIM(goal_text)) > 0),
+    CONSTRAINT chk_training_goal_standard_number
+      CHECK (
+        (goal_type = 'STANDARD' AND standard_number IS NOT NULL)
+        OR (goal_type = 'CUSTOM' AND standard_number IS NULL)
+      ),
     CONSTRAINT chk_training_goal_owner
       CHECK (
         (goal_type = 'STANDARD' AND owner_student_id IS NULL)

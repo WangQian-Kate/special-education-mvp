@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 特殊教育课堂助手 API
-  version: 0.4.0
+  version: 0.4.1
   description: |
     根据 V2 软件原型重写的接口契约，按“随班记录、训练计划、学生评估、我的、系统”五个页面模块组织。
     当前尚未接入登录，业务接口使用 X-User-Id 请求头确定当前用户；接入认证后由认证上下文替代。
@@ -20,7 +20,7 @@ tags:
   - name: 学生评估
     description: 基于随班记录的日报、周报和月报行为频次
   - name: 训练计划
-    description: 标准目标库、学生目标分配、自定义目标和即时更新
+    description: 165 项标准目标库、学生目标分配、自定义目标和即时更新
 
 paths:
   /health:
@@ -1218,11 +1218,16 @@ components:
 
     TrainingGoalLibraryItem:
       type: object
-      required: [id, categoryCode, categoryLabel, goalText, assigned]
+      required: [id, standardNumber, categoryCode, categoryLabel, goalText, assigned]
       properties:
         id:
           type: integer
           format: int64
+        standardNumber:
+          type: integer
+          minimum: 1
+          maximum: 165
+          description: 标准目标业务编号
         categoryCode:
           type: string
         categoryLabel:
@@ -1288,6 +1293,7 @@ components:
       required:
         - id
         - goalId
+        - standardNumber
         - goalType
         - categoryCode
         - categoryLabel
@@ -1304,6 +1310,12 @@ components:
         goalId:
           type: integer
           format: int64
+        standardNumber:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 165
+          description: 标准目标业务编号；自定义目标为 null
         goalType:
           type: string
           enum: [STANDARD, CUSTOM]

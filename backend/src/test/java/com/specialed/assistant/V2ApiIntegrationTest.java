@@ -52,15 +52,8 @@ class V2ApiIntegrationTest {
                 INSERT INTO behavior_function_type (code, label) VALUES ('ESCAPE', '逃避') AS new
                 ON DUPLICATE KEY UPDATE label = new.label
                 """);
-        jdbc.update("""
-                INSERT INTO training_goal (category_code, goal_text, goal_type, owner_student_id)
-                SELECT 'SCHOOL_CLASS_AWARENESS', 'V2 自动化测试标准目标', 'STANDARD', NULL
-                WHERE NOT EXISTS (
-                    SELECT 1 FROM training_goal WHERE goal_text = 'V2 自动化测试标准目标'
-                )
-                """);
         standardGoalId = jdbc.queryForObject(
-                "SELECT id FROM training_goal WHERE goal_text = 'V2 自动化测试标准目标'", Long.class);
+                "SELECT id FROM training_goal WHERE standard_number = 1", Long.class);
     }
 
     @Test
@@ -215,18 +208,35 @@ class V2ApiIntegrationTest {
     void trainingPlanSupportsStandardCustomInlineUpdateAndDeleteConfirmation() throws Exception {
         mockMvc.perform(get("/training-plan/categories").header(USER_HEADER, 1))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(5));
+                .andExpect(jsonPath("$.length()").value(11))
+                .andExpect(jsonPath("$[?(@.code == 'GROUP_CLASS')].label").value("集体课"));
+
+        mockMvc.perform(get("/training-plan/library").header(USER_HEADER, 1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(165))
+                .andExpect(jsonPath("$[0].standardNumber").value(1))
+                .andExpect(jsonPath("$[0].goalText").value("准确说出学校名称"))
+                .andExpect(jsonPath("$[164].standardNumber").value(165))
+                .andExpect(jsonPath("$[164].goalText").value("按要求排队离开教室"));
 
         mockMvc.perform(get("/training-plan/library").header(USER_HEADER, 1)
-                        .queryParam("keyword", "自动化测试").queryParam("categoryCode", "SCHOOL_CLASS_AWARENESS"))
+                        .queryParam("keyword", "学校名称").queryParam("categoryCode", "SCHOOL_CLASS_AWARENESS"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].standardNumber").value(1))
                 .andExpect(jsonPath("$[0].assigned").value(false));
+
+        mockMvc.perform(get("/training-plan/library").header(USER_HEADER, 1)
+                        .queryParam("categoryCode", "GROUP_CLASS"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(35))
+                .andExpect(jsonPath("$[?(@.standardNumber == 163)].goalText").value("按要求摆桌子"));
 
         String assigned = mockMvc.perform(post("/training-plan/items/standard").header(USER_HEADER, 1)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"assignments\":[{\"goalId\":" + standardGoalId
                                 + ",\"initialLevel\":\"C\"}]}"))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$[0].standardNumber").value(1))
                 .andExpect(jsonPath("$[0].currentLevel").value("C"))
                 .andExpect(jsonPath("$[0].phase").value(1))
                 .andExpect(jsonPath("$[0].status").value("NOT_STARTED"))
@@ -235,7 +245,7 @@ class V2ApiIntegrationTest {
         long itemId = objectMapper.readTree(assigned).get(0).get("id").longValue();
 
         mockMvc.perform(get("/training-plan/items").header(USER_HEADER, 1)
-                        .queryParam("keyword", "自动化测试")
+                        .queryParam("keyword", "学校名称")
                         .queryParam("categoryCode", "SCHOOL_CLASS_AWARENESS")
                         .queryParam("status", "NOT_STARTED"))
                 .andExpect(status().isOk())
@@ -266,6 +276,7 @@ class V2ApiIntegrationTest {
                         .content("{\"goalText\":\"自定义目标\",\"initialLevel\":\"A\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.goalType").value("CUSTOM"))
+                .andExpect(jsonPath("$.standardNumber").value(nullValue()))
                 .andExpect(jsonPath("$.categoryCode").value("CUSTOM"))
                 .andReturn().getResponse().getContentAsString();
         long customItemId = objectMapper.readTree(custom).get("id").longValue();

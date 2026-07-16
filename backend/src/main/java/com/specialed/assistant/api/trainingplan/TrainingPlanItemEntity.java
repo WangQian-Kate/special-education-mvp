@@ -4,6 +4,7 @@ public class TrainingPlanItemEntity {
     private Long id;
     private Long studentId;
     private Long goalId;
+    private Integer standardNumber;
     private String goalType;
     private String categoryCode;
     private String categoryLabel;
@@ -19,6 +20,8 @@ public class TrainingPlanItemEntity {
     public void setStudentId(Long studentId) { this.studentId = studentId; }
     public Long getGoalId() { return goalId; }
     public void setGoalId(Long goalId) { this.goalId = goalId; }
+    public Integer getStandardNumber() { return standardNumber; }
+    public void setStandardNumber(Integer standardNumber) { this.standardNumber = standardNumber; }
     public String getGoalType() { return goalType; }
     public void setGoalType(String goalType) { this.goalType = goalType; }
     public String getCategoryCode() { return categoryCode; }

@@ -11,6 +11,7 @@
 
     <select id="findLibrary" resultType="com.specialed.assistant.api.trainingplan.TrainingGoalLibraryEntity">
         SELECT goal.id,
+               goal.standard_number,
                goal.category_code,
                category.label AS category_label,
                goal.goal_text,
@@ -27,13 +28,14 @@
         <if test="categoryCode != null and categoryCode != ''">
           AND goal.category_code = #{categoryCode}
         </if>
-        ORDER BY category.display_order, goal.id
+        ORDER BY category.display_order, goal.standard_number, goal.id
     </select>
 
     <select id="findItems" resultType="com.specialed.assistant.api.trainingplan.TrainingPlanItemEntity">
         SELECT item.id,
                item.student_id,
                item.goal_id,
+               goal.standard_number,
                goal.goal_type,
                goal.category_code,
                category.label AS category_label,
@@ -59,7 +61,7 @@
     </select>
 
     <select id="findGoal" resultType="com.specialed.assistant.api.trainingplan.TrainingGoalEntity">
-        SELECT id, category_code, goal_text, goal_type, owner_student_id
+        SELECT id, standard_number, category_code, goal_text, goal_type, owner_student_id
         FROM training_goal
         WHERE id = #{id}
     </select>
@@ -88,6 +90,7 @@
         SELECT item.id,
                item.student_id,
                item.goal_id,
+               goal.standard_number,
                goal.goal_type,
                goal.category_code,
                category.label AS category_label,
