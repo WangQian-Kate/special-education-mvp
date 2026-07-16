@@ -14,3 +14,4 @@ Set `DB_PASSWORD` to the password of the local `special_ed_app` MySQL user. Opti
 
 Run `mvn test`, then `mvn spring-boot:run`. The health endpoint is `GET http://localhost:8080/health`.
 
+Before the first database-backed run, execute `sql/schema.sql` and `sql/seed.sql` using an existing authorized MySQL connection, then create the local `special_ed_app` account and set `DB_PASSWORD` outside Git.
