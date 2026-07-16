@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: assistant-backend
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+server:
+  address: 127.0.0.1
+  port: ${SERVER_PORT:8080}
+
