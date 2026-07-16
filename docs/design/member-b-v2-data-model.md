@@ -2,7 +2,7 @@
 
 ## 1. 设计依据
 
-本设计依据 2026-07-16 至 2026-07-17 已确认的软件原型和交互规则，替代此前以旧接口为基础的数据模型。当前批次只确认设计，不修改 SQL 或正式 MySQL。
+本设计依据 2026-07-16 至 2026-07-17 已确认的软件原型和交互规则，替代此前以旧接口为基础的数据模型。V2 SQL 和受保护迁移脚本已经实现；正式 MySQL 仍保留 V0.3，待 V2 Java 代码具备运行条件后再切换。
 
 一级页面固定为：
 
@@ -72,7 +72,11 @@
 - `environment_type`
 - `behavior_type`
 
-### 3.2 当前学生表 `app_user_current_student`
+### 3.2 迁移版本表 `schema_migration`
+
+这是技术表，不属于业务页面。每个已成功应用的结构版本保存一行；当前 V2 标记为 `2.0.0`，用于保证迁移脚本重复执行时不会再次删除或创建业务表。
+
+### 3.3 当前学生表 `app_user_current_student`
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -81,7 +85,7 @@
 
 使用 `(user_id, student_id)` 联合外键关联 `app_user_student`，从数据库层保证当前学生已经与用户绑定。
 
-### 3.3 随班记录表 `class_record`
+### 3.4 随班记录表 `class_record`
 
 一行表示一次独立课堂或观察记录。相同学生、日期、课程和环境允许创建多行，以支持同一天两节相同课程分别记录。
 
@@ -100,7 +104,7 @@
 
 前端保存当前 `classRecordId`，用它区分同一天条件相同的两次记录。
 
-### 3.4 行为环节字典 `behavior_stage_type`
+### 3.5 行为环节字典 `behavior_stage_type`
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -109,7 +113,7 @@
 
 具体选项待前端提供，本阶段不写入虚假数据。
 
-### 3.5 行为功能字典 `behavior_function_type`
+### 3.6 行为功能字典 `behavior_function_type`
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -118,7 +122,7 @@
 
 具体选项待前端提供，本阶段不写入虚假数据。
 
-### 3.6 行为记录表 `behavior_record`
+### 3.7 行为记录表 `behavior_record`
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
@@ -144,7 +148,7 @@
 - `assistance_result` 枚举
 - 单一的 `assistance_other_description`
 
-### 3.7 辅助方式字典 `assistance_type`
+### 3.8 辅助方式字典 `assistance_type`
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -153,7 +157,7 @@
 | `group_code` | `ENUM('INTERNAL_STIMULUS','EXTERNAL_STIMULUS')` | 辅助分组 |
 | `display_order` | `SMALLINT UNSIGNED` | 页面顺序 |
 
-### 3.8 行为辅助方式表 `behavior_record_assistance`
+### 3.9 行为辅助方式表 `behavior_record_assistance`
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
@@ -163,11 +167,11 @@
 
 联合主键为 `(behavior_record_id, assistance_code)`，同一记录不能重复选择同一种辅助方式。
 
-### 3.9 课程行为配置表 `course_behavior_config`
+### 3.10 课程行为配置表 `course_behavior_config`
 
 继续用于决定随班记录页面在指定课程下显示哪些行为卡片。当前仍按课程配置，不增加学生维度。
 
-### 3.10 训练目标分类表 `training_goal_category`
+### 3.11 训练目标分类表 `training_goal_category`
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -176,7 +180,7 @@
 | `display_order` | `SMALLINT UNSIGNED` | 展示顺序 |
 | `is_custom` | `BOOLEAN` | 是否为自定义分类 |
 
-### 3.11 训练目标库 `training_goal`
+### 3.12 训练目标库 `training_goal`
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
@@ -188,7 +192,7 @@
 
 标准目标由系统维护，教师不能修改名称和分类。自定义目标只属于一个学生。
 
-### 3.12 学生训练目标分配表 `student_training_goal`
+### 3.13 学生训练目标分配表 `student_training_goal`
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
@@ -244,3 +248,10 @@ COUNT(behavior_record.id)
 - 行为功能选项。
 - 春季和秋季学期固定日期范围。
 
+## 7. SQL 实现
+
+- `backend/sql/schema.sql`：用于全新安装，创建 17 张业务或字典表和 1 张迁移版本表。
+- `backend/sql/seed.sql`：本地开发种子数据，可重复执行；不会伪造尚未提供的 163 项目标、等级、行为环节或行为功能。
+- `backend/sql/migrate-v2.sql`：用于旧 V0.3 数据库。只有旧业务表全部为空时才重建业务结构；检测到业务数据会中止并保留原表。
+
+详细执行和验证记录见 `member-b-v2-database-migration.md`。

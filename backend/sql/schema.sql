@@ -4,6 +4,12 @@ CREATE DATABASE IF NOT EXISTS special_ed_assistant
 
 USE special_ed_assistant;
 
+CREATE TABLE IF NOT EXISTS schema_migration (
+  version VARCHAR(32) NOT NULL,
+  applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (version)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS app_user (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   avatar VARCHAR(500) NULL,
@@ -36,6 +42,17 @@ CREATE TABLE IF NOT EXISTS app_user_student (
     FOREIGN KEY (student_id) REFERENCES student (id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS app_user_current_student (
+  user_id BIGINT UNSIGNED NOT NULL,
+  student_id BIGINT UNSIGNED NOT NULL,
+  PRIMARY KEY (user_id),
+  KEY idx_app_user_current_student_student (student_id),
+  CONSTRAINT fk_app_user_current_student_binding
+    FOREIGN KEY (user_id, student_id)
+    REFERENCES app_user_student (user_id, student_id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS course_type (
   code VARCHAR(64) NOT NULL,
   label VARCHAR(64) NOT NULL,
@@ -48,19 +65,19 @@ CREATE TABLE IF NOT EXISTS environment_type (
   PRIMARY KEY (code)
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS antecedent_type (
-  code VARCHAR(64) NOT NULL,
-  label VARCHAR(64) NOT NULL,
-  PRIMARY KEY (code)
-) ENGINE=InnoDB;
-
 CREATE TABLE IF NOT EXISTS behavior_type (
   code VARCHAR(64) NOT NULL,
   label VARCHAR(64) NOT NULL,
   PRIMARY KEY (code)
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS consequence_type (
+CREATE TABLE IF NOT EXISTS behavior_stage_type (
+  code VARCHAR(64) NOT NULL,
+  label VARCHAR(64) NOT NULL,
+  PRIMARY KEY (code)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS behavior_function_type (
   code VARCHAR(64) NOT NULL,
   label VARCHAR(64) NOT NULL,
   PRIMARY KEY (code)
@@ -69,78 +86,82 @@ CREATE TABLE IF NOT EXISTS consequence_type (
 CREATE TABLE IF NOT EXISTS assistance_type (
   code VARCHAR(64) NOT NULL,
   label VARCHAR(64) NOT NULL,
-  PRIMARY KEY (code)
+  group_code ENUM('INTERNAL_STIMULUS', 'EXTERNAL_STIMULUS') NOT NULL,
+  display_order SMALLINT UNSIGNED NOT NULL,
+  PRIMARY KEY (code),
+  UNIQUE KEY uk_assistance_type_display_order (display_order)
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS observation_session (
+CREATE TABLE IF NOT EXISTS class_record (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   student_id BIGINT UNSIGNED NOT NULL,
   creator_id BIGINT UNSIGNED NOT NULL,
-  observation_date DATE NOT NULL,
+  record_date DATE NOT NULL,
   course_code VARCHAR(64) NOT NULL,
   course_other_description VARCHAR(255) NULL,
   environment_code VARCHAR(64) NOT NULL,
   environment_other_description VARCHAR(255) NULL,
   observation_duration_minutes SMALLINT UNSIGNED NOT NULL,
-  period_behavior_remark VARCHAR(1000) NULL,
+  overall_remark VARCHAR(1000) NULL,
   PRIMARY KEY (id),
-  UNIQUE KEY uk_observation_session_id_student (id, student_id),
-  KEY idx_observation_session_student_date (student_id, observation_date),
-  KEY idx_observation_session_creator (creator_id),
-  KEY idx_observation_session_course (course_code),
-  KEY idx_observation_session_environment (environment_code),
-  CONSTRAINT chk_observation_session_duration
+  KEY idx_class_record_student_date (student_id, record_date),
+  KEY idx_class_record_creator_student (creator_id, student_id),
+  KEY idx_class_record_course (course_code),
+  KEY idx_class_record_environment (environment_code),
+  CONSTRAINT chk_class_record_duration
     CHECK (observation_duration_minutes > 0),
-  CONSTRAINT fk_observation_session_student
-    FOREIGN KEY (student_id) REFERENCES student (id),
-  CONSTRAINT fk_observation_session_creator
-    FOREIGN KEY (creator_id) REFERENCES app_user (id),
-  CONSTRAINT fk_observation_session_course
+  CONSTRAINT fk_class_record_creator_student
+    FOREIGN KEY (creator_id, student_id)
+    REFERENCES app_user_student (user_id, student_id),
+  CONSTRAINT fk_class_record_course
     FOREIGN KEY (course_code) REFERENCES course_type (code),
-  CONSTRAINT fk_observation_session_environment
+  CONSTRAINT fk_class_record_environment
     FOREIGN KEY (environment_code) REFERENCES environment_type (code)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS behavior_record (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  observation_session_id BIGINT UNSIGNED NOT NULL,
-  student_id BIGINT UNSIGNED NOT NULL,
+  class_record_id BIGINT UNSIGNED NOT NULL,
   creator_id BIGINT UNSIGNED NOT NULL,
-  record_time DATETIME(3) NOT NULL,
-  antecedent_code VARCHAR(64) NULL,
+  occurred_at DATETIME(3) NOT NULL,
   behavior_code VARCHAR(64) NOT NULL,
-  consequence_code VARCHAR(64) NULL,
-  assistance_result ENUM('SUCCESS', 'PARTIAL_SUCCESS', 'FAILED') NULL,
-  assistance_other_description VARCHAR(255) NULL,
-  frequency INT UNSIGNED NOT NULL DEFAULT 1,
-  duration_seconds INT UNSIGNED NULL,
-  remark VARCHAR(500) NULL,
+  duration_minutes SMALLINT UNSIGNED NULL,
+  stage_code VARCHAR(64) NULL,
+  antecedent_text VARCHAR(1000) NULL,
+  behavior_description VARCHAR(1000) NULL,
+  consequence_text VARCHAR(1000) NULL,
+  function_code VARCHAR(64) NULL,
+  assistance_result_text VARCHAR(1000) NULL,
+  detail_saved BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (id),
-  KEY idx_behavior_record_session_time (observation_session_id, record_time),
-  KEY idx_behavior_record_student_time (student_id, record_time),
+  KEY idx_behavior_record_class_behavior_time
+    (class_record_id, behavior_code, occurred_at, id),
   KEY idx_behavior_record_creator (creator_id),
-  KEY idx_behavior_record_antecedent (antecedent_code),
   KEY idx_behavior_record_behavior (behavior_code),
-  KEY idx_behavior_record_consequence (consequence_code),
-  CONSTRAINT chk_behavior_record_frequency CHECK (frequency > 0),
-  CONSTRAINT fk_behavior_record_session_student
-    FOREIGN KEY (observation_session_id, student_id)
-    REFERENCES observation_session (id, student_id),
+  KEY idx_behavior_record_stage (stage_code),
+  KEY idx_behavior_record_function (function_code),
+  CONSTRAINT chk_behavior_record_duration
+    CHECK (duration_minutes IS NULL OR duration_minutes > 0),
+  CONSTRAINT fk_behavior_record_class_record
+    FOREIGN KEY (class_record_id) REFERENCES class_record (id) ON DELETE CASCADE,
   CONSTRAINT fk_behavior_record_creator
     FOREIGN KEY (creator_id) REFERENCES app_user (id),
-  CONSTRAINT fk_behavior_record_antecedent
-    FOREIGN KEY (antecedent_code) REFERENCES antecedent_type (code),
   CONSTRAINT fk_behavior_record_behavior
     FOREIGN KEY (behavior_code) REFERENCES behavior_type (code),
-  CONSTRAINT fk_behavior_record_consequence
-    FOREIGN KEY (consequence_code) REFERENCES consequence_type (code)
+  CONSTRAINT fk_behavior_record_stage
+    FOREIGN KEY (stage_code) REFERENCES behavior_stage_type (code),
+  CONSTRAINT fk_behavior_record_function
+    FOREIGN KEY (function_code) REFERENCES behavior_function_type (code)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS behavior_record_assistance (
   behavior_record_id BIGINT UNSIGNED NOT NULL,
   assistance_code VARCHAR(64) NOT NULL,
+  content VARCHAR(500) NOT NULL,
   PRIMARY KEY (behavior_record_id, assistance_code),
   KEY idx_behavior_record_assistance_type (assistance_code),
+  CONSTRAINT chk_behavior_record_assistance_content
+    CHECK (CHAR_LENGTH(TRIM(content)) > 0),
   CONSTRAINT fk_behavior_record_assistance_record
     FOREIGN KEY (behavior_record_id) REFERENCES behavior_record (id) ON DELETE CASCADE,
   CONSTRAINT fk_behavior_record_assistance_type
@@ -162,37 +183,59 @@ CREATE TABLE IF NOT EXISTS course_behavior_config (
     FOREIGN KEY (configured_by_user_id) REFERENCES app_user (id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS student_training_plan (
-  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  student_id BIGINT UNSIGNED NOT NULL,
-  training_context VARCHAR(128) NOT NULL,
-  training_goal VARCHAR(255) NOT NULL,
-  initial_level VARCHAR(32) NULL,
-  current_level VARCHAR(32) NULL,
-  current_performance VARCHAR(1000) NULL,
-  plan_phase VARCHAR(64) NULL,
-  status ENUM('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'PAUSED') NOT NULL,
-  teacher_remark VARCHAR(1000) NULL,
-  PRIMARY KEY (id),
-  KEY idx_student_training_plan_student_status (student_id, status),
-  CONSTRAINT fk_student_training_plan_student
-    FOREIGN KEY (student_id) REFERENCES student (id)
+CREATE TABLE IF NOT EXISTS training_goal_category (
+  code VARCHAR(64) NOT NULL,
+  label VARCHAR(128) NOT NULL,
+  display_order SMALLINT UNSIGNED NOT NULL,
+  is_custom BOOLEAN NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (code),
+  UNIQUE KEY uk_training_goal_category_display_order (display_order)
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS teacher_evaluation (
+CREATE TABLE IF NOT EXISTS training_goal (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  category_code VARCHAR(64) NOT NULL,
+  goal_text VARCHAR(500) NOT NULL,
+  goal_type ENUM('STANDARD', 'CUSTOM') NOT NULL,
+  owner_student_id BIGINT UNSIGNED NULL,
+  PRIMARY KEY (id),
+  KEY idx_training_goal_category_type (category_code, goal_type),
+  KEY idx_training_goal_owner (owner_student_id),
+  CONSTRAINT chk_training_goal_text
+    CHECK (CHAR_LENGTH(TRIM(goal_text)) > 0),
+  CONSTRAINT chk_training_goal_owner
+    CHECK (
+      (goal_type = 'STANDARD' AND owner_student_id IS NULL)
+      OR (goal_type = 'CUSTOM' AND owner_student_id IS NOT NULL)
+    ),
+  CONSTRAINT fk_training_goal_category
+    FOREIGN KEY (category_code) REFERENCES training_goal_category (code),
+  CONSTRAINT fk_training_goal_owner
+    FOREIGN KEY (owner_student_id) REFERENCES student (id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS student_training_goal (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   student_id BIGINT UNSIGNED NOT NULL,
-  teacher_id BIGINT UNSIGNED NOT NULL,
-  period_type ENUM('DAILY', 'WEEKLY', 'MONTHLY') NOT NULL,
-  period_start DATE NOT NULL,
-  period_end DATE NOT NULL,
-  evaluation_text VARCHAR(2000) NULL,
+  goal_id BIGINT UNSIGNED NOT NULL,
+  initial_level VARCHAR(32) NOT NULL,
+  current_level VARCHAR(32) NOT NULL,
+  phase TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  status ENUM('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'PAUSED')
+    NOT NULL DEFAULT 'NOT_STARTED',
   PRIMARY KEY (id),
-  KEY idx_teacher_evaluation_student_period (student_id, period_type, period_start, period_end),
-  KEY idx_teacher_evaluation_teacher (teacher_id),
-  CONSTRAINT chk_teacher_evaluation_period CHECK (period_start <= period_end),
-  CONSTRAINT fk_teacher_evaluation_student
-    FOREIGN KEY (student_id) REFERENCES student (id),
-  CONSTRAINT fk_teacher_evaluation_teacher
-    FOREIGN KEY (teacher_id) REFERENCES app_user (id)
+  UNIQUE KEY uk_student_training_goal_student_goal (student_id, goal_id),
+  KEY idx_student_training_goal_student_status (student_id, status),
+  KEY idx_student_training_goal_goal (goal_id),
+  CONSTRAINT chk_student_training_goal_initial_level
+    CHECK (CHAR_LENGTH(TRIM(initial_level)) > 0),
+  CONSTRAINT chk_student_training_goal_current_level
+    CHECK (CHAR_LENGTH(TRIM(current_level)) > 0),
+  CONSTRAINT chk_student_training_goal_phase CHECK (phase BETWEEN 1 AND 3),
+  CONSTRAINT fk_student_training_goal_student
+    FOREIGN KEY (student_id) REFERENCES student (id) ON DELETE CASCADE,
+  CONSTRAINT fk_student_training_goal_goal
+    FOREIGN KEY (goal_id) REFERENCES training_goal (id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+INSERT IGNORE INTO schema_migration (version) VALUES ('2.0.0');

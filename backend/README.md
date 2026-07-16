@@ -6,14 +6,15 @@
 
 | 内容 | 当前状态 |
 |---|---|
-| V2 数据模型 | 已形成设计稿，等待审核 |
+| V2 数据模型 | 已确认并实现 SQL |
 | OpenAPI | 已重写为 0.4.0 设计稿 |
 | 页面接口说明 | 已按随班记录、训练计划、学生评估、“我的”、系统分目录 |
+| V2 SQL | 全新建库、种子和受保护迁移脚本已完成并通过临时库验收 |
 | Java 代码 | 仍是旧 V0.3 实现 |
 | 正式 MySQL | 仍是旧 V0.3 表结构 |
 | Apifox | 仍是旧 V0.3 接口 |
 
-因此，`docs/openapi.yaml` 中的新接口目前不能直接调用，也不要在本批审核完成前导入 Apifox。
+因此，`docs/openapi.yaml` 中的新接口目前不能直接调用。正式数据库也不会在 V2 Java 实现前单独切换。
 
 ## V2 设计入口
 
@@ -26,6 +27,7 @@
 - `docs/api/系统/README.md`
 - `../docs/design/member-b-v2-data-model.md`：V2 数据模型。
 - `../docs/design/member-b-v2-api-design.md`：V2 API 总设计。
+- `../docs/design/member-b-v2-database-migration.md`：数据库迁移方式和验收记录。
 
 ## 技术栈
 
@@ -49,7 +51,7 @@ backend/
 │  ├─ api/               # 按前端页面划分的 V2 接口说明
 │  ├─ openapi.yaml       # OpenAPI 0.4.0 设计稿
 │  └─ 接口文档.md         # V2 中文总览
-├─ sql/                  # 当前仍是旧 V0.3 SQL，下一批重构
+├─ sql/                  # V2 全新建库、种子和受保护迁移脚本
 ├─ src/main/             # 当前仍是旧 V0.3 Java 代码
 ├─ src/test/             # 当前仍是旧 V0.3 测试
 ├─ mvnw.cmd
@@ -84,6 +86,18 @@ $env:DB_PASSWORD='<special_ed_app 的本地密码>'
 | `SERVER_PORT` | `8080` | HTTP 端口 |
 
 应用账号只需要 `special_ed_assistant.*` 上的 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。
+
+## V2 数据库脚本
+
+| 文件 | 用途 |
+|---|---|
+| `sql/schema.sql` | 全新安装 V2 数据库结构 |
+| `sql/seed.sql` | 本地开发基础字典和演示数据，可重复执行 |
+| `sql/migrate-v2.sql` | V0.3 空业务库升级到 V2，非空时自动中止 |
+
+脚本已在临时 MySQL 数据库完成全新建库、旧库迁移、重复执行和约束验收。本批没有修改正式数据库；具体步骤见 `../docs/design/member-b-v2-database-migration.md`。
+
+进入 MySQL 客户端后，可使用 `source C:/项目绝对路径/backend/sql/文件名.sql` 执行。`seed.sql` 只用于本地开发，不应用于生产数据。
 
 ## 运行旧 V0.3 基线
 

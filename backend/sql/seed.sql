@@ -1,7 +1,7 @@
 USE special_ed_assistant;
 
 INSERT INTO app_user (id, avatar, name, school, position, role) VALUES
-  (1, NULL, '演示教师', '演示学校', '资源教师', 'RESOURCE_TEACHER')
+  (1, NULL, '张老师', 'XX市特殊教育学校', '资源教师', 'RESOURCE_TEACHER')
 AS new
 ON DUPLICATE KEY UPDATE
   avatar = new.avatar,
@@ -10,8 +10,10 @@ ON DUPLICATE KEY UPDATE
   position = new.position,
   role = new.role;
 
-INSERT INTO student (id, name, age, class_name, disability_type, support_goal, remark) VALUES
-  (1, '演示学生', 9, '三年级一班', '演示数据', '提升课堂任务持续参与能力', '仅用于本地开发')
+INSERT INTO student (
+  id, name, age, class_name, disability_type, support_goal, remark
+) VALUES
+  (1, '小明', 12, '六年级一班', '自闭症谱系障碍', '提升课堂任务持续参与能力', '仅用于本地开发')
 AS new
 ON DUPLICATE KEY UPDATE
   name = new.name,
@@ -22,6 +24,11 @@ ON DUPLICATE KEY UPDATE
   remark = new.remark;
 
 INSERT INTO app_user_student (user_id, student_id) VALUES
+  (1, 1)
+AS new
+ON DUPLICATE KEY UPDATE student_id = new.student_id;
+
+INSERT INTO app_user_current_student (user_id, student_id) VALUES
   (1, 1)
 AS new
 ON DUPLICATE KEY UPDATE student_id = new.student_id;
@@ -54,50 +61,51 @@ INSERT INTO environment_type (code, label) VALUES
 AS new
 ON DUPLICATE KEY UPDATE label = new.label;
 
-INSERT INTO antecedent_type (code, label) VALUES
-  ('TEACHER_QUESTION', '教师提问')
-AS new
-ON DUPLICATE KEY UPDATE label = new.label;
-
 INSERT INTO behavior_type (code, label) VALUES
   ('LEAVE_SEAT', '离开座位'),
   ('ATTENTION_DROP', '注意力下降'),
   ('RAISE_HAND', '举手'),
   ('ANSWER_QUESTION', '回答问题'),
+  ('RAISE_HAND_ANSWER', '举手回答'),
   ('SCREAM', '尖叫'),
   ('CRY', '哭闹'),
+  ('AGGRESSION', '攻击行为'),
+  ('TASK_REFUSAL', '拒绝任务'),
+  ('SELF_TALK', '自言自语'),
+  ('SELF_INJURY', '自伤行为'),
+  ('FOLLOW_INSTRUCTION', '配合指令'),
   ('QUEUE', '排队'),
   ('RUN', '奔跑'),
-  ('AGGRESSION', '攻击行为'),
   ('COOPERATION', '合作'),
-  ('FOLLOW_RULES', '遵守规则'),
-  ('TASK_REFUSAL', '拒绝任务')
+  ('FOLLOW_RULES', '遵守规则')
 AS new
 ON DUPLICATE KEY UPDATE label = new.label;
 
-INSERT INTO consequence_type (code, label) VALUES
-  ('VERBAL_PROMPT', '教师提醒')
+INSERT INTO assistance_type (code, label, group_code, display_order) VALUES
+  ('VISUAL_PROMPT', '视觉提示', 'INTERNAL_STIMULUS', 1),
+  ('VERBAL_PROMPT', '语言提示', 'INTERNAL_STIMULUS', 2),
+  ('ACTION_PROMPT', '动作提示', 'INTERNAL_STIMULUS', 3),
+  ('DEMONSTRATION', '示范', 'EXTERNAL_STIMULUS', 4),
+  ('PHYSICAL_ASSISTANCE', '身体辅助', 'EXTERNAL_STIMULUS', 5),
+  ('REINFORCEMENT', '强化', 'EXTERNAL_STIMULUS', 6),
+  ('ASSISTIVE_DEVICE', '辅助设备', 'EXTERNAL_STIMULUS', 7)
 AS new
-ON DUPLICATE KEY UPDATE label = new.label;
+ON DUPLICATE KEY UPDATE
+  label = new.label,
+  group_code = new.group_code,
+  display_order = new.display_order;
 
-INSERT INTO assistance_type (code, label) VALUES
-  ('VERBAL_PROMPT', '语言提示'),
-  ('GESTURE_PROMPT', '手势提示'),
-  ('DEMONSTRATION', '示范'),
-  ('PHYSICAL_ASSISTANCE', '身体辅助'),
-  ('REINFORCEMENT', '强化'),
-  ('VISUAL_PROMPT', '视觉提示'),
-  ('OTHER', '其他')
-AS new
-ON DUPLICATE KEY UPDATE label = new.label;
-
-INSERT INTO course_behavior_config (course_code, behavior_code, configured_by_user_id) VALUES
+INSERT INTO course_behavior_config (
+  course_code, behavior_code, configured_by_user_id
+) VALUES
   ('CHINESE', 'LEAVE_SEAT', NULL),
-  ('CHINESE', 'ATTENTION_DROP', NULL),
-  ('CHINESE', 'RAISE_HAND', NULL),
-  ('CHINESE', 'ANSWER_QUESTION', NULL),
   ('CHINESE', 'SCREAM', NULL),
-  ('CHINESE', 'CRY', NULL),
+  ('CHINESE', 'AGGRESSION', NULL),
+  ('CHINESE', 'TASK_REFUSAL', NULL),
+  ('CHINESE', 'RAISE_HAND_ANSWER', NULL),
+  ('CHINESE', 'SELF_TALK', NULL),
+  ('CHINESE', 'SELF_INJURY', NULL),
+  ('CHINESE', 'FOLLOW_INSTRUCTION', NULL),
   ('PHYSICAL_EDUCATION', 'QUEUE', NULL),
   ('PHYSICAL_EDUCATION', 'RUN', NULL),
   ('PHYSICAL_EDUCATION', 'AGGRESSION', NULL),
@@ -105,3 +113,19 @@ INSERT INTO course_behavior_config (course_code, behavior_code, configured_by_us
   ('PHYSICAL_EDUCATION', 'FOLLOW_RULES', NULL)
 AS new
 ON DUPLICATE KEY UPDATE configured_by_user_id = new.configured_by_user_id;
+
+INSERT INTO training_goal_category (
+  code, label, display_order, is_custom
+) VALUES
+  ('SCHOOL_CLASS_AWARENESS', '学校/班级意识', 1, FALSE),
+  ('SCHOOL_ENTRY_KNOWLEDGE', '入校常识', 2, FALSE),
+  ('SCHOOL_LEAVING_ROUTINE', '离校常规', 3, FALSE),
+  ('SPORTS', '运动', 4, FALSE),
+  ('CUSTOM', '自定义', 999, TRUE)
+AS new
+ON DUPLICATE KEY UPDATE
+  label = new.label,
+  display_order = new.display_order,
+  is_custom = new.is_custom;
+
+-- 行为环节、行为功能、163 项标准训练目标及等级数据尚未提供，暂不写入虚假数据。
