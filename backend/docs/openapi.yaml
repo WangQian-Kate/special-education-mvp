@@ -1,0 +1,171 @@
+openapi: 3.0.3
+info:
+  title: Special Education Assistant API
+  version: 0.1.0
+  description: 成员 B 负责的行为记录与统计接口，可直接导入 Apifox。
+  license:
+    name: UNLICENSED
+security: []
+servers:
+  - url: http://127.0.0.1:8080
+paths:
+  /health:
+    get:
+      operationId: health
+      summary: 服务健康检查
+      responses:
+        '200':
+          description: 服务正常
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: UP
+        '503':
+          description: 服务不可用
+  /behavior:
+    post:
+      operationId: createBehavior
+      summary: 新增行为记录
+      description: A/B/C 必须使用数据库字典 code；请求也兼容字段别名 A、B、C。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBehaviorRequest'
+            example:
+              studentId: 1
+              creatorId: 1
+              scene: CLASSROOM
+              antecedentCode: TEACHER_QUESTION
+              behaviorCode: ATTENTION_DROP
+              consequenceCode: VERBAL_PROMPT
+              remark: 提醒后回到任务
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BehaviorRecord'
+        '400':
+          description: 参数或字典值不合法
+        '404':
+          description: 学生或记录人不存在
+  /behavior/{studentId}:
+    get:
+      operationId: listStudentBehavior
+      summary: 查询指定学生的行为记录
+      parameters:
+        - $ref: '#/components/parameters/StudentId'
+      responses:
+        '200':
+          description: 按记录时间倒序返回
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BehaviorRecord'
+        '404':
+          description: 学生不存在
+  /statistics/{studentId}:
+    get:
+      operationId: getStudentStatistics
+      summary: 获取指定学生的行为频次统计
+      parameters:
+        - $ref: '#/components/parameters/StudentId'
+      responses:
+        '200':
+          description: 按行为类型聚合统计
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BehaviorStatistics'
+        '404':
+          description: 学生不存在
+components:
+  parameters:
+    StudentId:
+      name: studentId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        example: 1
+  schemas:
+    CreateBehaviorRequest:
+      type: object
+      required:
+        - studentId
+        - creatorId
+        - scene
+        - antecedentCode
+        - behaviorCode
+        - consequenceCode
+      properties:
+        studentId:
+          type: integer
+          format: int64
+        creatorId:
+          type: integer
+          format: int64
+        recordTime:
+          type: string
+          format: date-time
+          description: 省略时由服务器填写当前时间
+        scene:
+          type: string
+          enum: [CLASSROOM, BREAK, HOME, OTHER]
+        antecedentCode:
+          type: string
+          example: TEACHER_QUESTION
+        behaviorCode:
+          type: string
+          example: ATTENTION_DROP
+        consequenceCode:
+          type: string
+          example: VERBAL_PROMPT
+        remark:
+          type: string
+          maxLength: 500
+    BehaviorRecord:
+      allOf:
+        - $ref: '#/components/schemas/CreateBehaviorRequest'
+        - type: object
+          properties:
+            id:
+              type: integer
+              format: int64
+            antecedentLabel:
+              type: string
+            behaviorLabel:
+              type: string
+            consequenceLabel:
+              type: string
+    BehaviorStatistics:
+      type: object
+      properties:
+        studentId:
+          type: integer
+          format: int64
+        total:
+          type: integer
+          format: int64
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              behaviorCode:
+                type: string
+              behaviorLabel:
+                type: string
+              count:
+                type: integer
+                format: int64
