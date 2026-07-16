@@ -32,7 +32,7 @@
 | 派生数据 | 根据持久化数据查询或统计得到，不重复保存 | 行为次数、趋势图、行为占比 |
 | 前端状态 | 当前页面选择或交互状态，不建立数据库表 | 当前选中学生、当前 Tab、搜索文本 |
 | 静态导航 | 固定入口，由前端配置，不建立数据库表 | 帮助、关于系统、退出登录 |
-| 待沟通数据 | 前端表达了功能，但存储方式或取值尚未确定 | 163 项训练目标、AI 分析是否长期保存 |
+| 待沟通数据 | 前端表达了功能，但存储方式或取值尚未确定 | 训练等级含义、AI 分析是否长期保存 |
 
 ## 4. 页面字段映射
 
@@ -47,7 +47,7 @@
 | 环境 | `observation_session.environment_code` | 持久化 |
 | 环境“其他”说明 | `observation_session.environment_other_description` | 持久化 |
 | 观察周期 | `observation_session.observation_duration_minutes` | 持久化 |
-| 本周期备注 | `observation_session.period_remark` | 持久化 |
+| 本周期行为备注 | `observation_session.period_behavior_remark` | 持久化 |
 | 行为名称 | `behavior_type.label` | 持久化字典 |
 | 当前发生次数 | 对 `behavior_record.frequency` 求和 | 派生 |
 | 行为发生时间 | `behavior_record.record_time` | 持久化 |
@@ -83,7 +83,7 @@
 | 状态 | `student_training_plan.status` | 持久化 |
 | 教师备注 | `student_training_plan.teacher_remark` | 持久化，可空 |
 
-当前没有 163 项训练目标正式清单，也没有等级含义，因此本阶段只设计能够承载页面字段的结构，不编造目标目录和等级字典。
+当前没有训练等级的完整含义，因此本阶段只设计能够承载页面字段的结构，不编造等级字典。
 
 ### 4.3 学生评估
 
@@ -240,7 +240,7 @@ erDiagram
 | `environment_code` | VARCHAR(64) | 是 | 环境 code，同时承载任务示例中的 scene |
 | `environment_other_description` | VARCHAR(255) | 否 | 环境为“其他”时填写 |
 | `observation_duration_minutes` | SMALLINT UNSIGNED | 是 | 20、30、40、45、60 或自定义分钟数 |
-| `period_remark` | VARCHAR(1000) | 否 | 本周期整体备注 |
+| `period_behavior_remark` | VARCHAR(1000) | 否 | 本周期行为备注 |
 
 ### 6.6 `behavior_record` 行为记录
 
@@ -354,7 +354,7 @@ erDiagram
 | `student` | 缺少障碍类型和备注 | 数据库创建任务修改 |
 | 无用户学生关联表 | 无法表达绑定和学生切换列表 | 数据库创建任务新增 |
 | 无课程和环境字典 | 课程、环境没有稳定 code 表 | 数据库创建任务新增 |
-| 无观察周期表 | 课程、环境、观察时长和周期备注无归属 | 数据库创建任务新增 |
+| 无观察周期表 | 课程、环境、观察时长和本周期行为备注无归属 | 数据库创建任务新增 |
 | `behavior_record` | 当前 A/B/C 均必填，与快速记录冲突 | 数据库创建任务修改 |
 | `behavior_record` | 缺少观察周期、辅助信息、频次和持续时间 | 数据库创建任务修改 |
 | 无辅助方式关联表 | 不能表示多选辅助方式 | 数据库创建任务新增 |
@@ -382,7 +382,6 @@ erDiagram
 
 以下事项不阻塞本数据模型设计，但在相关功能进入实现前必须确认：
 
-- 前端提供 163 项训练目标正式清单。
 - 前端说明训练等级的完整取值及含义。
 - 前端确认教师自定义行为是否还要按学生区分。
 - 前端和成员 C 提供最终课程、环境及 A/B/C 字典。
