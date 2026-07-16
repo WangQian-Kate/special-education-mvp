@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.specialed.assistant.api.classrecord.ClassRecordMapper">
+    <resultMap id="ClassRecordMap" type="com.specialed.assistant.api.classrecord.ClassRecordEntity">
+        <id property="id" column="id"/>
+        <result property="studentId" column="student_id"/>
+        <result property="creatorId" column="creator_id"/>
+        <result property="recordDate" column="record_date"/>
+        <result property="courseCode" column="course_code"/>
+        <result property="courseLabel" column="course_label"/>
+        <result property="courseOtherDescription" column="course_other_description"/>
+        <result property="environmentCode" column="environment_code"/>
+        <result property="environmentLabel" column="environment_label"/>
+        <result property="environmentOtherDescription" column="environment_other_description"/>
+        <result property="observationDurationMinutes" column="observation_duration_minutes"/>
+        <result property="overallRemark" column="overall_remark"/>
+    </resultMap>
+
+    <resultMap id="BehaviorRecordMap" type="com.specialed.assistant.api.classrecord.BehaviorRecordEntity">
+        <id property="id" column="id"/>
+        <result property="classRecordId" column="class_record_id"/>
+        <result property="creatorId" column="creator_id"/>
+        <result property="occurredAt" column="occurred_at"/>
+        <result property="behaviorCode" column="behavior_code"/>
+        <result property="behaviorLabel" column="behavior_label"/>
+        <result property="durationMinutes" column="duration_minutes"/>
+        <result property="stageCode" column="stage_code"/>
+        <result property="stageLabel" column="stage_label"/>
+        <result property="antecedentText" column="antecedent_text"/>
+        <result property="behaviorDescription" column="behavior_description"/>
+        <result property="consequenceText" column="consequence_text"/>
+        <result property="functionCode" column="function_code"/>
+        <result property="functionLabel" column="function_label"/>
+        <result property="assistanceResultText" column="assistance_result_text"/>
+        <result property="detailSaved" column="detail_saved"/>
+    </resultMap>
+
+    <select id="findByDate" resultMap="ClassRecordMap">
+        SELECT cr.*, ct.label AS course_label, et.label AS environment_label
+        FROM class_record cr
+        JOIN course_type ct ON ct.code = cr.course_code
+        JOIN environment_type et ON et.code = cr.environment_code
+        WHERE cr.student_id = #{studentId} AND cr.record_date = #{recordDate}
+        ORDER BY cr.id
+    </select>
+
+    <select id="findByIdForStudent" resultMap="ClassRecordMap">
+        SELECT cr.*, ct.label AS course_label, et.label AS environment_label
+        FROM class_record cr
+        JOIN course_type ct ON ct.code = cr.course_code
+        JOIN environment_type et ON et.code = cr.environment_code
+        WHERE cr.id = #{id} AND cr.student_id = #{studentId}
+    </select>
+
+    <insert id="insertClassRecord" parameterType="com.specialed.assistant.api.classrecord.ClassRecordEntity"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO class_record
+            (student_id, creator_id, record_date, course_code, course_other_description,
+             environment_code, environment_other_description, observation_duration_minutes, overall_remark)
+        VALUES
+            (#{studentId}, #{creatorId}, #{recordDate}, #{courseCode}, #{courseOtherDescription},
+             #{environmentCode}, #{environmentOtherDescription}, #{observationDurationMinutes}, #{overallRemark})
+    </insert>
+
+    <update id="updateClassRecord" parameterType="com.specialed.assistant.api.classrecord.ClassRecordEntity">
+        UPDATE class_record
+        SET record_date = #{recordDate},
+            course_code = #{courseCode},
+            course_other_description = #{courseOtherDescription},
+            environment_code = #{environmentCode},
+            environment_other_description = #{environmentOtherDescription},
+            observation_duration_minutes = #{observationDurationMinutes},
+            overall_remark = #{overallRemark}
+        WHERE id = #{id} AND student_id = #{studentId}
+    </update>
+
+    <select id="existsCourse" resultType="boolean">
+        SELECT COUNT(*) &gt; 0 FROM course_type WHERE code = #{code}
+    </select>
+    <select id="existsEnvironment" resultType="boolean">
+        SELECT COUNT(*) &gt; 0 FROM environment_type WHERE code = #{code}
+    </select>
+    <select id="existsBehavior" resultType="boolean">
+        SELECT COUNT(*) &gt; 0 FROM behavior_type WHERE code = #{code}
+    </select>
+    <select id="existsBehaviorOption" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM course_behavior_config
+        WHERE course_code = #{courseCode} AND behavior_code = #{behaviorCode}
+    </select>
+    <select id="existsStage" resultType="boolean">
+        SELECT COUNT(*) &gt; 0 FROM behavior_stage_type WHERE code = #{code}
+    </select>
+    <select id="existsFunction" resultType="boolean">
+        SELECT COUNT(*) &gt; 0 FROM behavior_function_type WHERE code = #{code}
+    </select>
+    <select id="existsAssistance" resultType="boolean">
+        SELECT COUNT(*) &gt; 0 FROM assistance_type WHERE code = #{code}
+    </select>
+
+    <select id="findBehaviorOptions" resultType="com.specialed.assistant.api.classrecord.CodeLabelEntity">
+        SELECT bt.code, bt.label
+        FROM course_behavior_config config
+        JOIN behavior_type bt ON bt.code = config.behavior_code
+        WHERE config.course_code = #{courseCode}
+        ORDER BY bt.code
+    </select>
+
+    <select id="findBehaviorCards" resultType="com.specialed.assistant.api.classrecord.BehaviorCardEntity">
+        SELECT bt.code AS behavior_code,
+               bt.label AS behavior_label,
+               COUNT(br.id) AS count,
+               latest.id AS latest_record_id,
+               latest.detail_saved AS latest_detail_saved
+        FROM (
+            SELECT behavior_code
+            FROM course_behavior_config
+            WHERE course_code = #{courseCode}
+            UNION
+            SELECT behavior_code
+            FROM behavior_record
+            WHERE class_record_id = #{classRecordId}
+        ) relevant
+        JOIN behavior_type bt ON bt.code = relevant.behavior_code
+        LEFT JOIN behavior_record br
+          ON br.class_record_id = #{classRecordId} AND br.behavior_code = relevant.behavior_code
+        LEFT JOIN behavior_record latest
+          ON latest.id = (
+              SELECT newest.id
+              FROM behavior_record newest
+              WHERE newest.class_record_id = #{classRecordId}
+                AND newest.behavior_code = relevant.behavior_code
+              ORDER BY newest.occurred_at DESC, newest.id DESC
+              LIMIT 1
+          )
+        GROUP BY bt.code, bt.label, latest.id, latest.detail_saved
+        ORDER BY bt.code
+    </select>
+
+    <insert id="insertBehaviorRecord" parameterType="com.specialed.assistant.api.classrecord.BehaviorRecordEntity"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO behavior_record
+            (class_record_id, creator_id, occurred_at, behavior_code)
+        VALUES
+            (#{classRecordId}, #{creatorId}, #{occurredAt}, #{behaviorCode})
+    </insert>
+
+    <select id="findBehaviorRecords" resultMap="BehaviorRecordMap">
+        SELECT br.id, br.class_record_id, br.creator_id, br.occurred_at,
+               br.behavior_code, bt.label AS behavior_label, br.detail_saved
+        FROM behavior_record br
+        JOIN behavior_type bt ON bt.code = br.behavior_code
+        WHERE br.class_record_id = #{classRecordId} AND br.behavior_code = #{behaviorCode}
+        ORDER BY br.occurred_at, br.id
+    </select>
+
+    <select id="findBehaviorRecordForStudent" resultMap="BehaviorRecordMap">
+        SELECT br.*, bt.label AS behavior_label,
+               stage_type.label AS stage_label,
+               function_type.label AS function_label
+        FROM behavior_record br
+        JOIN class_record cr ON cr.id = br.class_record_id
+        JOIN behavior_type bt ON bt.code = br.behavior_code
+        LEFT JOIN behavior_stage_type stage_type ON stage_type.code = br.stage_code
+        LEFT JOIN behavior_function_type function_type ON function_type.code = br.function_code
+        WHERE br.id = #{id} AND cr.student_id = #{studentId}
+    </select>
+
+    <delete id="deleteBehaviorRecordForStudent">
+        DELETE br
+        FROM behavior_record br
+        JOIN class_record cr ON cr.id = br.class_record_id
+        WHERE br.id = #{id} AND cr.student_id = #{studentId}
+    </delete>
+
+    <update id="updateBehaviorDetails" parameterType="com.specialed.assistant.api.classrecord.BehaviorRecordEntity">
+        UPDATE behavior_record
+        SET duration_minutes = #{durationMinutes},
+            stage_code = #{stageCode},
+            antecedent_text = #{antecedentText},
+            behavior_description = #{behaviorDescription},
+            consequence_text = #{consequenceText},
+            function_code = #{functionCode},
+            assistance_result_text = #{assistanceResultText},
+            detail_saved = TRUE
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteAssistances">
+        DELETE FROM behavior_record_assistance WHERE behavior_record_id = #{recordId}
+    </delete>
+
+    <insert id="insertAssistance">
+        INSERT INTO behavior_record_assistance (behavior_record_id, assistance_code, content)
+        VALUES (#{recordId}, #{code}, #{content})
+    </insert>
+
+    <select id="findAssistances" resultType="com.specialed.assistant.api.classrecord.AssistanceEntity">
+        SELECT bra.assistance_code AS code,
+               bra.content,
+               at.label,
+               at.group_code AS `group`
+        FROM behavior_record_assistance bra
+        JOIN assistance_type at ON at.code = bra.assistance_code
+        WHERE bra.behavior_record_id = #{recordId}
+        ORDER BY at.display_order
+    </select>
+
+    <select id="countBehaviors" resultType="com.specialed.assistant.api.classrecord.BehaviorCountEntity">
+        SELECT bt.code AS behavior_code, bt.label AS behavior_label, COUNT(br.id) AS count
+        FROM behavior_record br
+        JOIN class_record cr ON cr.id = br.class_record_id
+        JOIN behavior_type bt ON bt.code = br.behavior_code
+        WHERE cr.student_id = #{studentId}
+          AND cr.record_date BETWEEN #{start} AND #{end}
+        GROUP BY bt.code, bt.label
+        ORDER BY count DESC, bt.code
+    </select>
+</mapper>

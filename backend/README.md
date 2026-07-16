@@ -2,34 +2,49 @@
 
 ## 当前状态
 
-项目正在进行 V2 重构，设计与运行状态必须分开理解：
+成员 B 的 V2 后端已按最终确认的软件原型完成重构，并已切换到正式本地数据库。
 
 | 内容 | 当前状态 |
 |---|---|
-| V2 数据模型 | 已确认并实现 SQL |
-| OpenAPI | 已重写为 0.4.0 设计稿 |
-| 页面接口说明 | 已按随班记录、训练计划、学生评估、“我的”、系统分目录 |
-| V2 SQL | 全新建库、种子和受保护迁移脚本已完成并通过临时库验收 |
-| Java 代码 | 仍是旧 V0.3 实现 |
-| 正式 MySQL | 仍是旧 V0.3 表结构 |
-| Apifox | 仍是旧 V0.3 接口 |
+| OpenAPI 契约 | `0.4.0`，共 24 个接口 |
+| Java 实现 | 已完成，按前端页面分包 |
+| MySQL | `special_ed_assistant` 已迁移到 `2.0.0` |
+| 自动化测试 | 5 个数据库集成场景覆盖全部 24 个接口，已通过 |
+| Apifox | 新版 0.4.0 已导入；原模块保留并标记为“旧版” |
 
-因此，`docs/openapi.yaml` 中的新接口目前不能直接调用。正式数据库也不会在 V2 Java 实现前单独切换。
+## 页面模块
 
-## V2 设计入口
+```text
+src/main/java/com/specialed/assistant/api/
+├─ classrecord/        # 随班记录
+├─ trainingplan/       # 训练计划
+├─ studentevaluation/  # 学生评估
+├─ profile/            # 我的
+└─ system/             # 系统
+```
+
+接口数量如下：
+
+| 页面模块 | 接口数 |
+|---|---:|
+| 随班记录 | 12 |
+| 训练计划 | 7 |
+| 学生评估 | 1 |
+| 我的 | 3 |
+| 系统 | 1 |
+| 合计 | 24 |
+
+详细契约见：
 
 - `docs/openapi.yaml`：OpenAPI 0.4.0 统一契约。
-- `docs/接口文档.md`：V2 中文接口总览。
-- `docs/api/随班记录/README.md`
-- `docs/api/训练计划/README.md`
-- `docs/api/学生评估/README.md`
-- `docs/api/我的/README.md`
-- `docs/api/系统/README.md`
+- `docs/接口文档.md`：中文接口总览。
+- `docs/api/`：按页面拆分的中文接口说明。
 - `../docs/design/member-b-v2-data-model.md`：V2 数据模型。
 - `../docs/design/member-b-v2-api-design.md`：V2 API 总设计。
-- `../docs/design/member-b-v2-database-migration.md`：数据库迁移方式和验收记录。
+- `../docs/design/member-b-v2-database-migration.md`：迁移方案和正式迁移记录。
+- `../docs/design/member-b-v2-implementation-verification.md`：本次实现与验收报告。
 
-## 技术栈
+## 技术环境
 
 | 项目 | 版本或说明 |
 |---|---|
@@ -43,39 +58,15 @@
 
 Windows 环境不需要单独安装 Maven，统一使用仓库中的 `mvnw.cmd`。
 
-## 目录结构
+## 本地运行
 
-```text
-backend/
-├─ docs/
-│  ├─ api/               # 按前端页面划分的 V2 接口说明
-│  ├─ openapi.yaml       # OpenAPI 0.4.0 设计稿
-│  └─ 接口文档.md         # V2 中文总览
-├─ sql/                  # V2 全新建库、种子和受保护迁移脚本
-├─ src/main/             # 当前仍是旧 V0.3 Java 代码
-├─ src/test/             # 当前仍是旧 V0.3 测试
-├─ mvnw.cmd
-└─ pom.xml
-```
-
-后续代码也将按页面建立模块目录：
-
-```text
-api/
-├─ classrecord/        # 随班记录
-├─ trainingplan/       # 训练计划
-├─ studentevaluation/  # 学生评估
-├─ profile/            # 我的
-└─ system/             # 系统
-```
-
-## 当前运行配置
-
-数据库密码只通过环境变量提供，不能写入 Git：
+数据库密码仅通过环境变量提供，禁止写入 Git：
 
 ```powershell
 $env:DB_PASSWORD='<special_ed_app 的本地密码>'
 ```
+
+可用环境变量如下：
 
 | 环境变量 | 默认值 | 用途 |
 |---|---|---|
@@ -85,26 +76,10 @@ $env:DB_PASSWORD='<special_ed_app 的本地密码>'
 | `SPRING_PROFILES_ACTIVE` | `dev` | Spring 配置环境 |
 | `SERVER_PORT` | `8080` | HTTP 端口 |
 
-应用账号只需要 `special_ed_assistant.*` 上的 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。
-
-## V2 数据库脚本
-
-| 文件 | 用途 |
-|---|---|
-| `sql/schema.sql` | 全新安装 V2 数据库结构 |
-| `sql/seed.sql` | 本地开发基础字典和演示数据，可重复执行 |
-| `sql/migrate-v2.sql` | V0.3 空业务库升级到 V2，非空时自动中止 |
-
-脚本已在临时 MySQL 数据库完成全新建库、旧库迁移、重复执行和约束验收。本批没有修改正式数据库；具体步骤见 `../docs/design/member-b-v2-database-migration.md`。
-
-进入 MySQL 客户端后，可使用 `source C:/项目绝对路径/backend/sql/文件名.sql` 执行。`seed.sql` 只用于本地开发，不应用于生产数据。
-
-## 运行旧 V0.3 基线
-
-以下命令仍可用于确认重构前基线：
+运行测试和服务：
 
 ```powershell
-$env:DB_PASSWORD='<special_ed_app 的本地密码>'
+cd backend
 .\mvnw.cmd test
 .\mvnw.cmd spring-boot:run
 ```
@@ -115,30 +90,43 @@ $env:DB_PASSWORD='<special_ed_app 的本地密码>'
 Invoke-RestMethod http://127.0.0.1:8080/health
 ```
 
-旧基线共有 23 项测试，V2 Java 实施后将重写相应测试，不能继续把旧测试通过视为 V2 验收通过。
+除健康检查外，当前业务接口使用请求头 `X-User-Id` 表示当前用户。未来接入认证后，由认证上下文替代。
 
-## V2 已确认规则
+## 数据库脚本
 
-- 除健康检查外，业务接口暂时使用 `X-User-Id` 表示当前用户。
-- 后端保存当前学生，并校验用户与学生绑定。
-- 一条行为记录代表一次发生，次数直接统计记录条数。
-- 快速记录时间由后端生成，补记由前端提交过去时间。
-- A、B、C 为自由文本。
-- 辅助方式保存方式 code 和每项必填内容。
-- 详细记录首次保存后永久标记为已保存。
-- 日记录可编辑，周记录和月记录只读。
-- 学生评估统计来自随班记录。
-- 训练计划以 163 项标准目标库为主，同时允许当前学生创建自定义目标。
+| 文件 | 用途 |
+|---|---|
+| `sql/schema.sql` | 全新安装 V2 数据库结构 |
+| `sql/seed.sql` | 本地开发基础字典和演示数据，可重复执行 |
+| `sql/migrate-v2.sql` | V0.3 空业务库升级到 V2，检测到旧业务数据时自动中止 |
 
-## 暂缓内容
+正式本地数据库已于 2026-07-17 完成迁移，迁移后版本为 `2.0.0`、共 18 张表。应用账号只需要 `special_ed_assistant.*` 上的 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。
 
-- 163 项标准目标具体数据
-- 训练等级全集
-- 行为环节选项
-- 行为功能选项
-- 学期固定日期
-- AI 智能分析
-- 导出与分享
-- 学生信息管理
-- 个人资料修改
-- 登录和退出登录
+`seed.sql` 只用于本地开发，不应直接用于生产数据环境。
+
+## 已实现的关键规则
+
+- 后端保存当前学生，并校验用户与学生绑定关系。
+- 一条行为记录代表一次发生，次数按记录条数统计。
+- 快速记录时间由后端生成；补记必须提交过去的发生时间。
+- A、B、C 使用自由文本。
+- 辅助方式保存稳定 code，勾选项必须填写内容。
+- 详细记录首次保存后，`detailSaved` 永久保持为 `true`。
+- 日记录可编辑；周记录和月记录只读。
+- 学生评估直接统计随班记录数据。
+- 训练计划支持标准目标分配和当前学生的自定义目标。
+- 训练目标状态与阶段修改后立即保存；删除必须显式确认。
+
+## 待外部资料或后续页面确认
+
+- 163 项标准训练目标具体数据。
+- 训练等级全集。
+- 行为环节和行为功能选项。
+- 学期报告固定日期。
+- AI 智能分析。
+- 导出与分享。
+- 学生信息管理。
+- 个人资料修改。
+- 登录、认证和退出登录。
+
+这些内容尚未由前端或其他成员提供，当前接口会返回空的对应字典或标准目标库，不会虚构业务数据。

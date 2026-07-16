@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.specialed.assistant.api.trainingplan.TrainingPlanMapper">
+    <select id="findCategories" resultType="com.specialed.assistant.api.trainingplan.TrainingCategoryEntity">
+        SELECT code, label, display_order, is_custom AS custom
+        FROM training_goal_category
+        ORDER BY display_order, code
+    </select>
+
+    <select id="findLibrary" resultType="com.specialed.assistant.api.trainingplan.TrainingGoalLibraryEntity">
+        SELECT goal.id,
+               goal.category_code,
+               category.label AS category_label,
+               goal.goal_text,
+               EXISTS(
+                   SELECT 1 FROM student_training_goal assigned
+                   WHERE assigned.student_id = #{studentId} AND assigned.goal_id = goal.id
+               ) AS assigned
+        FROM training_goal goal
+        JOIN training_goal_category category ON category.code = goal.category_code
+        WHERE goal.goal_type = 'STANDARD'
+        <if test="keyword != null and keyword != ''">
+          AND goal.goal_text LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="categoryCode != null and categoryCode != ''">
+          AND goal.category_code = #{categoryCode}
+        </if>
+        ORDER BY category.display_order, goal.id
+    </select>
+
+    <select id="findItems" resultType="com.specialed.assistant.api.trainingplan.TrainingPlanItemEntity">
+        SELECT item.id,
+               item.student_id,
+               item.goal_id,
+               goal.goal_type,
+               goal.category_code,
+               category.label AS category_label,
+               goal.goal_text,
+               item.initial_level,
+               item.current_level,
+               item.phase,
+               item.status
+        FROM student_training_goal item
+        JOIN training_goal goal ON goal.id = item.goal_id
+        JOIN training_goal_category category ON category.code = goal.category_code
+        WHERE item.student_id = #{studentId}
+        <if test="keyword != null and keyword != ''">
+          AND goal.goal_text LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="categoryCode != null and categoryCode != ''">
+          AND goal.category_code = #{categoryCode}
+        </if>
+        <if test="status != null and status != ''">
+          AND item.status = #{status}
+        </if>
+        ORDER BY category.display_order, item.id
+    </select>
+
+    <select id="findGoal" resultType="com.specialed.assistant.api.trainingplan.TrainingGoalEntity">
+        SELECT id, category_code, goal_text, goal_type, owner_student_id
+        FROM training_goal
+        WHERE id = #{id}
+    </select>
+
+    <select id="existsAssignment" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM student_training_goal
+        WHERE student_id = #{studentId} AND goal_id = #{goalId}
+    </select>
+
+    <insert id="insertGoal" parameterType="com.specialed.assistant.api.trainingplan.TrainingGoalEntity"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO training_goal (category_code, goal_text, goal_type, owner_student_id)
+        VALUES (#{categoryCode}, #{goalText}, #{goalType}, #{ownerStudentId})
+    </insert>
+
+    <insert id="insertItem" parameterType="com.specialed.assistant.api.trainingplan.TrainingPlanItemEntity"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO student_training_goal
+            (student_id, goal_id, initial_level, current_level, phase, status)
+        VALUES
+            (#{studentId}, #{goalId}, #{initialLevel}, #{currentLevel}, #{phase}, #{status})
+    </insert>
+
+    <select id="findItemForStudent" resultType="com.specialed.assistant.api.trainingplan.TrainingPlanItemEntity">
+        SELECT item.id,
+               item.student_id,
+               item.goal_id,
+               goal.goal_type,
+               goal.category_code,
+               category.label AS category_label,
+               goal.goal_text,
+               item.initial_level,
+               item.current_level,
+               item.phase,
+               item.status
+        FROM student_training_goal item
+        JOIN training_goal goal ON goal.id = item.goal_id
+        JOIN training_goal_category category ON category.code = goal.category_code
+        WHERE item.id = #{id} AND item.student_id = #{studentId}
+    </select>
+
+    <update id="updateItem" parameterType="com.specialed.assistant.api.trainingplan.TrainingPlanItemEntity">
+        UPDATE student_training_goal
+        SET current_level = #{currentLevel}, phase = #{phase}, status = #{status}
+        WHERE id = #{id} AND student_id = #{studentId}
+    </update>
+
+    <delete id="deleteItem">
+        DELETE FROM student_training_goal WHERE id = #{id} AND student_id = #{studentId}
+    </delete>
+
+    <delete id="deleteGoal">
+        DELETE FROM training_goal
+        WHERE id = #{goalId} AND goal_type = 'CUSTOM' AND owner_student_id = #{studentId}
+    </delete>
+</mapper>
