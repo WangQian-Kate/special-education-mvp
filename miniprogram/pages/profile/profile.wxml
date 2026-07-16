@@ -1,0 +1,20 @@
+<view class="container">
+  <!-- 教师信息 -->
+  <view class="card teacher-card flex-row">
+    <view class="avatar flex-center">{{teacher.name[0]}}</view>
+    <view class="info flex-column">
+      <view class="name">{{teacher.name}}</view>
+      <view class="desc">{{teacher.school}} · {{teacher.role}}</view>
+    </view>
+  </view>
+
+  <!-- 菜单 -->
+  <view class="menu card">
+    <view class="menu-item flex-row" hover-class="btn-hover" bindtap="handleSwitch">
+      <text class="menu-label">切换身份（伪登录）</text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+
+  <view class="version">MVP 开发版 · 阶段二</view>
+</view>

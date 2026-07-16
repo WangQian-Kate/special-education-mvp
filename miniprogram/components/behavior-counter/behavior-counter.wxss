@@ -1,0 +1,74 @@
+.counter-card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 20rpx 16rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-hover {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--color-text, #374151);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 8rpx;
+}
+
+.ops {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex-shrink: 0;
+}
+
+.op-btn {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.op-hover {
+  transform: scale(0.9);
+}
+
+.minus {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.plus {
+  background: var(--color-primary, #5B9BD5);
+  color: #ffffff;
+}
+
+.plus.positive {
+  background: var(--color-success, #4ade80);
+}
+
+.count {
+  min-width: 40rpx;
+  text-align: center;
+  font-size: 28rpx;
+  font-weight: 900;
+  transition: transform 0.2s;
+}
+
+.count.bump {
+  transform: scale(1.25);
+  color: var(--color-primary, #5B9BD5);
+}

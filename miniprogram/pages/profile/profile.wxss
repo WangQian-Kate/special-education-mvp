@@ -1,0 +1,56 @@
+.teacher-card {
+  margin-bottom: 20rpx;
+  padding: 36rpx 28rpx;
+}
+
+.avatar {
+  width: 108rpx;
+  height: 108rpx;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 44rpx;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.info {
+  margin-left: 28rpx;
+}
+
+.name {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.desc {
+  font-size: 24rpx;
+  color: var(--color-text-sub);
+  margin-top: 6rpx;
+}
+
+.menu {
+  padding: 0;
+  overflow: hidden;
+}
+
+.menu-item {
+  justify-content: space-between;
+  padding: 30rpx 28rpx;
+}
+
+.menu-label {
+  font-size: 28rpx;
+}
+
+.menu-arrow {
+  color: #d1d5db;
+  font-size: 40rpx;
+}
+
+.version {
+  text-align: center;
+  font-size: 22rpx;
+  color: #c0c4cc;
+  margin-top: 60rpx;
+}

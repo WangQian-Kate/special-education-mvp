@@ -1,16 +1,28 @@
 {
   "pages": [
-    "pages/index/index",
-    "pages/record/record",
-    "pages/students/students",
+    "pages/login/login",
+    "pages/records/records",
+    "pages/plans/plans",
     "pages/statistics/statistics",
-    "pages/report/report"
+    "pages/profile/profile"
   ],
   "window": {
-    "navigationBarTitleText": "特殊教育辅助系统",
-    "navigationBarBackgroundColor": "#4A90D9",
-    "navigationBarTextStyle": "white",
-    "backgroundColor": "#F5F5F5"
+    "navigationBarTitleText": "特教课堂助手",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#EEF0F4"
+  },
+  "tabBar": {
+    "color": "#9ca3af",
+    "selectedColor": "#5B9BD5",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/records/records", "text": "随班记录" },
+      { "pagePath": "pages/plans/plans", "text": "训练计划" },
+      { "pagePath": "pages/statistics/statistics", "text": "学生评估" },
+      { "pagePath": "pages/profile/profile", "text": "我的" }
+    ]
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json"

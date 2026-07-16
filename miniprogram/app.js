@@ -1,17 +1,11 @@
 // app.js
 App({
   onLaunch() {
-    // 获取系统信息
-    const systemInfo = wx.getSystemInfoSync();
-    this.globalData.systemInfo = systemInfo;
+    // 登录态判断放在 login 页 onLoad（入口页），onLaunch 里跳转有竞态风险
   },
 
   globalData: {
-    // 用户角色：'teacher' | 'parent' | null
-    userRole: null,
-    // 系统信息
-    systemInfo: null,
-    // API 基础地址（本地开发环境通过局域网联调）
-    apiBaseUrl: 'http://localhost:3000/api'
+    // 当前教师（伪登录写入，见 utils/store.js）
+    teacher: null
   }
 });

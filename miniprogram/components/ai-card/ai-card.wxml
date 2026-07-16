@@ -1,0 +1,3 @@
+<view class="ai-card {{type}}">
+  <text class="title" wx:if="{{title}}">{{title}}：</text><text>{{content}}</text>
+</view>

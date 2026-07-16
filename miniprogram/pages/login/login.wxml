@@ -1,0 +1,34 @@
+<view class="login-page flex-column">
+  <view class="logo-area flex-column flex-center">
+    <view class="logo flex-center">特</view>
+    <view class="app-name">特教课堂助手</view>
+    <view class="app-sub">Special Education Assistant · MVP</view>
+  </view>
+
+  <view class="tip">开发阶段 · 选择身份进入（白名单伪登录）</view>
+
+  <view class="teacher-list">
+    <view
+      class="teacher-item card flex-row"
+      wx:for="{{teachers}}"
+      wx:key="id"
+      data-index="{{index}}"
+      hover-class="btn-hover"
+      bindtap="handleSelect"
+    >
+      <view class="avatar flex-center">{{item.name[0]}}</view>
+      <view class="info flex-column">
+        <view class="name">{{item.name}}</view>
+        <view class="desc">{{item.school}} · {{item.role}}</view>
+      </view>
+      <view class="arrow">›</view>
+    </view>
+  </view>
+
+  <view class="ping-area flex-column flex-center">
+    <button class="ping-btn" size="mini" bindtap="handlePing">测试后端连接</button>
+    <view class="ping-status ok" wx:if="{{pingStatus === 'ok'}}">✓ 后端连通</view>
+    <view class="ping-status fail" wx:if="{{pingStatus === 'fail'}}">✗ 连接失败</view>
+    <view class="base-url">{{baseUrl}}</view>
+  </view>
+</view>

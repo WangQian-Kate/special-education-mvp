@@ -1,0 +1,152 @@
+.search-box {
+  margin-bottom: 20rpx;
+}
+
+.search-icon {
+  font-size: 26rpx;
+  margin-right: 12rpx;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 26rpx;
+}
+
+/* 横滑 chips（状态 / 分类共用） */
+.chip-row {
+  display: flex;
+  white-space: nowrap;
+  margin-bottom: 16rpx;
+}
+
+.chip {
+  display: inline-block;
+  padding: 8rpx 24rpx;
+  margin-right: 12rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  background: #ffffff;
+  color: var(--color-text-sub);
+}
+
+.chip.active {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+/* ===== 表格 ===== */
+.table {
+  padding: 0;
+  overflow: hidden;
+}
+
+.table-caption {
+  padding: 16rpx 24rpx;
+  background: var(--color-primary-light);
+}
+
+.caption-name {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.caption-count {
+  font-size: 20rpx;
+  color: var(--color-text-sub);
+  margin-left: 16rpx;
+}
+
+.tr {
+  display: flex;
+  align-items: center;
+}
+
+.tr.odd {
+  background: #fafafa;
+}
+
+.tr.th {
+  background: var(--color-primary);
+}
+
+.th .td {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.td {
+  padding: 20rpx 8rpx;
+  font-size: 20rpx;
+  color: var(--color-text);
+}
+
+.col-id {
+  width: 56rpx;
+  text-align: center;
+  color: var(--color-text-sub);
+  flex-shrink: 0;
+}
+
+.col-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.col-c {
+  width: 72rpx;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.col-status {
+  width: 104rpx;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.dim {
+  color: var(--color-text-sub);
+}
+
+.editable {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.editable-plain {
+  color: #6b7280;
+}
+
+/* 状态标签（类名带中文值，与数据 status 字段一致） */
+.status-tag {
+  display: inline-block;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  font-size: 18rpx;
+  font-weight: 700;
+}
+
+.s-ongoing {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.s-done {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.s-paused {
+  background: #ffedd5;
+  color: #ea580c;
+}
+
+.s-pending {
+  background: #f3f4f6;
+  color: #6b7280;
+}

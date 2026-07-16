@@ -1,0 +1,42 @@
+<view class="container">
+  <!-- 日期导航 -->
+  <picker mode="date" value="{{date}}" bindchange="onDateChange">
+    <view class="card date-bar flex-center">
+      <text class="date-text">{{date}}</text>
+      <text class="date-hint">点击切换</text>
+    </view>
+  </picker>
+
+  <!-- 课程 / 环境选择 -->
+  <view class="select-row flex-row">
+    <picker class="select-picker" range="{{courses}}" value="{{courseIndex}}" bindchange="onCourseChange">
+      <view class="card-sm select-view">{{courses[courseIndex]}} ▾</view>
+    </picker>
+    <picker class="select-picker" range="{{environments}}" value="{{envIndex}}" bindchange="onEnvChange">
+      <view class="card-sm select-view">{{environments[envIndex]}} ▾</view>
+    </picker>
+  </view>
+
+  <!-- 课堂备注 -->
+  <view class="card note-card">
+    <textarea
+      class="note-input"
+      placeholder="记录本节课整体情况..."
+      value="{{note}}"
+      bindinput="onNoteInput"
+      maxlength="500"
+    />
+  </view>
+
+  <!-- 行为计数网格 -->
+  <view class="sec-title">行为计数（点卡片进 ABC 详录）</view>
+  <view class="behavior-grid">
+    <behavior-counter
+      wx:for="{{behaviors}}"
+      wx:key="id"
+      behavior="{{item}}"
+      bind:change="onCountChange"
+      bind:detail="onBehaviorDetail"
+    />
+  </view>
+</view>

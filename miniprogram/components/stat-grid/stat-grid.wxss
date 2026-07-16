@@ -1,0 +1,24 @@
+.stat-grid {
+  display: flex;
+}
+
+.stat-item {
+  flex: 1;
+  text-align: center;
+}
+
+.value {
+  font-size: 40rpx;
+  font-weight: 800;
+  color: var(--color-text, #374151);
+}
+
+.value.highlight {
+  color: var(--color-primary, #5B9BD5);
+}
+
+.label {
+  font-size: 20rpx;
+  color: var(--color-text-sub, #999);
+  margin-top: 4rpx;
+}

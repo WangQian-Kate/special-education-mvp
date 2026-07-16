@@ -14,8 +14,10 @@
     "Behavior": "readonly"
   },
   "parserOptions": {
-    "ecmaVersion": 2018
+    "ecmaVersion": 2018,
+    "sourceType": "module"
   },
+  "ignorePatterns": ["miniprogram/components/ec-canvas/", "node_modules/"],
   "rules": {
     "no-console": "warn",
     "no-unused-vars": "warn",

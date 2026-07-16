@@ -1,0 +1,100 @@
+.login-page {
+  min-height: 100vh;
+  padding: 0 40rpx;
+  box-sizing: border-box;
+}
+
+.logo-area {
+  margin-top: 160rpx;
+  margin-bottom: 80rpx;
+}
+
+.logo {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 72rpx;
+  font-weight: 700;
+  margin-bottom: 32rpx;
+}
+
+.app-name {
+  font-size: 40rpx;
+  font-weight: 700;
+}
+
+.app-sub {
+  font-size: 22rpx;
+  color: var(--color-text-sub);
+  margin-top: 8rpx;
+}
+
+.tip {
+  font-size: 24rpx;
+  color: var(--color-text-sub);
+  margin-bottom: 20rpx;
+}
+
+.teacher-item {
+  margin-bottom: 20rpx;
+}
+
+.avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 36rpx;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.info {
+  flex: 1;
+  margin-left: 24rpx;
+}
+
+.name {
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.desc {
+  font-size: 24rpx;
+  color: var(--color-text-sub);
+  margin-top: 4rpx;
+}
+
+.arrow {
+  color: #d1d5db;
+  font-size: 40rpx;
+}
+
+.ping-area {
+  margin-top: auto;
+  padding: 60rpx 0;
+}
+
+.ping-btn {
+  background: #fff;
+  color: var(--color-primary);
+  border-radius: var(--radius-btn);
+  font-size: 26rpx;
+}
+
+.ping-status {
+  font-size: 24rpx;
+  margin-top: 16rpx;
+}
+
+.ping-status.ok { color: var(--color-success); }
+.ping-status.fail { color: var(--color-danger); }
+
+.base-url {
+  font-size: 20rpx;
+  color: #c0c4cc;
+  margin-top: 8rpx;
+}

@@ -2,9 +2,9 @@
   "miniprogramRoot": "miniprogram/",
   "projectname": "special-education-mvp",
   "description": "特殊教育智能辅助干预系统",
-  "appid": "touristappid",
+  "appid": "wx85f5b6f5abcf1578",
   "setting": {
-    "urlCheck": true,
+    "urlCheck": false,
     "es6": true,
     "enhance": true,
     "postcss": true,

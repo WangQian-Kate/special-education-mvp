@@ -1,42 +1,75 @@
-/* 全局样式变量 */
+/* 全局样式：设计令牌抽自原型 special-ed-assistan_v2.html */
 page {
-  --color-primary: #4A90D9;
-  --color-primary-dark: #3A7BC8;
-  --color-success: #52C41A;
-  --color-warning: #FAAD14;
-  --color-danger: #FF4D4F;
-  --color-text: #333333;
-  --color-text-secondary: #666666;
-  --color-text-placeholder: #999999;
-  --color-bg: #F5F5F5;
-  --color-bg-white: #FFFFFF;
-  --color-border: #E8E8E8;
+  --color-primary: #5B9BD5;        /* 主色 */
+  --color-primary-light: #EBF3FB;  /* 主色浅底 */
+  --color-bg: #EEF0F4;             /* 页面背景 */
+  --color-success: #4ade80;        /* 正向行为绿 */
+  --color-danger: #f87171;         /* 问题行为红 */
+  --color-warning: #fb923c;        /* 暂停/预警橙 */
+  --color-text: #374151;
+  --color-text-sub: #999999;
+  --color-border: #e5e7eb;
 
-  --font-size-sm: 24rpx;
-  --font-size-base: 28rpx;
-  --font-size-lg: 32rpx;
-  --font-size-xl: 36rpx;
+  --radius-card: 28rpx;            /* 卡片 14px */
+  --radius-btn: 24rpx;
+  --radius-modal: 56rpx;           /* 半屏弹窗 28px */
 
-  --spacing-xs: 8rpx;
-  --spacing-sm: 16rpx;
-  --spacing-md: 24rpx;
-  --spacing-lg: 32rpx;
-  --spacing-xl: 48rpx;
-
-  --radius-sm: 8rpx;
-  --radius-md: 16rpx;
-  --radius-lg: 24rpx;
-
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: var(--font-size-base);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+  font-size: 28rpx;
   color: var(--color-text);
   background-color: var(--color-bg);
   line-height: 1.6;
 }
 
-/* 通用布局 */
+/* ===== 通用卡片 ===== */
+.card {
+  background: #ffffff;
+  border-radius: var(--radius-card);
+  padding: 28rpx;
+}
+
+.card-sm {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 20rpx 24rpx;
+}
+
+/* 小节标题（原型 .sec-title） */
+.sec-title {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: var(--color-text-sub);
+  margin-bottom: 20rpx;
+}
+
+/* 左侧色条标题（原型报告区块标题） */
+.block-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  padding-left: 16rpx;
+  border-left: 6rpx solid var(--color-primary);
+}
+
+/* ===== 按钮 ===== */
+.btn-primary {
+  background: var(--color-primary);
+  color: #ffffff;
+  border-radius: var(--radius-btn);
+  font-size: 30rpx;
+  font-weight: 500;
+  padding: 24rpx 0;
+  text-align: center;
+}
+
+/* 按压反馈：配合 hover-class 使用 */
+.btn-hover {
+  transform: scale(0.96);
+  opacity: 0.8;
+}
+
+/* ===== 布局 ===== */
 .container {
-  padding: var(--spacing-md);
+  padding: 24rpx;
   box-sizing: border-box;
 }
 
@@ -55,4 +88,12 @@ page {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* ===== 空态 ===== */
+.empty-tip {
+  font-size: 24rpx;
+  color: var(--color-text-sub);
+  text-align: center;
+  padding: 60rpx 0;
 }

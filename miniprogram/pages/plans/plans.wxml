@@ -1,0 +1,67 @@
+<wxs module="fmt">
+// 中文状态 → 英文样式类（WXSS 不支持中文类名）
+var map = { '未开始': 'pending', '进行中': 'ongoing', '已完成': 'done', '暂停': 'paused' };
+module.exports = { statusClass: function (s) { return map[s] || 'pending'; } };
+</wxs>
+<view class="container">
+  <!-- 搜索 -->
+  <view class="card-sm search-box flex-row">
+    <text class="search-icon">🔍</text>
+    <input class="search-input" placeholder="搜索训练目标或编号..." value="{{keyword}}" bindinput="onSearchInput" />
+  </view>
+
+  <!-- 状态筛选 -->
+  <scroll-view class="chip-row" scroll-x enable-flex>
+    <view class="chip {{activeStatus === '' ? 'active' : ''}}" data-status="" bindtap="onStatusTap">全部</view>
+    <view
+      class="chip {{activeStatus === item ? 'active' : ''}}"
+      wx:for="{{statusList}}"
+      wx:key="*this"
+      data-status="{{item}}"
+      bindtap="onStatusTap"
+    >{{item}}</view>
+  </scroll-view>
+
+  <!-- 分类 tabs -->
+  <scroll-view class="chip-row" scroll-x enable-flex scroll-into-view="cat-{{activeCategory}}">
+    <view
+      id="cat-{{index}}"
+      class="chip cat-chip {{activeCategory === index ? 'active' : ''}}"
+      wx:for="{{categories}}"
+      wx:key="*this"
+      data-index="{{index}}"
+      bindtap="onCategoryTap"
+    >{{item}}</view>
+  </scroll-view>
+
+  <!-- 目标表格 -->
+  <view class="table card">
+    <view class="table-caption">
+      <text class="caption-name">{{categories[activeCategory]}}</text>
+      <text class="caption-count">{{filteredItems.length}}/{{totalCount}}项</text>
+    </view>
+    <view class="tr th">
+      <view class="td col-id">#</view>
+      <view class="td col-title">训练目标</view>
+      <view class="td col-c">学期初</view>
+      <view class="td col-c">当前</view>
+      <view class="td col-c">阶段</view>
+      <view class="td col-status">状态</view>
+    </view>
+    <view class="tr {{index % 2 ? 'odd' : ''}}" wx:for="{{filteredItems}}" wx:key="id">
+      <view class="td col-id">{{item.id}}</view>
+      <view class="td col-title">{{item.title}}</view>
+      <view class="td col-c dim">{{item.level1}}</view>
+      <picker class="td col-c" range="{{levels}}" data-id="{{item.id}}" data-field="levelNow" bindchange="onFieldChange">
+        <view class="editable">{{item.levelNow}}</view>
+      </picker>
+      <picker class="td col-c" range="{{phases}}" data-id="{{item.id}}" data-field="phase" bindchange="onFieldChange">
+        <view class="editable-plain">{{item.phase}}</view>
+      </picker>
+      <picker class="td col-status" range="{{statusList}}" data-id="{{item.id}}" data-field="status" bindchange="onFieldChange">
+        <view class="status-tag s-{{fmt.statusClass(item.status)}}">{{item.status}}</view>
+      </picker>
+    </view>
+    <view class="empty-tip" wx:if="{{!filteredItems.length}}">无匹配的训练目标</view>
+  </view>
+</view>
