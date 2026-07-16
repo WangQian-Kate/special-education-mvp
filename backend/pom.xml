@@ -17,6 +17,9 @@
     <properties>
         <java.version>25</java.version>
         <mybatis-spring-boot.version>4.0.0</mybatis-spring-boot.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.parameters>true</maven.compiler.parameters>
     </properties>
     <dependencies>
         <dependency>

@@ -3,6 +3,7 @@ package com.specialed.assistant.controller;
 import com.specialed.assistant.dto.BehaviorRecordResponse;
 import com.specialed.assistant.dto.BehaviorStatisticsItem;
 import com.specialed.assistant.dto.BehaviorStatisticsResponse;
+import com.specialed.assistant.exception.ResourceNotFoundException;
 import com.specialed.assistant.service.BehaviorService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,6 +69,38 @@ class BehaviorControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(3))
                 .andExpect(jsonPath("$.items[0].behaviorCode").value("ATTENTION_DROP"));
+    }
+
+    @Test
+    void returnsStableValidationError() throws Exception {
+        mockMvc.perform(post("/behavior")
+                        .contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").isString());
+    }
+
+    @Test
+    void returnsStableResourceNotFoundError() throws Exception {
+        when(behaviorService.findByStudent(999L))
+                .thenThrow(new ResourceNotFoundException("学生不存在: 999"));
+
+        mockMvc.perform(get("/behavior/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("学生不存在: 999"));
+    }
+
+    @Test
+    void hidesInternalExceptionDetails() throws Exception {
+        when(behaviorService.findByStudent(1L))
+                .thenThrow(new RuntimeException("不应返回的数据库连接和本机路径"));
+
+        mockMvc.perform(get("/behavior/1"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
+                .andExpect(jsonPath("$.message").value("服务内部错误"));
     }
 
     private BehaviorRecordResponse response() {

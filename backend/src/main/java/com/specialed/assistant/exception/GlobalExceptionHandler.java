@@ -1,37 +1,72 @@
 package com.specialed.assistant.exception;
 
+import com.specialed.assistant.dto.ErrorResponse;
+import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final String DEFAULT_VALIDATION_MESSAGE = "请求参数不合法";
+    private static final String INTERNAL_ERROR_MESSAGE = "服务内部错误";
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleNotFound(ResourceNotFoundException exception) {
-        return error(HttpStatus.NOT_FOUND, exception.getMessage());
+    public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException exception) {
+        return error(HttpStatus.NOT_FOUND, ErrorCode.RESOURCE_NOT_FOUND, safeMessage(exception));
     }
 
-    @ExceptionHandler({IllegalArgumentException.class, MethodArgumentNotValidException.class})
-    public ResponseEntity<Map<String, String>> handleBadRequest(Exception exception) {
-        String message = exception instanceof MethodArgumentNotValidException validationException
-                ? validationException.getBindingResult().getFieldErrors().stream()
+    @ExceptionHandler({
+            IllegalArgumentException.class,
+            MethodArgumentNotValidException.class,
+            HandlerMethodValidationException.class,
+            MethodArgumentTypeMismatchException.class,
+            HttpMessageNotReadableException.class,
+            ConstraintViolationException.class
+    })
+    public ResponseEntity<ErrorResponse> handleBadRequest(Exception exception) {
+        return error(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_ERROR, validationMessage(exception));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleInternalError(Exception exception) {
+        LOGGER.error("未处理的服务异常", exception);
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, INTERNAL_ERROR_MESSAGE);
+    }
+
+    private String validationMessage(Exception exception) {
+        if (exception instanceof IllegalArgumentException) {
+            return safeMessage(exception);
+        }
+        if (exception instanceof MethodArgumentNotValidException validationException) {
+            return validationException.getBindingResult().getFieldErrors().stream()
                     .findFirst()
-                    .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                    .orElse("请求参数不合法")
-                : exception.getMessage();
-        return error(HttpStatus.BAD_REQUEST, message);
+                    .map(error -> "字段 " + error.getField() + " 校验失败")
+                    .orElse(DEFAULT_VALIDATION_MESSAGE);
+        }
+        if (exception instanceof MethodArgumentTypeMismatchException mismatchException) {
+            return "参数 " + mismatchException.getName() + " 格式不正确";
+        }
+        if (exception instanceof HttpMessageNotReadableException) {
+            return "请求体格式不正确";
+        }
+        return DEFAULT_VALIDATION_MESSAGE;
     }
 
-    private ResponseEntity<Map<String, String>> error(HttpStatus status, String message) {
-        Map<String, String> body = new LinkedHashMap<>();
-        body.put("code", status.name());
-        body.put("message", message);
-        return ResponseEntity.status(status).body(body);
+    private String safeMessage(Exception exception) {
+        String message = exception.getMessage();
+        return message == null || message.isBlank() ? DEFAULT_VALIDATION_MESSAGE : message;
+    }
+
+    private ResponseEntity<ErrorResponse> error(HttpStatus status, ErrorCode code, String message) {
+        return ResponseEntity.status(status).body(new ErrorResponse(code.name(), message));
     }
 }
