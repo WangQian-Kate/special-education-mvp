@@ -1,16 +1,28 @@
 openapi: 3.0.3
 info:
-  title: Special Education Assistant API
-  version: 0.1.0
-  description: 成员 B 负责的行为记录与统计接口，可直接导入 Apifox。
-  license:
-    name: UNLICENSED
-security: []
+  title: 特殊教育课堂助手 API
+  version: 0.2.0
+  description: |
+    成员 B 当前阶段负责的观察周期、行为记录与行为统计接口。
+    本文件可直接导入 Apifox。当前不包含认证、微信登录、AI 分析和 PDF 导出。
 servers:
   - url: http://127.0.0.1:8080
+    description: 本地开发环境
+security: []
+tags:
+  - name: 系统
+    description: 服务状态
+  - name: 观察周期
+    description: 随班记录页面顶部观察信息及本周期行为备注
+  - name: 行为记录
+    description: 快速行为记录、详细记录、查询、编辑和删除
+  - name: 行为统计
+    description: 行为频次、占比、趋势和环境分布
 paths:
   /health:
     get:
+      tags:
+        - 系统
       operationId: health
       summary: 服务健康检查
       responses:
@@ -19,32 +31,155 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: UP
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: UP
         '503':
           description: 服务不可用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: SERVICE_UNAVAILABLE
+                message: 服务暂时不可用
+
+  /observation-session:
+    post:
+      tags:
+        - 观察周期
+      operationId: createObservationSession
+      summary: 创建观察周期
+      description: 创建随班记录所需的日期、课程、环境、观察时长和本周期行为备注。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateObservationSessionRequest'
+            example:
+              creatorId: 1
+              observationDate: '2026-07-16'
+              courseCode: CHINESE
+              environmentCode: CLASSROOM
+              observationDurationMinutes: 40
+              periodBehaviorRemark: 下午注意力有所下降。
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObservationSession'
+              example:
+                id: 1001
+                creatorId: 1
+                observationDate: '2026-07-16'
+                courseCode: CHINESE
+                courseLabel: 语文
+                courseOtherDescription: null
+                environmentCode: CLASSROOM
+                environmentLabel: 教室
+                environmentOtherDescription: null
+                observationDurationMinutes: 40
+                periodBehaviorRemark: 下午注意力有所下降。
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /observation-session/{sessionId}:
+    parameters:
+      - $ref: '#/components/parameters/SessionId'
+    get:
+      tags:
+        - 观察周期
+      operationId: getObservationSession
+      summary: 查询观察周期
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObservationSession'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      tags:
+        - 观察周期
+      operationId: updateObservationSession
+      summary: 更新观察周期
+      description: |
+        实时保存日期、课程、环境、观察时长和本周期行为备注。
+        未出现的字段保持原值，显式传入 null 可清空允许为空的说明或备注。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateObservationSessionRequest'
+            example:
+              observationDurationMinutes: 45
+              periodBehaviorRemark: 下午注意力下降，视觉提示后改善。
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObservationSession'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /behavior:
     post:
+      tags:
+        - 行为记录
       operationId: createBehavior
       summary: 新增行为记录
-      description: A/B/C 必须使用数据库字典 code；请求也兼容字段别名 A、B、C。
+      description: |
+        同时支持快速记录和详细记录。快速记录只要求观察周期、学生、记录人和 B 行为，
+        A 前因、C 后果及其他详情允许为空，frequency 省略时为 1。
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateBehaviorRequest'
-            example:
-              studentId: 1
-              creatorId: 1
-              scene: CLASSROOM
-              antecedentCode: TEACHER_QUESTION
-              behaviorCode: ATTENTION_DROP
-              consequenceCode: VERBAL_PROMPT
-              remark: 提醒后回到任务
+            examples:
+              quickRecord:
+                summary: 快速记录
+                value:
+                  observationSessionId: 1001
+                  studentId: 1
+                  creatorId: 1
+                  behaviorCode: LEAVE_SEAT
+              detailedRecord:
+                summary: 详细记录
+                value:
+                  observationSessionId: 1001
+                  studentId: 1
+                  creatorId: 1
+                  recordTime: '2026-07-16T09:23:00+08:00'
+                  antecedentCode: TEACHER_QUESTION
+                  behaviorCode: LEAVE_SEAT
+                  consequenceCode: VERBAL_PROMPT
+                  assistanceCodes:
+                    - VERBAL_PROMPT
+                    - GESTURE_PROMPT
+                  assistanceResult: PARTIAL_SUCCESS
+                  frequency: 1
+                  durationSeconds: 120
+                  remark: 语言提示后回到座位。
       responses:
         '201':
           description: 创建成功
@@ -52,63 +187,638 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BehaviorRecord'
+              example:
+                id: 2001
+                observationSession:
+                  id: 1001
+                  creatorId: 1
+                  observationDate: '2026-07-16'
+                  courseCode: CHINESE
+                  courseLabel: 语文
+                  courseOtherDescription: null
+                  environmentCode: CLASSROOM
+                  environmentLabel: 教室
+                  environmentOtherDescription: null
+                  observationDurationMinutes: 40
+                  periodBehaviorRemark: 下午注意力有所下降。
+                studentId: 1
+                creatorId: 1
+                recordTime: '2026-07-16T09:23:00+08:00'
+                antecedentCode: TEACHER_QUESTION
+                antecedentLabel: 教师提问
+                behaviorCode: LEAVE_SEAT
+                behaviorLabel: 离开座位
+                consequenceCode: VERBAL_PROMPT
+                consequenceLabel: 教师语言提醒
+                assistanceMethods:
+                  - code: VERBAL_PROMPT
+                    label: 语言提示
+                  - code: GESTURE_PROMPT
+                    label: 手势提示
+                assistanceResult: PARTIAL_SUCCESS
+                assistanceOtherDescription: null
+                frequency: 1
+                durationSeconds: 120
+                remark: 语言提示后回到座位。
         '400':
-          description: 参数或字典值不合法
+          $ref: '#/components/responses/ValidationError'
         '404':
-          description: 学生或记录人不存在
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /behavior/{studentId}:
     get:
+      tags:
+        - 行为记录
       operationId: listStudentBehavior
-      summary: 查询指定学生的行为记录
+      summary: 查询学生行为记录
+      description: |
+        按发生时间倒序返回。startDate 和 endDate 必须同时提供并包含边界日期。
+        学生存在但没有符合条件的记录时返回空数组。
       parameters:
         - $ref: '#/components/parameters/StudentId'
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+        - $ref: '#/components/parameters/CourseCode'
+        - $ref: '#/components/parameters/EnvironmentCode'
+        - $ref: '#/components/parameters/ObservationSessionId'
       responses:
         '200':
-          description: 按记录时间倒序返回
+          description: 查询成功
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/BehaviorRecord'
+              example:
+                - id: 2001
+                  observationSession:
+                    id: 1001
+                    creatorId: 1
+                    observationDate: '2026-07-16'
+                    courseCode: CHINESE
+                    courseLabel: 语文
+                    courseOtherDescription: null
+                    environmentCode: CLASSROOM
+                    environmentLabel: 教室
+                    environmentOtherDescription: null
+                    observationDurationMinutes: 40
+                    periodBehaviorRemark: 下午注意力有所下降。
+                  studentId: 1
+                  creatorId: 1
+                  recordTime: '2026-07-16T09:23:00+08:00'
+                  antecedentCode: null
+                  antecedentLabel: null
+                  behaviorCode: LEAVE_SEAT
+                  behaviorLabel: 离开座位
+                  consequenceCode: null
+                  consequenceLabel: null
+                  assistanceMethods: []
+                  assistanceOtherDescription: null
+                  frequency: 1
+                  durationSeconds: null
+                  remark: null
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '404':
-          description: 学生不存在
-  /statistics/{studentId}:
-    get:
-      operationId: getStudentStatistics
-      summary: 获取指定学生的行为频次统计
-      parameters:
-        - $ref: '#/components/parameters/StudentId'
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /behavior/records/{recordId}:
+    parameters:
+      - $ref: '#/components/parameters/RecordId'
+    patch:
+      tags:
+        - 行为记录
+      operationId: updateBehaviorRecord
+      summary: 更新行为详细记录
+      description: |
+        补充或修改 ABC、辅助方式、辅助结果、频次、持续时间和备注。
+        未出现的字段保持原值；可空字段显式传入 null 时清空；
+        assistanceCodes 传入空数组时清空全部辅助方式。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBehaviorRequest'
+            example:
+              antecedentCode: TEACHER_QUESTION
+              consequenceCode: VERBAL_PROMPT
+              assistanceCodes:
+                - VERBAL_PROMPT
+                - GESTURE_PROMPT
+              assistanceResult: PARTIAL_SUCCESS
+              durationSeconds: 120
+              remark: 语言提示后回到座位。
       responses:
         '200':
-          description: 按行为类型聚合统计
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BehaviorRecord'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags:
+        - 行为记录
+      operationId: deleteBehaviorRecord
+      summary: 删除行为记录
+      description: 直接删除行为记录及其辅助方式关联，用于记录删除和次数减少。
+      responses:
+        '204':
+          description: 删除成功，无响应正文
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /statistics/{studentId}:
+    get:
+      tags:
+        - 行为统计
+      operationId: getStudentStatistics
+      summary: 获取学生行为统计
+      description: |
+        返回行为频次、占比、按日期趋势和环境分布。startDate 与 endDate 必须同时提供并包含边界日期。
+        查询参数全部省略时统计该学生全部行为数据。
+      parameters:
+        - $ref: '#/components/parameters/StudentId'
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+        - $ref: '#/components/parameters/CourseCode'
+        - $ref: '#/components/parameters/EnvironmentCode'
+      responses:
+        '200':
+          description: 查询成功
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/BehaviorStatistics'
+              example:
+                studentId: 1
+                startDate: '2026-07-10'
+                endDate: '2026-07-16'
+                totalFrequency: 10
+                items:
+                  - behaviorCode: LEAVE_SEAT
+                    behaviorLabel: 离开座位
+                    frequency: 6
+                    percentage: 60
+                  - behaviorCode: SCREAM
+                    behaviorLabel: 尖叫
+                    frequency: 4
+                    percentage: 40
+                trend:
+                  - date: '2026-07-15'
+                    totalFrequency: 3
+                  - date: '2026-07-16'
+                    totalFrequency: 7
+                environmentDistribution:
+                  - environmentCode: CLASSROOM
+                    environmentLabel: 教室
+                    frequency: 8
+                    percentage: 80
+                  - environmentCode: PLAYGROUND
+                    environmentLabel: 操场
+                    frequency: 2
+                    percentage: 20
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '404':
-          description: 学生不存在
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 components:
   parameters:
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      description: 观察周期 ID
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      example: 1001
     StudentId:
       name: studentId
       in: path
       required: true
+      description: 学生 ID
       schema:
         type: integer
         format: int64
-        example: 1
+        minimum: 1
+      example: 1
+    RecordId:
+      name: recordId
+      in: path
+      required: true
+      description: 行为记录 ID
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      example: 2001
+    StartDate:
+      name: startDate
+      in: query
+      required: false
+      description: 开始日期，必须与 endDate 同时提供，包含当天
+      schema:
+        type: string
+        format: date
+      example: '2026-07-10'
+    EndDate:
+      name: endDate
+      in: query
+      required: false
+      description: 结束日期，必须与 startDate 同时提供，包含当天
+      schema:
+        type: string
+        format: date
+      example: '2026-07-16'
+    CourseCode:
+      name: courseCode
+      in: query
+      required: false
+      description: 课程字典 code
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+      example: CHINESE
+    EnvironmentCode:
+      name: environmentCode
+      in: query
+      required: false
+      description: 环境字典 code
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+      example: CLASSROOM
+    ObservationSessionId:
+      name: observationSessionId
+      in: query
+      required: false
+      description: 观察周期 ID
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      example: 1001
+
+  responses:
+    ValidationError:
+      description: 请求参数、范围、条件必填关系或字典 code 不合法
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: VALIDATION_ERROR
+            message: 请求参数不合法
+    ResourceNotFound:
+      description: 请求的学生、教师、观察周期或行为记录不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: RESOURCE_NOT_FOUND
+            message: 请求的资源不存在
+    InternalError:
+      description: 未预期的服务异常
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: INTERNAL_ERROR
+            message: 服务内部错误
+
   schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: UP
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          minLength: 1
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          minLength: 1
+          example: 请求参数不合法
+
+    CreateObservationSessionRequest:
+      type: object
+      required:
+        - creatorId
+        - observationDate
+        - courseCode
+        - environmentCode
+        - observationDurationMinutes
+      properties:
+        creatorId:
+          type: integer
+          format: int64
+          minimum: 1
+          description: 当前记录教师 ID
+        observationDate:
+          type: string
+          format: date
+          description: 观察日期
+        courseCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: 课程字典 code
+        courseOtherDescription:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: courseCode 为 OTHER 时必填
+        environmentCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: 环境字典 code
+        environmentOtherDescription:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: environmentCode 为 OTHER 时必填
+        observationDurationMinutes:
+          type: integer
+          minimum: 1
+          maximum: 1440
+          description: 观察周期分钟数
+        periodBehaviorRemark:
+          type: string
+          nullable: true
+          maxLength: 1000
+          description: 本周期行为备注
+
+    UpdateObservationSessionRequest:
+      type: object
+      minProperties: 1
+      properties:
+        observationDate:
+          type: string
+          format: date
+        courseCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+        courseOtherDescription:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: 显式传入 null 时清空
+        environmentCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+        environmentOtherDescription:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: 显式传入 null 时清空
+        observationDurationMinutes:
+          type: integer
+          minimum: 1
+          maximum: 1440
+        periodBehaviorRemark:
+          type: string
+          nullable: true
+          maxLength: 1000
+          description: 显式传入 null 时清空
+
+    ObservationSession:
+      type: object
+      required:
+        - id
+        - creatorId
+        - observationDate
+        - courseCode
+        - courseLabel
+        - environmentCode
+        - environmentLabel
+        - observationDurationMinutes
+      properties:
+        id:
+          type: integer
+          format: int64
+        creatorId:
+          type: integer
+          format: int64
+        observationDate:
+          type: string
+          format: date
+        courseCode:
+          type: string
+        courseLabel:
+          type: string
+        courseOtherDescription:
+          type: string
+          nullable: true
+        environmentCode:
+          type: string
+        environmentLabel:
+          type: string
+        environmentOtherDescription:
+          type: string
+          nullable: true
+        observationDurationMinutes:
+          type: integer
+          minimum: 1
+        periodBehaviorRemark:
+          type: string
+          nullable: true
+
     CreateBehaviorRequest:
       type: object
       required:
+        - observationSessionId
         - studentId
         - creatorId
-        - scene
-        - antecedentCode
         - behaviorCode
-        - consequenceCode
       properties:
+        observationSessionId:
+          type: integer
+          format: int64
+          minimum: 1
+        studentId:
+          type: integer
+          format: int64
+          minimum: 1
+        creatorId:
+          type: integer
+          format: int64
+          minimum: 1
+        recordTime:
+          type: string
+          format: date-time
+          description: 省略时由服务器填写当前时间
+        antecedentCode:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 64
+          description: A 前因，快速记录时允许为空
+        behaviorCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: B 行为，必填
+        consequenceCode:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 64
+          description: C 后果，快速记录时允许为空
+        assistanceCodes:
+          type: array
+          uniqueItems: true
+          default: []
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+          description: 多选辅助方式 code
+        assistanceResult:
+          $ref: '#/components/schemas/NullableAssistanceResult'
+        assistanceOtherDescription:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: assistanceCodes 包含 OTHER 时必填
+        frequency:
+          type: integer
+          minimum: 1
+          default: 1
+        durationSeconds:
+          type: integer
+          nullable: true
+          minimum: 0
+        remark:
+          type: string
+          nullable: true
+          maxLength: 500
+
+    UpdateBehaviorRequest:
+      type: object
+      minProperties: 1
+      properties:
+        recordTime:
+          type: string
+          format: date-time
+        antecedentCode:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 64
+          description: 显式传入 null 时清空
+        behaviorCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+        consequenceCode:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 64
+          description: 显式传入 null 时清空
+        assistanceCodes:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+          description: 传入空数组时清空全部辅助方式
+        assistanceResult:
+          $ref: '#/components/schemas/NullableAssistanceResult'
+        assistanceOtherDescription:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: 显式传入 null 时清空
+        frequency:
+          type: integer
+          minimum: 1
+        durationSeconds:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: 显式传入 null 时清空
+        remark:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: 显式传入 null 时清空
+
+    NullableAssistanceResult:
+      type: string
+      nullable: true
+      enum:
+        - SUCCESS
+        - PARTIAL_SUCCESS
+        - FAILED
+      description: 成功、部分成功或失败
+
+    CodeLabel:
+      type: object
+      required:
+        - code
+        - label
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+
+    BehaviorRecord:
+      type: object
+      required:
+        - id
+        - observationSession
+        - studentId
+        - creatorId
+        - recordTime
+        - behaviorCode
+        - behaviorLabel
+        - assistanceMethods
+        - frequency
+      properties:
+        id:
+          type: integer
+          format: int64
+        observationSession:
+          $ref: '#/components/schemas/ObservationSession'
         studentId:
           type: integer
           format: int64
@@ -118,54 +828,136 @@ components:
         recordTime:
           type: string
           format: date-time
-          description: 省略时由服务器填写当前时间
-        scene:
-          type: string
-          enum: [CLASSROOM, BREAK, HOME, OTHER]
         antecedentCode:
           type: string
-          example: TEACHER_QUESTION
+          nullable: true
+        antecedentLabel:
+          type: string
+          nullable: true
         behaviorCode:
           type: string
-          example: ATTENTION_DROP
+        behaviorLabel:
+          type: string
         consequenceCode:
           type: string
-          example: VERBAL_PROMPT
+          nullable: true
+        consequenceLabel:
+          type: string
+          nullable: true
+        assistanceMethods:
+          type: array
+          items:
+            $ref: '#/components/schemas/CodeLabel'
+        assistanceResult:
+          $ref: '#/components/schemas/NullableAssistanceResult'
+        assistanceOtherDescription:
+          type: string
+          nullable: true
+        frequency:
+          type: integer
+          minimum: 1
+        durationSeconds:
+          type: integer
+          nullable: true
+          minimum: 0
         remark:
           type: string
-          maxLength: 500
-    BehaviorRecord:
-      allOf:
-        - $ref: '#/components/schemas/CreateBehaviorRequest'
-        - type: object
-          properties:
-            id:
-              type: integer
-              format: int64
-            antecedentLabel:
-              type: string
-            behaviorLabel:
-              type: string
-            consequenceLabel:
-              type: string
+          nullable: true
+
+    BehaviorStatisticsItem:
+      type: object
+      required:
+        - behaviorCode
+        - behaviorLabel
+        - frequency
+        - percentage
+      properties:
+        behaviorCode:
+          type: string
+        behaviorLabel:
+          type: string
+        frequency:
+          type: integer
+          format: int64
+          minimum: 0
+        percentage:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+
+    BehaviorTrendItem:
+      type: object
+      required:
+        - date
+        - totalFrequency
+      properties:
+        date:
+          type: string
+          format: date
+        totalFrequency:
+          type: integer
+          format: int64
+          minimum: 0
+
+    EnvironmentDistributionItem:
+      type: object
+      required:
+        - environmentCode
+        - environmentLabel
+        - frequency
+        - percentage
+      properties:
+        environmentCode:
+          type: string
+        environmentLabel:
+          type: string
+        frequency:
+          type: integer
+          format: int64
+          minimum: 0
+        percentage:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+
     BehaviorStatistics:
       type: object
+      required:
+        - studentId
+        - totalFrequency
+        - items
+        - trend
+        - environmentDistribution
       properties:
         studentId:
           type: integer
           format: int64
-        total:
+        startDate:
+          type: string
+          format: date
+          nullable: true
+          description: 未按日期筛选时为空
+        endDate:
+          type: string
+          format: date
+          nullable: true
+          description: 未按日期筛选时为空
+        totalFrequency:
           type: integer
           format: int64
+          minimum: 0
+          description: 所有行为记录 frequency 的总和
         items:
           type: array
           items:
-            type: object
-            properties:
-              behaviorCode:
-                type: string
-              behaviorLabel:
-                type: string
-              count:
-                type: integer
-                format: int64
+            $ref: '#/components/schemas/BehaviorStatisticsItem'
+        trend:
+          type: array
+          items:
+            $ref: '#/components/schemas/BehaviorTrendItem'
+        environmentDistribution:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnvironmentDistributionItem'
