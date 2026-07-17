@@ -1,9 +1,12 @@
 USE special_ed_assistant;
 
-INSERT INTO app_user (id, avatar, name, school, position, role) VALUES
-  (1, NULL, '张老师', 'XX市特殊教育学校', '资源教师', 'RESOURCE_TEACHER')
+INSERT INTO app_user (id, teacher_id, avatar, name, school, position, role) VALUES
+  (1, 't001', NULL, '张老师', 'XX市特殊教育学校', '特教教师', 'RESOURCE_TEACHER'),
+  (2, 't002', NULL, '王老师', 'XX市特殊教育学校', '康复师', 'RESOURCE_TEACHER'),
+  (3, 't003', NULL, '李老师', 'XX市随班就读试点小学', '班主任', 'RESOURCE_TEACHER')
 AS new
 ON DUPLICATE KEY UPDATE
+  teacher_id = new.teacher_id,
   avatar = new.avatar,
   name = new.name,
   school = new.school,
@@ -11,12 +14,19 @@ ON DUPLICATE KEY UPDATE
   role = new.role;
 
 INSERT INTO student (
-  id, name, age, class_name, disability_type, support_goal, remark
+  id, student_code, name, gender, age, class_name, disability_type, support_goal, remark
 ) VALUES
-  (1, '小明', 12, '六年级一班', '自闭症谱系障碍', '提升课堂任务持续参与能力', '仅用于本地开发')
+  (1, 's001', '小明', 'MALE', 8, '二年级1班', '自闭症谱系障碍', '提升课堂任务持续参与能力', '仅用于本地开发'),
+  (2, 's002', '小华', 'MALE', 9, '三年级2班', NULL, NULL, '仅用于本地开发'),
+  (3, 's003', '小红', 'FEMALE', 7, '一年级1班', NULL, NULL, '仅用于本地开发'),
+  (4, 's004', '小丽', 'FEMALE', 9, '三年级1班', NULL, NULL, '仅用于本地开发'),
+  (5, 's005', '小刚', 'MALE', 10, '四年级2班', NULL, NULL, '仅用于本地开发'),
+  (6, 's006', '小强', 'MALE', 8, '二年级3班', NULL, NULL, '仅用于本地开发')
 AS new
 ON DUPLICATE KEY UPDATE
+  student_code = new.student_code,
   name = new.name,
+  gender = new.gender,
   age = new.age,
   class_name = new.class_name,
   disability_type = new.disability_type,
@@ -24,12 +34,19 @@ ON DUPLICATE KEY UPDATE
   remark = new.remark;
 
 INSERT INTO app_user_student (user_id, student_id) VALUES
-  (1, 1)
+  (1, 1),
+  (1, 2),
+  (2, 3),
+  (2, 4),
+  (3, 5),
+  (3, 6)
 AS new
 ON DUPLICATE KEY UPDATE student_id = new.student_id;
 
 INSERT INTO app_user_current_student (user_id, student_id) VALUES
-  (1, 1)
+  (1, 1),
+  (2, 3),
+  (3, 5)
 AS new
 ON DUPLICATE KEY UPDATE student_id = new.student_id;
 
@@ -310,5 +327,6 @@ ON DUPLICATE KEY UPDATE
   owner_student_id = new.owner_student_id;
 
 INSERT IGNORE INTO schema_migration (version) VALUES ('2.1.0');
+INSERT IGNORE INTO schema_migration (version) VALUES ('2.2.0');
 
 -- 行为环节、行为功能和训练等级数据尚未提供，暂不写入虚假数据。

@@ -1,11 +1,10 @@
 package com.specialed.assistant.api.studentevaluation;
 
 import com.specialed.assistant.api.classrecord.ClassRecordModels.BehaviorCountStatistics;
-import jakarta.validation.constraints.Positive;
+import com.specialed.assistant.auth.CurrentUserId;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -26,7 +25,7 @@ public class StudentEvaluationController {
 
     @GetMapping("/statistics")
     public BehaviorCountStatistics statistics(
-            @RequestHeader("X-User-Id") @Positive Long userId,
+            @CurrentUserId Long userId,
             @RequestParam EvaluationPeriod period,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate referenceDate
     ) {

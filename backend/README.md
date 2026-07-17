@@ -6,11 +6,11 @@
 
 | 内容 | 当前状态 |
 |---|---|
-| OpenAPI 契约 | `0.5.0`，共 24 个接口 |
+| OpenAPI 契约 | `0.6.0`，共 24 个接口 |
 | Java 实现 | 已完成，按前端页面分包 |
-| MySQL | `special_ed_assistant` 已迁移到 `2.1.0`，内置 165 项标准目标 |
+| MySQL | `special_ed_assistant` 已迁移到 `2.2.0`，内置 165 项标准目标 |
 | 自动化测试 | 5 个数据库集成场景覆盖全部 24 个接口，已通过 |
-| Apifox | 需将 0.5.0 重新导入现有新版模块 |
+| Apifox | 需将 0.6.0 重新导入现有新版模块 |
 
 ## 页面模块
 
@@ -36,7 +36,7 @@ src/main/java/com/specialed/assistant/api/
 
 详细契约见：
 
-- `docs/openapi.yaml`：OpenAPI 0.5.0 统一契约。
+- `docs/openapi.yaml`：OpenAPI 0.6.0 统一契约。
 - `docs/接口文档.md`：中文接口总览。
 - `docs/api/`：按页面拆分的中文接口说明。
 - `../docs/design/member-b-v2-data-model.md`：V2 数据模型。
@@ -103,7 +103,7 @@ Invoke-RestMethod http://localhost:3000/api/health
 
 `code` 为 `0` 表示成功；非 `0` 时前端展示 `message`。删除成功同样返回 HTTP 200 和统一包体，其中 `data` 为 `null`。
 
-除健康检查外，当前业务接口暂时使用请求头 `X-User-Id` 表示当前用户。前端拟使用的 `X-Teacher-Id: t001/t002/t003` 映射本轮暂不实现，待教师 ID 与数据库用户的对应关系确定后再切换。
+除健康检查外，业务接口只接受请求头 `X-Teacher-Id: t001/t002/t003`。后端通过白名单映射读取教师及其绑定学生，不再接受 `X-User-Id`。缺少或无法识别教师身份时返回 HTTP 401、错误码 `40101`。
 
 ## HTTPS 内网穿透
 
@@ -131,8 +131,9 @@ $cpolar = "$env:LOCALAPPDATA\Programs\cpolar-portable\cpolar.exe"
 | `sql/seed.sql` | 本地开发基础字典和演示数据，可重复执行 |
 | `sql/migrate-v2.sql` | V0.3 空业务库升级到 V2，检测到旧业务数据时自动中止 |
 | `sql/migrate-v2.1-training-goals.sql` | V2.0.0 增加标准目标业务编号结构 |
+| `sql/migrate-v2.2-whitelist-identities.sql` | V2.1.0 增加教师/学生外部编号、性别和白名单数据 |
 
-正式本地数据库已于 2026-07-17 完成迁移，当前版本为 `2.1.0`、共 18 张表，并包含编号连续的 165 项标准训练目标。应用账号只需要 `special_ed_assistant.*` 上的 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。
+正式本地数据库已于 2026-07-17 完成迁移，当前版本为 `2.2.0`、共 18 张表，并包含 3 名白名单教师、6 名绑定学生和编号连续的 165 项标准训练目标。应用账号只需要 `special_ed_assistant.*` 上的 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。
 
 `seed.sql` 只用于本地开发，不应直接用于生产数据环境。
 

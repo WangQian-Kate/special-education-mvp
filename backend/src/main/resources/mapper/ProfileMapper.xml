@@ -5,6 +5,7 @@
 <mapper namespace="com.specialed.assistant.api.profile.ProfileMapper">
     <resultMap id="UserMap" type="com.specialed.assistant.api.profile.UserEntity">
         <id property="id" column="id"/>
+        <result property="teacherId" column="teacher_id"/>
         <result property="avatar" column="avatar"/>
         <result property="name" column="name"/>
         <result property="school" column="school"/>
@@ -14,7 +15,9 @@
 
     <resultMap id="StudentMap" type="com.specialed.assistant.api.profile.StudentEntity">
         <id property="id" column="id"/>
+        <result property="studentCode" column="student_code"/>
         <result property="name" column="name"/>
+        <result property="gender" column="gender"/>
         <result property="age" column="age"/>
         <result property="className" column="class_name"/>
         <result property="disabilityType" column="disability_type"/>
@@ -22,13 +25,13 @@
     </resultMap>
 
     <select id="findUser" resultMap="UserMap">
-        SELECT id, avatar, name, school, position, role
+        SELECT id, teacher_id, avatar, name, school, position, role
         FROM app_user
         WHERE id = #{userId}
     </select>
 
     <select id="findBoundStudents" resultMap="StudentMap">
-        SELECT s.id, s.name, s.age, s.class_name, s.disability_type, s.remark
+        SELECT s.id, s.student_code, s.name, s.gender, s.age, s.class_name, s.disability_type, s.remark
         FROM app_user_student aus
         JOIN student s ON s.id = aus.student_id
         WHERE aus.user_id = #{userId}
@@ -36,7 +39,7 @@
     </select>
 
     <select id="findCurrentStudent" resultMap="StudentMap">
-        SELECT s.id, s.name, s.age, s.class_name, s.disability_type, s.remark
+        SELECT s.id, s.student_code, s.name, s.gender, s.age, s.class_name, s.disability_type, s.remark
         FROM app_user_current_student current_student
         JOIN student s ON s.id = current_student.student_id
         WHERE current_student.user_id = #{userId}

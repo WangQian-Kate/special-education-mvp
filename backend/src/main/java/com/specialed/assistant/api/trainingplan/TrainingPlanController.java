@@ -1,7 +1,8 @@
 package com.specialed.assistant.api.trainingplan;
 
-import jakarta.validation.Valid;
+import com.specialed.assistant.auth.CurrentUserId;
 import com.specialed.assistant.dto.ApiResponse;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
@@ -12,7 +13,6 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -34,13 +34,13 @@ public class TrainingPlanController {
     }
 
     @GetMapping("/categories")
-    public List<TrainingGoalCategory> categories(@RequestHeader("X-User-Id") @Positive Long userId) {
+    public List<TrainingGoalCategory> categories(@CurrentUserId Long userId) {
         return service.categories(userId);
     }
 
     @GetMapping("/library")
     public List<TrainingGoalLibraryItem> library(
-            @RequestHeader("X-User-Id") @Positive Long userId,
+            @CurrentUserId Long userId,
             @RequestParam(required = false) @Size(max = 100) String keyword,
             @RequestParam(required = false) @Size(max = 64) String categoryCode
     ) {
@@ -49,7 +49,7 @@ public class TrainingPlanController {
 
     @GetMapping("/items")
     public List<TrainingPlanItem> items(
-            @RequestHeader("X-User-Id") @Positive Long userId,
+            @CurrentUserId Long userId,
             @RequestParam(required = false) @Size(max = 100) String keyword,
             @RequestParam(required = false) @Size(max = 64) String categoryCode,
             @RequestParam(required = false) TrainingStatus status
@@ -60,7 +60,7 @@ public class TrainingPlanController {
     @PostMapping("/items/standard")
     @ResponseStatus(HttpStatus.CREATED)
     public List<TrainingPlanItem> assignStandard(
-            @RequestHeader("X-User-Id") @Positive Long userId,
+            @CurrentUserId Long userId,
             @Valid @RequestBody AssignStandardGoalsRequest request
     ) {
         return service.assignStandard(userId, request);
@@ -69,7 +69,7 @@ public class TrainingPlanController {
     @PostMapping("/items/custom")
     @ResponseStatus(HttpStatus.CREATED)
     public TrainingPlanItem createCustom(
-            @RequestHeader("X-User-Id") @Positive Long userId,
+            @CurrentUserId Long userId,
             @Valid @RequestBody CreateCustomGoalRequest request
     ) {
         return service.createCustom(userId, request);
@@ -77,7 +77,7 @@ public class TrainingPlanController {
 
     @PatchMapping("/items/{itemId}")
     public TrainingPlanItem update(
-            @RequestHeader("X-User-Id") @Positive Long userId,
+            @CurrentUserId Long userId,
             @PathVariable @Positive Long itemId,
             @RequestBody JsonNode patch
     ) {
@@ -86,7 +86,7 @@ public class TrainingPlanController {
 
     @DeleteMapping("/items/{itemId}")
     public ApiResponse<Void> delete(
-            @RequestHeader("X-User-Id") @Positive Long userId,
+            @CurrentUserId Long userId,
             @PathVariable @Positive Long itemId,
             @RequestParam(defaultValue = "false") boolean confirmed
     ) {

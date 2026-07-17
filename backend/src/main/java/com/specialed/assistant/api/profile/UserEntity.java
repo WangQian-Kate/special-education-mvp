@@ -2,6 +2,7 @@ package com.specialed.assistant.api.profile;
 
 public class UserEntity {
     private Long id;
+    private String teacherId;
     private String avatar;
     private String name;
     private String school;
@@ -10,6 +11,8 @@ public class UserEntity {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+    public String getTeacherId() { return teacherId; }
+    public void setTeacherId(String teacherId) { this.teacherId = teacherId; }
     public String getAvatar() { return avatar; }
     public void setAvatar(String avatar) { this.avatar = avatar; }
     public String getName() { return name; }

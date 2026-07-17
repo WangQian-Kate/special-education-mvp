@@ -1,10 +1,10 @@
 openapi: 3.0.3
 info:
   title: 特殊教育课堂助手 API
-  version: 0.5.0
+  version: 0.6.0
   description: |
     根据 V2 软件原型重写的接口契约，按“随班记录、训练计划、学生评估、我的、系统”五个页面模块组织。
-    当前尚未接入登录，业务接口使用 X-User-Id 请求头确定当前用户；接入认证后由认证上下文替代。
+    当前采用白名单伪登录，业务接口使用 X-Teacher-Id: t001/t002/t003 确定当前教师；不接收 X-User-Id。
     所有响应统一使用 { code, message, data } 包体；code 为 0 表示成功。
     AI 分析、学期报告、导出分享、学生管理、个人资料修改和退出登录暂不包含。
 servers:
@@ -44,7 +44,7 @@ paths:
 
   /me:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [我的]
       operationId: getMyProfile
@@ -53,6 +53,8 @@ paths:
         返回个人中心顶部信息。绑定多个学生但尚未选择时，currentStudent 为 null，
         requiresStudentSelection 为 true。只绑定一个学生时，后端可以自动设为当前学生。
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 查询成功
           content:
@@ -66,12 +68,14 @@ paths:
 
   /me/students:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [我的]
       operationId: listMyStudents
       summary: 查询当前用户绑定的学生
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 查询成功
           content:
@@ -85,7 +89,7 @@ paths:
 
   /me/current-student:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
     put:
       tags: [我的]
       operationId: updateCurrentStudent
@@ -100,6 +104,8 @@ paths:
             example:
               studentId: 1
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 切换成功
           content:
@@ -115,7 +121,7 @@ paths:
 
   /class-records:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [随班记录]
       operationId: listClassRecords
@@ -124,6 +130,8 @@ paths:
       parameters:
         - $ref: '#/components/parameters/RecordDate'
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 查询成功
           content:
@@ -154,6 +162,8 @@ paths:
               observationDurationMinutes: 15
               overallRemark: 今天精神状态较差。
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '201':
           description: 创建成功
           content:
@@ -169,7 +179,7 @@ paths:
 
   /class-records/behavior-options:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [随班记录]
       operationId: listBehaviorOptions
@@ -177,6 +187,8 @@ paths:
       parameters:
         - $ref: '#/components/parameters/CourseCode'
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 查询成功
           content:
@@ -190,7 +202,7 @@ paths:
 
   /class-records/summary:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [随班记录]
       operationId: getClassRecordSummary
@@ -203,6 +215,8 @@ paths:
             $ref: '#/components/schemas/ClassRecordSummaryPeriod'
         - $ref: '#/components/parameters/ReferenceDate'
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 查询成功
           content:
@@ -218,13 +232,15 @@ paths:
 
   /class-records/{classRecordId}:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
       - $ref: '#/components/parameters/ClassRecordId'
     get:
       tags: [随班记录]
       operationId: getClassRecord
       summary: 查询课堂信息和行为卡片次数
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 查询成功
           content:
@@ -251,6 +267,8 @@ paths:
             example:
               overallRemark: 下午注意力下降。
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 保存成功
           content:
@@ -266,7 +284,7 @@ paths:
 
   /class-records/{classRecordId}/behavior-records/quick:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
       - $ref: '#/components/parameters/ClassRecordId'
     post:
       tags: [随班记录]
@@ -282,6 +300,8 @@ paths:
             example:
               behaviorCode: LEAVE_SEAT
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '201':
           description: 创建成功
           content:
@@ -297,7 +317,7 @@ paths:
 
   /class-records/{classRecordId}/behavior-records/supplement:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
       - $ref: '#/components/parameters/ClassRecordId'
     post:
       tags: [随班记录]
@@ -313,6 +333,8 @@ paths:
               behaviorCode: LEAVE_SEAT
               occurredAt: '2026-07-17T09:12:45+08:00'
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '201':
           description: 创建成功
           content:
@@ -328,7 +350,7 @@ paths:
 
   /class-records/{classRecordId}/behavior-records:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
       - $ref: '#/components/parameters/ClassRecordId'
     get:
       tags: [随班记录]
@@ -337,6 +359,8 @@ paths:
       parameters:
         - $ref: '#/components/parameters/BehaviorCode'
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 按发生时间升序返回
           content:
@@ -352,13 +376,15 @@ paths:
 
   /behavior-records/{recordId}:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
       - $ref: '#/components/parameters/BehaviorRecordId'
     get:
       tags: [随班记录]
       operationId: getBehaviorRecord
       summary: 查询一条详细记录
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 查询成功
           content:
@@ -377,6 +403,8 @@ paths:
       summary: 删除一条行为记录
       description: 前端根据记录的 detailSaved 决定是否先显示确认框。
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 删除成功
           content:
@@ -392,7 +420,7 @@ paths:
 
   /behavior-records/{recordId}/details:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
       - $ref: '#/components/parameters/BehaviorRecordId'
     put:
       tags: [随班记录]
@@ -417,6 +445,8 @@ paths:
                   content: 提示学生回到座位。
               assistanceResultText: 一次语言提示后返回座位。
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 保存成功
           content:
@@ -432,7 +462,7 @@ paths:
 
   /student-evaluation/statistics:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [学生评估]
       operationId: getStudentEvaluationStatistics
@@ -445,6 +475,8 @@ paths:
             $ref: '#/components/schemas/EvaluationPeriod'
         - $ref: '#/components/parameters/ReferenceDate'
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 查询成功
           content:
@@ -460,12 +492,14 @@ paths:
 
   /training-plan/categories:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [训练计划]
       operationId: listTrainingGoalCategories
       summary: 查询训练目标分类
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 查询成功
           content:
@@ -479,7 +513,7 @@ paths:
 
   /training-plan/library:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [训练计划]
       operationId: listTrainingGoalLibrary
@@ -500,6 +534,8 @@ paths:
             minLength: 1
             maxLength: 64
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 查询成功
           content:
@@ -515,7 +551,7 @@ paths:
 
   /training-plan/items:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [训练计划]
       operationId: listTrainingPlanItems
@@ -540,6 +576,8 @@ paths:
           schema:
             $ref: '#/components/schemas/TrainingStatus'
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 查询成功
           content:
@@ -555,7 +593,7 @@ paths:
 
   /training-plan/items/standard:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
     post:
       tags: [训练计划]
       operationId: assignStandardTrainingGoals
@@ -573,6 +611,8 @@ paths:
                 - goalId: 102
                   initialLevel: D
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '201':
           description: 激活成功
           content:
@@ -590,7 +630,7 @@ paths:
 
   /training-plan/items/custom:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
     post:
       tags: [训练计划]
       operationId: createCustomTrainingGoal
@@ -605,6 +645,8 @@ paths:
               goalText: 在集体课开始前独立准备好教材。
               initialLevel: C
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '201':
           description: 创建成功
           content:
@@ -620,7 +662,7 @@ paths:
 
   /training-plan/items/{itemId}:
     parameters:
-      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/TeacherIdHeader'
       - $ref: '#/components/parameters/TrainingPlanItemId'
     patch:
       tags: [训练计划]
@@ -638,6 +680,8 @@ paths:
               phase: 2
               status: IN_PROGRESS
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 更新成功
           content:
@@ -663,6 +707,8 @@ paths:
             type: boolean
             default: false
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '200':
           description: 删除成功
           content:
@@ -680,16 +726,15 @@ paths:
 
 components:
   parameters:
-    UserIdHeader:
-      name: X-User-Id
+    TeacherIdHeader:
+      name: X-Teacher-Id
       in: header
       required: true
-      description: 临时当前用户 ID；接入登录后由认证上下文替代
+      description: 白名单教师 ID；当前仅允许 t001、t002、t003
       schema:
-        type: integer
-        format: int64
-        minimum: 1
-      example: 1
+        type: string
+        enum: [t001, t002, t003]
+      example: t001
     RecordDate:
       name: recordDate
       in: query
@@ -845,7 +890,7 @@ components:
             data:
               type: array
               items:
-                $ref: '#/components/schemas/BehaviorRecordDetail'
+                $ref: '#/components/schemas/BehaviorRecordListItem'
 
     BehaviorRecordDetailApiResponse:
       allOf:
@@ -917,7 +962,7 @@ components:
       properties:
         code:
           type: integer
-          enum: [40001, 40002, 40401, 40901, 40902, 50000]
+          enum: [40001, 40002, 40101, 40401, 40901, 40902, 50000]
         message:
           type: string
           minLength: 1
@@ -932,11 +977,14 @@ components:
 
     UserProfile:
       type: object
-      required: [id, name, role]
+      required: [id, teacherId, name, role]
       properties:
         id:
           type: integer
           format: int64
+        teacherId:
+          type: string
+          enum: [t001, t002, t003]
         avatar:
           type: string
           nullable: true
@@ -954,13 +1002,20 @@ components:
 
     StudentSummary:
       type: object
-      required: [id, name]
+      required: [id, studentCode, name]
       properties:
         id:
           type: integer
           format: int64
+        studentCode:
+          type: string
+          pattern: '^s[0-9]{3}$'
         name:
           type: string
+        gender:
+          type: string
+          nullable: true
+          enum: [MALE, FEMALE]
         age:
           type: integer
           nullable: true
@@ -1494,6 +1549,16 @@ components:
           type: boolean
 
   responses:
+    UnauthorizedTeacher:
+      description: 缺少或无法识别白名单教师身份
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 40101
+            message: 未识别的教师身份
+            data: null
     ValidationError:
       description: 请求参数不合法
       content:

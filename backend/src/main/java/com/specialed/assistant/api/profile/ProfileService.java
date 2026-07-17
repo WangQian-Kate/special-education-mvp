@@ -72,7 +72,7 @@ public class ProfileService {
     }
 
     private UserProfile toProfile(UserEntity user) {
-        return new UserProfile(user.getId(), user.getAvatar(), user.getName(), user.getSchool(),
+        return new UserProfile(user.getId(), user.getTeacherId(), user.getAvatar(), user.getName(), user.getSchool(),
                 user.getPosition(), UserRole.valueOf(user.getRole()));
     }
 
@@ -80,7 +80,8 @@ public class ProfileService {
         if (student == null) {
             return null;
         }
-        return new StudentSummary(student.getId(), student.getName(), student.getAge(),
+        Gender gender = student.getGender() == null ? null : Gender.valueOf(student.getGender());
+        return new StudentSummary(student.getId(), student.getStudentCode(), student.getName(), gender, student.getAge(),
                 student.getClassName(), student.getDisabilityType(), student.getRemark());
     }
 }

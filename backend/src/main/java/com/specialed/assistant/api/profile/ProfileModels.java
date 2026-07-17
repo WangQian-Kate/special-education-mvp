@@ -13,8 +13,14 @@ public final class ProfileModels {
         PARENT
     }
 
+    public enum Gender {
+        MALE,
+        FEMALE
+    }
+
     public record UserProfile(
             Long id,
+            String teacherId,
             String avatar,
             String name,
             String school,
@@ -25,7 +31,9 @@ public final class ProfileModels {
 
     public record StudentSummary(
             Long id,
+            String studentCode,
             String name,
+            Gender gender,
             Integer age,
             String className,
             String disabilityType,

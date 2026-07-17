@@ -12,23 +12,28 @@ CREATE TABLE IF NOT EXISTS schema_migration (
 
 CREATE TABLE IF NOT EXISTS app_user (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  teacher_id VARCHAR(16) NULL,
   avatar VARCHAR(500) NULL,
   name VARCHAR(64) NOT NULL,
   school VARCHAR(128) NULL,
   position VARCHAR(64) NULL,
   role ENUM('RESOURCE_TEACHER', 'SHADOW_TEACHER', 'PARENT') NOT NULL,
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_app_user_teacher_id (teacher_id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS student (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  student_code VARCHAR(16) NOT NULL,
   name VARCHAR(64) NOT NULL,
+  gender ENUM('MALE', 'FEMALE') NULL,
   age TINYINT UNSIGNED NULL,
   class_name VARCHAR(64) NULL,
   disability_type VARCHAR(64) NULL,
   support_goal VARCHAR(255) NULL,
   remark VARCHAR(500) NULL,
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_student_student_code (student_code)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS app_user_student (
