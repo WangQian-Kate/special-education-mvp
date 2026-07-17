@@ -29,6 +29,7 @@ paths:
       tags: [系统]
       operationId: health
       summary: 服务健康检查
+      description: 正式替代 Day3 任务草案中的 GET /api/test，供前端“测试后端连接”和首次联合联调使用。
       responses:
         '200':
           description: 服务正常

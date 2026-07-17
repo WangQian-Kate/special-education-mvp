@@ -108,3 +108,10 @@ BUILD SUCCESS
 - 删除成功返回 HTTP 200 和 `data: null`。
 - 业务接口只使用 `X-Teacher-Id: t001/t002/t003`，旧请求头 `X-User-Id` 已停用。
 - 缺少或无法识别教师身份时返回 HTTP 401、错误码 `40101`。
+
+## 8. Day3 联合联调
+
+- 已确认 `GET /api/health` 正式替代任务草案中的 `GET /api/test`，不新增重复接口。
+- 后端服务已在 `http://localhost:3000/api/health` 完成 HTTP 200 和统一响应包体验证。
+- 自动化测试已验证 `code = 0`、`message = ok`、`data.status = UP`。
+- 本机当前未找到成员 A 的微信小程序源码或 `project.config.json`，因此最终的 `wx.request` 成功截图和开发者工具网络记录需由成员 A 提供项目后完成。
