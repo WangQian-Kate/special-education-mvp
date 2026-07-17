@@ -226,6 +226,76 @@ class V2ApiIntegrationTest {
     }
 
     @Test
+    void studentEvaluationIncludesOverviewAndPreviousPeriodComparison() throws Exception {
+        long previousClassRecordId = createClassRecord("2026-07-06", "上周备注");
+        createQuickBehavior(previousClassRecordId, "LEAVE_SEAT");
+        createQuickBehavior(previousClassRecordId, "LEAVE_SEAT");
+        createQuickBehavior(previousClassRecordId, "LEAVE_SEAT");
+        createQuickBehavior(previousClassRecordId, "LEAVE_SEAT");
+
+        long currentClassRecordId = createClassRecord("2026-07-13", "本周备注");
+        long detailedRecordId = createQuickBehavior(currentClassRecordId, "LEAVE_SEAT");
+        createQuickBehavior(currentClassRecordId, "LEAVE_SEAT");
+        createQuickBehavior(currentClassRecordId, "RAISE_HAND_ANSWER");
+
+        mockMvc.perform(put("/behavior-records/{id}/details", detailedRecordId)
+                        .header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"durationMinutes":1,"stageCode":null,"antecedentText":"教师提问",
+                                 "behaviorDescription":"学生离开座位","consequenceText":"返回座位",
+                                 "functionCode":null,"assistances":[],"assistanceResultText":null}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.detailSaved").value(true));
+
+        mockMvc.perform(get("/student-evaluation/statistics").header(TEACHER_HEADER, "t001")
+                        .queryParam("period", "WEEKLY").queryParam("referenceDate", "2026-07-15"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.period").value("WEEKLY"))
+                .andExpect(jsonPath("$.data.periodStart").value("2026-07-13"))
+                .andExpect(jsonPath("$.data.periodEnd").value("2026-07-19"))
+                .andExpect(jsonPath("$.data.comparisonStart").value("2026-07-06"))
+                .andExpect(jsonPath("$.data.comparisonEnd").value("2026-07-12"))
+                .andExpect(jsonPath("$.data.overview.observationCourseCount").value(1))
+                .andExpect(jsonPath("$.data.overview.behaviorRecordCount").value(3))
+                .andExpect(jsonPath("$.data.overview.abcRecordCount").value(1))
+                .andExpect(jsonPath("$.data.overview.remarkCount").value(1))
+                .andExpect(jsonPath("$.data.totalCount").value(3))
+                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'LEAVE_SEAT')].count").value(2))
+                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'LEAVE_SEAT')].previousCount").value(4))
+                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'LEAVE_SEAT')].changePercent").value(50))
+                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'LEAVE_SEAT')].trendDirection").value("DOWN"))
+                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'RAISE_HAND_ANSWER')].previousCount").value(0))
+                .andExpect(jsonPath("$.data.items[1].changePercent").value(nullValue()))
+                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'RAISE_HAND_ANSWER')].trendDirection")
+                        .value("UP"));
+    }
+
+    private long createClassRecord(String recordDate, String remark) throws Exception {
+        String response = mockMvc.perform(post("/class-records").header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"recordDate":"%s","courseCode":"CHINESE",
+                                 "environmentCode":"CLASSROOM","observationDurationMinutes":15,
+                                 "overallRemark":"%s"}
+                                """.formatted(recordDate, remark)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(response).get("data").get("id").longValue();
+    }
+
+    private long createQuickBehavior(long classRecordId, String behaviorCode) throws Exception {
+        String response = mockMvc.perform(post("/class-records/{id}/behavior-records/quick", classRecordId)
+                        .header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"behaviorCode\":\"%s\"}".formatted(behaviorCode)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(response).get("data").get("record").get("id").longValue();
+    }
+
+    @Test
     void trainingPlanSupportsStandardCustomInlineUpdateAndDeleteConfirmation() throws Exception {
         mockMvc.perform(get("/training-plan/categories").header(TEACHER_HEADER, "t001"))
                 .andExpect(status().isOk())

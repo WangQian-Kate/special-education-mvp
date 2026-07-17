@@ -6,11 +6,11 @@
 
 | 内容 | 当前状态 |
 |---|---|
-| OpenAPI 契约 | `0.6.0`，共 24 个接口 |
+| OpenAPI 契约 | `0.7.0`，共 24 个接口 |
 | Java 实现 | 已完成，按前端页面分包 |
 | MySQL | `special_ed_assistant` 已迁移到 `2.2.0`，内置 165 项标准目标 |
-| 自动化测试 | 5 个数据库集成场景覆盖全部 24 个接口，已通过 |
-| Apifox | 需将 0.6.0 重新导入现有新版模块 |
+| 自动化测试 | 6 个数据库集成场景覆盖全部 24 个接口，已通过 |
+| Apifox | 需将 0.7.0 重新导入现有新版模块 |
 
 ## 页面模块
 
@@ -36,7 +36,7 @@ src/main/java/com/specialed/assistant/api/
 
 详细契约见：
 
-- `docs/openapi.yaml`：OpenAPI 0.6.0 统一契约。
+- `docs/openapi.yaml`：OpenAPI 0.7.0 统一契约。
 - `docs/接口文档.md`：中文接口总览。
 - `docs/api/`：按页面拆分的中文接口说明。
 - `../docs/design/member-b-v2-data-model.md`：V2 数据模型。
@@ -145,7 +145,7 @@ Invoke-RestMethod http://localhost:3000/api/health
 - 辅助方式保存稳定 code，勾选项必须填写内容。
 - 详细记录首次保存后，`detailSaved` 永久保持为 `true`。
 - 日记录可编辑；周记录和月记录只读。
-- 学生评估直接统计随班记录数据。
+- 学生评估直接统计随班记录数据，并返回周期概况和较上一周期的行为趋势。
 - 训练计划支持标准目标分配和当前学生的自定义目标。
 - 标准目标使用独立的 `standardNumber` 返回业务编号 `1-165`；自定义目标该字段为 `null`。
 - 训练目标状态与阶段修改后立即保存；删除必须显式确认。

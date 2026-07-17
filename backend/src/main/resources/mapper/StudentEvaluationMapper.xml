@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.specialed.assistant.api.studentevaluation.StudentEvaluationMapper">
+    <select id="countOverview"
+            resultType="com.specialed.assistant.api.studentevaluation.StudentEvaluationOverviewEntity">
+        SELECT COUNT(DISTINCT cr.id) AS observation_course_count,
+               COUNT(br.id) AS behavior_record_count,
+               COALESCE(SUM(CASE WHEN br.detail_saved = TRUE THEN 1 ELSE 0 END), 0) AS abc_record_count,
+               COUNT(DISTINCT CASE
+                   WHEN NULLIF(TRIM(cr.overall_remark), '') IS NOT NULL THEN cr.id
+                   ELSE NULL
+               END) AS remark_count
+        FROM class_record cr
+        LEFT JOIN behavior_record br ON br.class_record_id = cr.id
+        WHERE cr.student_id = #{studentId}
+          AND cr.record_date BETWEEN #{start} AND #{end}
+    </select>
+</mapper>

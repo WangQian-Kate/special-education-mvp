@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 特殊教育课堂助手 API
-  version: 0.6.0
+  version: 0.7.0
   description: |
     根据 V2 软件原型重写的接口契约，按“随班记录、训练计划、学生评估、我的、系统”五个页面模块组织。
     当前采用白名单伪登录，业务接口使用 X-Teacher-Id: t001/t002/t003 确定当前教师；不接收 X-User-Id。
@@ -19,7 +19,7 @@ tags:
   - name: 随班记录
     description: 课堂信息、行为卡片、快速记录、补记和详细记录
   - name: 学生评估
-    description: 基于随班记录的日报、周报和月报行为频次
+    description: 基于随班记录的日报、周报和月报概况、行为频次及环比趋势
   - name: 训练计划
     description: 165 项标准目标库、学生目标分配、自定义目标和即时更新
 
@@ -467,7 +467,7 @@ paths:
     get:
       tags: [学生评估]
       operationId: getStudentEvaluationStatistics
-      summary: 查询日报、周报或月报行为频次
+      summary: 查询日报、周报或月报概况及行为趋势
       parameters:
         - name: period
           in: query
@@ -483,7 +483,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BehaviorCountStatisticsApiResponse'
+                $ref: '#/components/schemas/StudentEvaluationStatisticsApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '404':
@@ -874,6 +874,14 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/BehaviorCountStatistics'
+
+    StudentEvaluationStatisticsApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StudentEvaluationStatistics'
 
     BehaviorCardMutationResultApiResponse:
       allOf:
@@ -1402,6 +1410,101 @@ components:
           items:
             $ref: '#/components/schemas/BehaviorCountItem'
 
+    EvaluationOverview:
+      type: object
+      required: [observationCourseCount, behaviorRecordCount, abcRecordCount, remarkCount]
+      properties:
+        observationCourseCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 当前周期创建的课堂记录数量
+        behaviorRecordCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 当前周期行为记录总数
+        abcRecordCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 当前周期 detailSaved 为 true 的行为记录数
+        remarkCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 当前周期填写了本周期行为备注的课堂记录数
+
+    BehaviorTrendItem:
+      type: object
+      required: [behaviorCode, behaviorLabel, count, previousCount, trendDirection]
+      properties:
+        behaviorCode:
+          type: string
+        behaviorLabel:
+          type: string
+        count:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 当前周期次数
+        previousCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 上一周期次数
+        changePercent:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: 变化幅度的绝对百分比；上期为 0 且本期大于 0 时返回 null
+        trendDirection:
+          $ref: '#/components/schemas/TrendDirection'
+
+    StudentEvaluationStatistics:
+      type: object
+      required:
+        - studentId
+        - period
+        - periodStart
+        - periodEnd
+        - comparisonStart
+        - comparisonEnd
+        - overview
+        - totalCount
+        - items
+      properties:
+        studentId:
+          type: integer
+          format: int64
+        period:
+          $ref: '#/components/schemas/EvaluationPeriod'
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        comparisonStart:
+          type: string
+          format: date
+          description: 上一统计周期开始日期
+        comparisonEnd:
+          type: string
+          format: date
+          description: 上一统计周期结束日期
+        overview:
+          $ref: '#/components/schemas/EvaluationOverview'
+        totalCount:
+          type: integer
+          format: int64
+          minimum: 0
+        items:
+          type: array
+          description: 当前周期或上一周期至少出现过一次的行为
+          items:
+            $ref: '#/components/schemas/BehaviorTrendItem'
+
     ClassRecordSummaryPeriod:
       type: string
       enum: [WEEKLY, MONTHLY]
@@ -1409,6 +1512,11 @@ components:
     EvaluationPeriod:
       type: string
       enum: [DAILY, WEEKLY, MONTHLY]
+
+    TrendDirection:
+      type: string
+      enum: [UP, DOWN, STABLE]
+      description: UP 前端显示红色，DOWN 显示绿色，STABLE 显示灰色
 
     TrainingStatus:
       type: string

@@ -1,6 +1,5 @@
 package com.specialed.assistant.api.studentevaluation;
 
-import com.specialed.assistant.api.classrecord.ClassRecordModels.BehaviorCountStatistics;
 import com.specialed.assistant.auth.CurrentUserId;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.validation.annotation.Validated;
@@ -12,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 
 import static com.specialed.assistant.api.studentevaluation.StudentEvaluationModels.EvaluationPeriod;
+import static com.specialed.assistant.api.studentevaluation.StudentEvaluationModels.EvaluationStatistics;
 
 @Validated
 @RestController
@@ -24,7 +24,7 @@ public class StudentEvaluationController {
     }
 
     @GetMapping("/statistics")
-    public BehaviorCountStatistics statistics(
+    public EvaluationStatistics statistics(
             @CurrentUserId Long userId,
             @RequestParam EvaluationPeriod period,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate referenceDate
