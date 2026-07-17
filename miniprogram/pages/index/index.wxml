@@ -1,0 +1,49 @@
+<!-- pages/index/index.wxml -->
+<view class="container">
+  <view class="page-header">
+    <text class="title">特殊教育辅助系统</text>
+    <text class="subtitle">融合教育 · 行为干预 · 数据分析</text>
+  </view>
+
+  <view class="role-section">
+    <text class="section-title">请选择您的角色</text>
+    <view class="role-options">
+      <view class="role-card {{selectedRole === 'teacher' ? 'active' : ''}}"
+            data-role="teacher"
+            bindtap="handleRoleSelect">
+        <text class="role-icon">👩‍🏫</text>
+        <text class="role-name">教师</text>
+        <text class="role-desc">记录学生行为，查看数据分析</text>
+      </view>
+      <view class="role-card {{selectedRole === 'parent' ? 'active' : ''}}"
+            data-role="parent"
+            bindtap="handleRoleSelect">
+        <text class="role-icon">👨‍👩‍👧</text>
+        <text class="role-name">家长</text>
+        <text class="role-desc">查看孩子行为记录与反馈</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="feature-section">
+    <text class="section-title">功能入口</text>
+    <view class="feature-grid">
+      <view class="feature-item">
+        <text class="feature-icon">📝</text>
+        <text class="feature-name">行为记录</text>
+      </view>
+      <view class="feature-item">
+        <text class="feature-icon">📊</text>
+        <text class="feature-name">统计分析</text>
+      </view>
+      <view class="feature-item">
+        <text class="feature-icon">👨‍🎓</text>
+        <text class="feature-name">学生管理</text>
+      </view>
+      <view class="feature-item">
+        <text class="feature-icon">📋</text>
+        <text class="feature-name">分析报告</text>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,16 @@
+{
+  "miniprogramRoot": "miniprogram/",
+  "projectname": "special-education-mvp",
+  "description": "特殊教育智能辅助干预系统",
+  "appid": "touristappid",
+  "setting": {
+    "urlCheck": true,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true
+  },
+  "compileType": "miniprogram",
+  "libVersion": "3.3.4",
+  "condition": {}
+}
