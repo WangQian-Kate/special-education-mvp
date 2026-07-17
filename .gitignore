@@ -4,5 +4,5 @@ target/
 *.log
 .env
 application-local.yml
+project.private.config.json
 work/
-

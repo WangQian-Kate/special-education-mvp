@@ -113,15 +113,14 @@ Invoke-RestMethod http://localhost:3000/api/health
 %LOCALAPPDATA%\Programs\cpolar-portable\cpolar.exe
 ```
 
-cpolar 需要账号的 `authtoken` 才能创建公网隧道。取得令牌后执行：
+项目已提供完整的配置、启动、验证和停止脚本，说明见 [`../scripts/tunnel/README.md`](../scripts/tunnel/README.md)。首次使用时执行：
 
 ```powershell
-$cpolar = "$env:LOCALAPPDATA\Programs\cpolar-portable\cpolar.exe"
-& $cpolar authtoken '<cpolar 控制台中的令牌>'
-& $cpolar http 3000
+.\scripts\tunnel\configure-cpolar.cmd
+.\scripts\tunnel\start-cpolar-tunnel.cmd
 ```
 
-命令输出的 `https://...cpolar...` 地址即为公网基址，前端应将其填写到 `BASE_URLS.tunnel`。当前工作区不包含前端的 `utils/request.js`，因此后端仓库不直接修改该文件。
+启动脚本会验证本地和公网的 `GET /api/health`，并输出可直接填写到前端 `BASE_URLS.tunnel` 的 `https://.../api` 地址。cpolar 在本机连接 `127.0.0.1:3000`，因此无需为了内网穿透将后端监听地址改为 `0.0.0.0`；只有局域网直连时才需要修改 `SERVER_ADDRESS`。
 
 ## 数据库脚本
 
