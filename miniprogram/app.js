@@ -5,7 +5,9 @@ App({
   },
 
   globalData: {
-    // 当前教师（伪登录写入，见 utils/store.js）
-    teacher: null
+    // 白名单身份与后端返回的当前上下文（见 utils/store.js）
+    teacherId: '',
+    teacher: null,
+    currentStudent: null
   }
 });

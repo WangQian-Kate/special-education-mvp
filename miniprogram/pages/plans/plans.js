@@ -28,7 +28,7 @@ Page({
   },
 
   onShow() {
-    if (!store.getTeacher()) {
+    if (!store.getTeacherId()) {
       wx.reLaunch({ url: '/pages/login/login' });
     }
   },

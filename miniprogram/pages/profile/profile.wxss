@@ -3,6 +3,30 @@
   padding: 36rpx 28rpx;
 }
 
+.student-card {
+  margin-bottom: 20rpx;
+  padding: 28rpx;
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.student-label {
+  font-size: 24rpx;
+  opacity: 0.8;
+}
+
+.student-name {
+  margin-top: 10rpx;
+  font-size: 36rpx;
+  font-weight: 700;
+}
+
+.student-meta {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  opacity: 0.85;
+}
+
 .avatar {
   width: 108rpx;
   height: 108rpx;

@@ -26,7 +26,7 @@ const TIMEOUT = 10000;
  * 约定的响应包体（需与后端对齐）：{ code: 0, message: 'ok', data: {...} }
  */
 function request({ url, method = 'GET', data = {}, showLoading = false, hideError = false }) {
-  const teacher = store.getTeacher();
+  const teacherId = store.getTeacherId();
   if (showLoading) wx.showLoading({ title: '加载中', mask: true });
 
   return new Promise((resolve, reject) => {
@@ -38,7 +38,7 @@ function request({ url, method = 'GET', data = {}, showLoading = false, hideErro
       header: {
         'Content-Type': 'application/json',
         // 白名单伪登录：后端按此 ID 识别教师，正式登录接入后此处换 token
-        'X-Teacher-Id': teacher ? teacher.id : ''
+        'X-Teacher-Id': teacherId
       },
       success(res) {
         if (res.statusCode >= 200 && res.statusCode < 300) {

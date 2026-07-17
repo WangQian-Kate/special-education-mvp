@@ -9,21 +9,50 @@ Page({
     teachers: SHADOW_TEACHERS,
     // 后端连通状态：'' | 'ok' | 'fail'
     pingStatus: '',
-    baseUrl: api.BASE_URL
+    baseUrl: api.BASE_URL,
+    isSubmitting: false
   },
 
   onLoad() {
-    // 已登录直接进主界面（冷启动兜底，app.js 也有同判断）
-    if (store.getTeacher()) {
+    if (store.getTeacherId()) this.restoreSession();
+  },
+
+  /** 冷启动时使用已缓存 teacherId 向后端恢复当前上下文 */
+  async restoreSession() {
+    if (this.data.isSubmitting) return;
+    this.setData({ isSubmitting: true });
+    try {
+      const profile = await api.get('/me', {}, { hideError: true, showLoading: true });
+      store.setProfile(profile);
+      this.setData({ isSubmitting: false });
       wx.switchTab({ url: '/pages/records/records' });
+    } catch (err) {
+      const unauthorized = err && (err.statusCode === 401 || err.code === 40101);
+      if (unauthorized) store.clearIdentity();
+      this.setData({ isSubmitting: false });
+      wx.showToast({
+        title: unauthorized ? '身份已失效，请重新选择' : '无法恢复身份，请检查后端连接',
+        icon: 'none'
+      });
     }
   },
 
-  /** 选择影子老师，进入主界面 */
-  handleSelect(e) {
+  /** 选择教师并通过 /me 完成白名单身份验证 */
+  async handleSelect(e) {
+    if (this.data.isSubmitting) return;
     const teacher = this.data.teachers[e.currentTarget.dataset.index];
-    store.setTeacher(teacher);
-    wx.switchTab({ url: '/pages/records/records' });
+    store.setTeacherId(teacher.id);
+    this.setData({ isSubmitting: true });
+    try {
+      const profile = await api.get('/me', {}, { hideError: true, showLoading: true });
+      store.setProfile(profile);
+      this.setData({ isSubmitting: false });
+      wx.switchTab({ url: '/pages/records/records' });
+    } catch (err) {
+      store.clearIdentity();
+      this.setData({ isSubmitting: false });
+      wx.showToast({ title: '身份验证失败，请检查后端连接', icon: 'none' });
+    }
   },
 
   /** 前后端基础通信测试（阶段二联调目标） */

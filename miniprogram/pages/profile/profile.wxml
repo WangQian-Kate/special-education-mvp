@@ -1,11 +1,18 @@
 <view class="container">
   <!-- 教师信息 -->
-  <view class="card teacher-card flex-row">
+  <view class="card teacher-card flex-row" wx:if="{{teacher}}">
     <view class="avatar flex-center">{{teacher.name[0]}}</view>
     <view class="info flex-column">
       <view class="name">{{teacher.name}}</view>
-      <view class="desc">{{teacher.school}} · {{teacher.role}}</view>
+      <view class="desc">{{teacher.school}} · {{teacher.position}}</view>
     </view>
+  </view>
+
+  <!-- 当前学生由 GET /me 返回 -->
+  <view class="card student-card" wx:if="{{currentStudent}}">
+    <view class="student-label">正在记录学生</view>
+    <view class="student-name">{{currentStudent.name}}（{{currentStudent.age}}岁）</view>
+    <view class="student-meta">{{currentStudent.className}} · {{currentStudent.studentCode}}</view>
   </view>
 
   <!-- 菜单 -->
@@ -16,5 +23,5 @@
     </view>
   </view>
 
-  <view class="version">MVP 开发版 · 阶段二</view>
+  <view class="version">MVP 开发版 · 白名单联调</view>
 </view>

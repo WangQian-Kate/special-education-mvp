@@ -31,8 +31,7 @@ Page({
   },
 
   onShow() {
-    const teacher = store.getTeacher();
-    if (!teacher) {
+    if (!store.getTeacherId()) {
       wx.reLaunch({ url: '/pages/login/login' });
     }
   },
