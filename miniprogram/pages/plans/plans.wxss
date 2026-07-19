@@ -15,19 +15,24 @@
 /* 横滑 chips（状态 / 分类共用） */
 .chip-row {
   display: flex;
+  align-items: center;
   white-space: nowrap;
-  margin-bottom: 16rpx;
+  overflow-x: auto;
+  margin-bottom: 12rpx;
+  padding: 8rpx 0;
 }
 
 .chip {
-  display: inline-block;
-  padding: 8rpx 24rpx;
+  display: inline-flex;
+  align-items: center;
+  padding: 10rpx 24rpx;
   margin-right: 12rpx;
   border-radius: 999rpx;
   font-size: 22rpx;
   font-weight: 700;
   background: #ffffff;
   color: var(--color-text-sub);
+  line-height: 1;
 }
 
 .chip.active {
@@ -139,11 +144,6 @@
 .s-done {
   background: #dcfce7;
   color: #16a34a;
-}
-
-.s-paused {
-  background: #ffedd5;
-  color: #ea580c;
 }
 
 .s-pending {

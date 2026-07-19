@@ -3,7 +3,7 @@
 const mockPlans = require('../../mock/plans');
 const store = require('../../utils/store');
 
-const STATUS_LIST = ['未开始', '进行中', '已完成', '暂停'];
+const STATUS_LIST = ['未开始', '进行中', '已完成'];
 const LEVELS = ['A', 'B', 'C', 'D', 'E', 'F'];
 const PHASES = ['1', '2', '3'];
 

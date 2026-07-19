@@ -1,8 +1,8 @@
 <view class="counter-card" hover-class="card-hover" bindtap="onCardTap">
-  <view class="name">{{behavior.name}}</view>
+  <view class="name">{{behavior.behaviorLabel}}</view>
   <view class="ops">
-    <view class="op-btn minus" hover-class="op-hover" catchtap="onMinus">−</view>
+    <view class="op-btn minus {{behavior.pending ? 'disabled' : ''}}" hover-class="op-hover" catchtap="onMinus">−</view>
     <view class="count {{bump ? 'bump' : ''}}">{{behavior.count}}</view>
-    <view class="op-btn plus {{behavior.positive ? 'positive' : ''}}" hover-class="op-hover" catchtap="onPlus">+</view>
+    <view class="op-btn plus {{behavior.positive ? 'positive' : ''}} {{behavior.pending ? 'disabled' : ''}}" hover-class="op-hover" catchtap="onPlus">+</view>
   </view>
 </view>

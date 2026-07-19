@@ -1,6 +1,6 @@
 <wxs module="fmt">
 // 中文状态 → 英文样式类（WXSS 不支持中文类名）
-var map = { '未开始': 'pending', '进行中': 'ongoing', '已完成': 'done', '暂停': 'paused' };
+var map = { '未开始': 'pending', '进行中': 'ongoing', '已完成': 'done' };
 module.exports = { statusClass: function (s) { return map[s] || 'pending'; } };
 </wxs>
 <view class="container">
@@ -11,7 +11,7 @@ module.exports = { statusClass: function (s) { return map[s] || 'pending'; } };
   </view>
 
   <!-- 状态筛选 -->
-  <scroll-view class="chip-row" scroll-x enable-flex>
+  <view class="chip-row">
     <view class="chip {{activeStatus === '' ? 'active' : ''}}" data-status="" bindtap="onStatusTap">全部</view>
     <view
       class="chip {{activeStatus === item ? 'active' : ''}}"
@@ -20,19 +20,18 @@ module.exports = { statusClass: function (s) { return map[s] || 'pending'; } };
       data-status="{{item}}"
       bindtap="onStatusTap"
     >{{item}}</view>
-  </scroll-view>
+  </view>
 
   <!-- 分类 tabs -->
-  <scroll-view class="chip-row" scroll-x enable-flex scroll-into-view="cat-{{activeCategory}}">
+  <view class="chip-row">
     <view
-      id="cat-{{index}}"
       class="chip cat-chip {{activeCategory === index ? 'active' : ''}}"
       wx:for="{{categories}}"
       wx:key="*this"
       data-index="{{index}}"
       bindtap="onCategoryTap"
     >{{item}}</view>
-  </scroll-view>
+  </view>
 
   <!-- 目标表格 -->
   <view class="table card">

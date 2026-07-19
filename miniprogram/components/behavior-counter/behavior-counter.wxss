@@ -46,6 +46,10 @@
   transform: scale(0.9);
 }
 
+.op-btn.disabled {
+  opacity: 0.4;
+}
+
 .minus {
   background: #f3f4f6;
   color: #4b5563;

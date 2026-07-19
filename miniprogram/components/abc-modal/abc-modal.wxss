@@ -1,0 +1,149 @@
+/* components/abc-modal/abc-modal.wxss */
+/* 半屏弹窗：蒙层 + 上抬面板，时间横滚列表 + 详情表单同页 */
+
+.abc-mask {
+  position: fixed; left: 0; top: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4); z-index: 200;
+}
+
+.abc-panel {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 201;
+  background: #fff;
+  border-radius: var(--radius-modal, 56rpx) var(--radius-modal, 56rpx) 0 0;
+  padding: 32rpx 32rpx 24rpx; box-sizing: border-box;
+  max-height: 85vh; display: flex; flex-direction: column;
+}
+
+.abc-header {
+  display: flex; align-items: center; margin-bottom: 16rpx; flex-shrink: 0;
+}
+
+.abc-title {
+  flex: 1; font-size: 30rpx; font-weight: 700; color: var(--color-text, #374151);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.abc-close {
+  font-size: 32rpx; color: var(--color-text-sub, #999); padding: 0 8rpx; flex-shrink: 0;
+}
+
+.abc-body { max-height: 70vh; }
+
+/* ===== 补记 ===== */
+.supp-row {
+  font-size: 26rpx; font-weight: 700; color: var(--color-primary, #5B9BD5);
+  padding: 12rpx 8rpx;
+}
+
+.supp-form {
+  display: flex; align-items: center; gap: 16rpx;
+  background: #f9fafb; border-radius: 16rpx; padding: 16rpx; margin-bottom: 12rpx;
+}
+
+.supp-time {
+  font-size: 26rpx; font-weight: 700; color: var(--color-text);
+  background: #fff; border: 1rpx solid var(--color-border, #e5e7eb);
+  border-radius: 12rpx; padding: 10rpx 24rpx;
+}
+
+.supp-confirm {
+  font-size: 24rpx; color: #fff; background: var(--color-primary);
+  border-radius: 12rpx; padding: 12rpx 28rpx;
+}
+
+/* ===== 时间横滚列表 ===== */
+.recs-scroll { white-space: nowrap; padding: 8rpx 0 16rpx; }
+
+.rec-chip {
+  display: inline-flex; align-items: center; gap: 6rpx;
+  background: #f3f4f6; border-radius: 24rpx;
+  padding: 10rpx 24rpx; margin-right: 12rpx;
+  font-size: 26rpx; font-weight: 600; color: var(--color-text);
+  white-space: nowrap; border: 2rpx solid transparent;
+}
+
+.rec-chip-on {
+  background: #EBF3FB; border-color: var(--color-primary); color: var(--color-primary);
+}
+
+.rec-chip-dot {
+  font-size: 20rpx; color: #16a34a;
+}
+
+.rec-chip-on .rec-chip-dot { color: var(--color-primary); }
+
+.abc-empty { text-align: center; font-size: 24rpx; color: var(--color-text-sub); padding: 24rpx 0; }
+
+/* ===== 详情表单 ===== */
+.form-item { margin-bottom: 20rpx; }
+
+.form-label {
+  font-size: 24rpx; font-weight: 700; color: var(--color-text-sub); margin-bottom: 10rpx;
+}
+
+.form-static {
+  font-size: 28rpx; font-weight: 700; color: var(--color-text);
+}
+
+.form-input {
+  background: #f9fafb; border-radius: 16rpx; padding: 16rpx 20rpx; font-size: 26rpx;
+}
+
+.form-picker {
+  background: #f9fafb; border-radius: 16rpx; padding: 16rpx 20rpx; font-size: 26rpx;
+  color: var(--color-text);
+}
+
+.form-textarea {
+  width: 100%; box-sizing: border-box;
+  background: #f9fafb; border-radius: 16rpx; padding: 16rpx 20rpx;
+  font-size: 26rpx; height: 120rpx;
+}
+
+/* ===== 折叠面板 ===== */
+.fold-panel { margin-bottom: 24rpx; }
+
+.fold-head {
+  display: flex; justify-content: space-between; align-items: center;
+  background: #f9fafb; border-radius: 16rpx; padding: 20rpx 24rpx;
+  font-size: 26rpx; font-weight: 700; color: var(--color-text);
+}
+
+.fold-arrow { font-size: 22rpx; color: var(--color-text-sub); }
+
+.fold-body { padding: 16rpx 8rpx 0; }
+
+/* ===== 辅助方式 ===== */
+.assist-group {
+  font-size: 22rpx; font-weight: 700; color: var(--color-text);
+  margin: 16rpx 0 8rpx;
+}
+
+.assist-row {
+  display: flex; align-items: center; gap: 12rpx; padding: 8rpx 0;
+}
+
+.assist-check {
+  width: 36rpx; height: 36rpx;
+  border: 2rpx solid var(--color-border, #e5e7eb); border-radius: 8rpx;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24rpx; color: #fff; flex-shrink: 0; box-sizing: border-box;
+}
+
+.assist-check.on {
+  background: var(--color-primary); border-color: var(--color-primary);
+}
+
+.assist-label { font-size: 24rpx; color: var(--color-text); flex: 1; }
+
+/* ===== 删除 + 保存 ===== */
+.rec-del-row { display: flex; justify-content: flex-end; margin-bottom: 12rpx; }
+
+.rec-del { font-size: 24rpx; color: var(--color-danger, #f87171); padding: 8rpx 16rpx; }
+
+.abc-save {
+  background: var(--color-primary); color: #fff; border-radius: 24rpx;
+  font-size: 28rpx; font-weight: 700; margin-top: 8rpx; margin-bottom: 32rpx;
+}
+
+.abc-save[disabled] { opacity: 0.6; color: #fff; }

@@ -1,0 +1,99 @@
+<view wx:if="{{visible}}" class="abc-mask" bindtap="onClose" catchtouchmove="noop">
+  <view class="abc-panel" catchtap="noop">
+    <!-- 头部 -->
+    <view class="abc-header">
+      <view class="abc-title">{{behavior.behaviorLabel}} · 详细记录</view>
+      <view class="abc-close" bindtap="onClose">✕</view>
+    </view>
+
+    <scroll-view scroll-y class="abc-body">
+      <!-- ========== 时间列表（上方固定区域） ========== -->
+      <view class="supp-row" bindtap="onSupplementToggle">+ 补记一次</view>
+      <view wx:if="{{supplementOpen}}" class="supp-form">
+        <picker mode="time" value="{{supplementTime}}" bindchange="onSupplementTimeChange">
+          <view class="supp-time">{{supplementTime}} ▾</view>
+        </picker>
+        <view class="supp-confirm" bindtap="onSupplementConfirm">确认补记</view>
+      </view>
+
+      <scroll-view scroll-x class="recs-scroll" wx:if="{{records.length}}">
+        <view wx:for="{{records}}" wx:key="id"
+          class="rec-chip {{currentRecordId === item.id ? 'rec-chip-on' : ''}}"
+          bindtap="onRecordTap" data-id="{{item.id}}">
+          <text>{{item.timeText}}</text>
+          <text wx:if="{{item.detailSaved}}" class="rec-chip-dot">✓</text>
+        </view>
+      </scroll-view>
+      <view wx:if="{{!records.length && !loadingList}}" class="abc-empty">暂无记录，可点击上方补记</view>
+
+      <!-- ========== 详情表单（下方，有选中记录时渲染） ========== -->
+      <block wx:if="{{currentRecordId}}">
+        <view class="form-item">
+          <view class="form-label">发生时间</view>
+          <view class="form-static">{{formTimeText}}</view>
+        </view>
+
+        <view class="form-item">
+          <view class="form-label">持续时间（分钟）</view>
+          <input class="form-input" type="number" value="{{form.durationMinutes}}" data-field="durationMinutes" bindinput="onFormInput" placeholder="选填" />
+        </view>
+
+        <view class="form-item">
+          <view class="form-label">A · 行为前因</view>
+          <textarea class="form-textarea" value="{{form.antecedentText}}" data-field="antecedentText" bindinput="onFormInput" placeholder="记录行为发生前的情况..." maxlength="500" />
+        </view>
+
+        <view class="form-item">
+          <view class="form-label">B · 行为表现</view>
+          <textarea class="form-textarea" value="{{form.behaviorDescription}}" data-field="behaviorDescription" bindinput="onFormInput" placeholder="记录具体行为表现..." maxlength="500" />
+        </view>
+
+        <view class="form-item">
+          <view class="form-label">C · 行为后果</view>
+          <textarea class="form-textarea" value="{{form.consequenceText}}" data-field="consequenceText" bindinput="onFormInput" placeholder="记录行为发生后的结果..." maxlength="500" />
+        </view>
+
+        <view class="form-item">
+          <view class="form-label">辅助结果</view>
+          <textarea class="form-textarea" value="{{form.assistanceResultText}}" data-field="assistanceResultText" bindinput="onFormInput" placeholder="记录辅助结果..." maxlength="500" />
+        </view>
+
+        <!-- ========== 折叠面板：行为功能与辅助方式 ========== -->
+        <view class="fold-panel">
+          <view class="fold-head" bindtap="toggleFold">
+            <text>行为功能与辅助方式</text>
+            <text class="fold-arrow">{{foldOpen ? '▲' : '▼'}}</text>
+          </view>
+          <view class="fold-body" wx:if="{{foldOpen}}">
+            <!-- 行为功能 -->
+            <view class="form-item">
+              <view class="form-label">行为功能</view>
+              <picker mode="selector" range="{{functionRange}}" value="{{functionIndex + 1}}" bindchange="onFunctionChange">
+                <view class="form-picker">{{functionLabel}} ▾</view>
+              </picker>
+            </view>
+
+            <!-- 辅助方式勾选（不填内容） -->
+            <view class="form-item">
+              <view class="form-label">辅助方式</view>
+              <block wx:for="{{assistances}}" wx:key="code">
+                <view wx:if="{{item.groupFirst}}" class="assist-group">{{item.group}}</view>
+                <view class="assist-row">
+                  <view class="assist-check {{item.checked ? 'on' : ''}}" data-index="{{index}}" bindtap="onAssistToggle">{{item.checked ? '✓' : ''}}</view>
+                  <text class="assist-label" data-index="{{index}}" bindtap="onAssistToggle">{{item.label}}</text>
+                </view>
+              </block>
+            </view>
+          </view>
+        </view>
+
+        <!-- 删除按钮 -->
+        <view class="rec-del-row">
+          <view class="rec-del" bindtap="onDeleteTap" data-id="{{currentRecordId}}" data-saved="{{currentRecordSaved}}">删除本次记录</view>
+        </view>
+
+        <button class="abc-save" bindtap="onSave" disabled="{{saving}}">{{saving ? '保存中…' : '保存更新'}}</button>
+      </block>
+    </scroll-view>
+  </view>
+</view>

@@ -1,6 +1,7 @@
 {
   "navigationBarTitleText": "随班记录",
   "usingComponents": {
-    "behavior-counter": "/components/behavior-counter/behavior-counter"
+    "behavior-counter": "/components/behavior-counter/behavior-counter",
+    "abc-modal": "/components/abc-modal/abc-modal"
   }
 }

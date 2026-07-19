@@ -124,7 +124,7 @@ module.exports = [
         level1: 'B',
         levelNow: 'C',
         phase: '2',
-        status: '暂停',
+        status: '未开始',
         color: 'orange'
       },
       {
@@ -196,7 +196,7 @@ module.exports = [
         level1: 'B',
         levelNow: 'C',
         phase: '1',
-        status: '暂停',
+        status: '未开始',
         color: 'orange'
       },
       {
@@ -237,7 +237,7 @@ module.exports = [
         level1: 'C',
         levelNow: 'D',
         phase: '2',
-        status: '暂停',
+        status: '未开始',
         color: 'orange'
       },
       {
@@ -282,7 +282,7 @@ module.exports = [
         level1: 'B',
         levelNow: 'C',
         phase: '1',
-        status: '暂停',
+        status: '未开始',
         color: 'orange'
       },
       {
@@ -332,7 +332,7 @@ module.exports = [
         level1: 'B',
         levelNow: 'C',
         phase: '1',
-        status: '暂停',
+        status: '未开始',
         color: 'orange'
       },
       {
@@ -395,7 +395,7 @@ module.exports = [
         level1: 'B',
         levelNow: 'C',
         phase: '2',
-        status: '暂停',
+        status: '未开始',
         color: 'orange'
       },
       {
@@ -449,7 +449,7 @@ module.exports = [
         level1: 'B',
         levelNow: 'C',
         phase: '1',
-        status: '暂停',
+        status: '未开始',
         color: 'orange'
       },
       {
@@ -503,7 +503,7 @@ module.exports = [
         level1: 'B',
         levelNow: 'C',
         phase: '1',
-        status: '暂停',
+        status: '未开始',
         color: 'orange'
       }
     ]
@@ -571,7 +571,7 @@ module.exports = [
         level1: 'C',
         levelNow: 'D',
         phase: '2',
-        status: '暂停',
+        status: '未开始',
         color: 'orange'
       },
       {
@@ -675,7 +675,7 @@ module.exports = [
         level1: 'B',
         levelNow: 'C',
         phase: '1',
-        status: '暂停',
+        status: '未开始',
         color: 'orange'
       },
       {
@@ -734,7 +734,7 @@ module.exports = [
         level1: 'B',
         levelNow: 'C',
         phase: '1',
-        status: '暂停',
+        status: '未开始',
         color: 'orange'
       },
       {
@@ -797,7 +797,7 @@ module.exports = [
         level1: 'C',
         levelNow: 'D',
         phase: '2',
-        status: '暂停',
+        status: '未开始',
         color: 'orange'
       },
       {
@@ -883,7 +883,7 @@ module.exports = [
         level1: 'B',
         levelNow: 'C',
         phase: '2',
-        status: '暂停',
+        status: '未开始',
         color: 'orange'
       },
       {
@@ -973,7 +973,7 @@ module.exports = [
         level1: 'C',
         levelNow: 'D',
         phase: '2',
-        status: '暂停',
+        status: '未开始',
         color: 'orange'
       },
       {
@@ -1077,7 +1077,7 @@ module.exports = [
         level1: 'C',
         levelNow: 'D',
         phase: '2',
-        status: '暂停',
+        status: '未开始',
         color: 'orange'
       },
       {
@@ -1190,7 +1190,7 @@ module.exports = [
         level1: 'B',
         levelNow: 'C',
         phase: '2',
-        status: '暂停',
+        status: '未开始',
         color: 'orange'
       },
       {
@@ -1262,7 +1262,7 @@ module.exports = [
         level1: 'C',
         levelNow: 'D',
         phase: '2',
-        status: '暂停',
+        status: '未开始',
         color: 'orange'
       }
     ]

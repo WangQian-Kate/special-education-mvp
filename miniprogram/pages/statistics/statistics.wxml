@@ -1,32 +1,109 @@
 <view class="container">
-  <!-- 今日概况 -->
-  <view class="card section">
-    <view class="sec-title">今日概况（静态 Demo）</view>
-    <stat-grid items="{{summary}}" />
+  <!-- 周期切换 tabs -->
+  <view class="card view-tabs">
+    <view class="view-tab {{view === 'daily' ? 'on' : ''}}" data-view="daily" bindtap="onSwitchView">日报</view>
+    <view class="view-tab {{view === 'weekly' ? 'on' : ''}}" data-view="weekly" bindtap="onSwitchView">周报</view>
+    <view class="view-tab {{view === 'monthly' ? 'on' : ''}}" data-view="monthly" bindtap="onSwitchView">月报</view>
+    <view class="view-tab {{view === 'semester' ? 'on' : ''}}" data-view="semester" bindtap="onSwitchView">学期报告</view>
   </view>
 
-  <!-- 行为频次柱状图：ECharts 真机渲染验证 -->
-  <view class="card section">
-    <view class="block-title chart-title">行为频次统计</view>
-    <view class="chart-box">
-      <ec-canvas id="behavior-chart" canvas-id="behavior-chart" ec="{{ec}}"></ec-canvas>
-    </view>
-  </view>
+  <!-- ========== 日报 ========== -->
+  <block wx:if="{{view === 'daily'}}">
+    <view class="card section"><view class="sec-title">今日概况</view><stat-grid items="{{dailySummary}}" /></view>
 
-  <!-- AI 智能分析（静态 Demo） -->
-  <view class="card section">
-    <view class="ai-header flex-row">
-      <text class="ai-title">AI 智能分析</text>
-      <text class="ai-tag">Demo 数据</text>
+    <view class="card section">
+      <view class="block-title chart-title">行为频次统计</view>
+      <view class="chart-box"><ec-canvas id="behavior-chart" canvas-id="behavior-chart" ec="{{ec}}"></ec-canvas></view>
     </view>
-    <view class="ai-list">
-      <ai-card
-        wx:for="{{aiCards}}"
-        wx:key="title"
-        type="{{item.type}}"
-        title="{{item.title}}"
-        content="{{item.content}}"
-      />
+
+    <view class="card section"><view class="ai-header flex-row"><text class="ai-title">AI 智能分析</text></view>
+      <view class="ai-list"><ai-card wx:for="{{dailyAiCards}}" wx:key="title" type="{{item.type}}" title="{{item.title}}" content="{{item.content}}" /></view>
     </view>
-  </view>
+  </block>
+
+  <!-- ========== 周报 ========== -->
+  <block wx:elif="{{view === 'weekly'}}">
+    <view class="card section"><view class="sec-title">本周概况</view><stat-grid items="{{weeklySummary}}" /></view>
+
+    <view class="card section">
+      <view class="block-title">行为趋势对比</view>
+      <view class="trend-list">
+        <view wx:for="{{weeklyTrends}}" wx:key="name" class="trend-row">
+          <text class="trend-name">{{item.name}}</text>
+          <view class="trend-bar-bg"><view class="trend-bar" style="width:{{item.pct}}%;background:{{item.color}}"></view></view>
+          <text class="trend-count">{{item.count}}次</text>
+          <text class="trend-change {{item.change > 0 ? 'up' : 'down'}}">{{item.change > 0 ? '↑' : '↓'}}{{item.change < 0 ? -item.change : item.change}}%</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="card section"><view class="ai-header flex-row"><text class="ai-title">AI 周报分析</text></view>
+      <view class="ai-list"><ai-card wx:for="{{weeklyAiCards}}" wx:key="title" type="{{item.type}}" title="{{item.title}}" content="{{item.content}}" /></view>
+    </view>
+  </block>
+
+  <!-- ========== 月报 ========== -->
+  <block wx:elif="{{view === 'monthly'}}">
+    <view class="card section"><view class="sec-title">本月概况</view><stat-grid items="{{monthlySummary}}" /></view>
+
+    <view class="card section">
+      <view class="block-title">各维度月度评估</view>
+      <view class="dim-list">
+        <view wx:for="{{monthlyDimensions}}" wx:key="name" class="dim-row">
+          <view class="dim-head"><text class="dim-name">{{item.name}}</text><text class="dim-label">较上月</text></view>
+          <view class="dim-bar-bg"><view class="dim-bar" style="width:{{item.pct}}%"></view></view>
+          <text class="dim-change {{item.change >= 0 ? 'up' : 'down'}}">{{item.change >= 0 ? '↑' : '↓'}}{{item.change < 0 ? -item.change : item.change}}%</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="card section">
+      <view class="block-title">行为月度趋势</view>
+      <view class="trend-list">
+        <view wx:for="{{monthlyBehaviors}}" wx:key="name" class="trend-row">
+          <text class="trend-name">{{item.name}}</text>
+          <view class="trend-bar-bg"><view class="trend-bar" style="width:{{item.pct}}%;background:{{item.color}}"></view></view>
+          <text class="trend-count">{{item.count}}次</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="card section"><view class="ai-header flex-row"><text class="ai-title">AI 月报分析</text></view>
+      <view class="ai-list"><ai-card wx:for="{{monthlyAiCards}}" wx:key="title" type="{{item.type}}" title="{{item.title}}" content="{{item.content}}" /></view>
+    </view>
+  </block>
+
+  <!-- ========== 学期报告 ========== -->
+  <block wx:elif="{{view === 'semester'}}">
+    <view class="card section"><view class="sec-title">学期概览</view><stat-grid items="{{semesterSummary}}" /></view>
+
+    <view class="card section">
+      <view class="block-title">综合能力评估（学期初 → 当前）</view>
+      <view class="dim-list">
+        <view wx:for="{{semesterDimensions}}" wx:key="name" class="dim-row">
+          <text class="dim-name">{{item.name}}</text>
+          <view class="dim-bar-bg dim-double">
+            <view class="dim-bar-initial" style="width:{{item.initialPct}}%"></view>
+            <view class="dim-bar-current" style="width:{{item.currentPct}}%;background:{{item.color}}"></view>
+          </view>
+          <text class="dim-change up">+{{item.improvement}}%</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="card section">
+      <view class="block-title">训练目标达成情况</view>
+      <view class="trend-list">
+        <view wx:for="{{semesterGoals}}" wx:key="name" class="trend-row">
+          <text class="trend-name">{{item.name}}</text>
+          <view class="trend-bar-bg"><view class="trend-bar" style="width:{{item.pct}}%;background:#4ade80"></view></view>
+          <text class="trend-count">{{item.pct}}%</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="card section"><view class="ai-header flex-row"><text class="ai-title">AI 学期总结</text></view>
+      <view class="ai-list"><ai-card wx:for="{{semesterAiCards}}" wx:key="title" type="{{item.type}}" title="{{item.title}}" content="{{item.content}}" /></view>
+    </view>
+  </block>
 </view>
