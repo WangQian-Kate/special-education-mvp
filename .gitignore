@@ -6,3 +6,6 @@ Thumbs.db
 dist/
 .idea/
 .vscode/
+
+# AI 模块测试脚本中包含 API Key，不提交
+ai-module/scripts/

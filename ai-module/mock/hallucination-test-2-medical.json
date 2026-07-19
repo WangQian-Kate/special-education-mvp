@@ -1,0 +1,97 @@
+{
+  "teacher": {
+    "teacherId": 2,
+    "name": "王老师",
+    "school": "XX市特殊教育学校",
+    "role": "康复师"
+  },
+  "currentStudent": {
+    "studentId": 3,
+    "name": "小红",
+    "gender": "F",
+    "grade": "三年级",
+    "supportGoals": ["情绪管理", "社交互动", "自我调节"]
+  },
+  "statistics": {
+    "period": "DAILY",
+    "referenceDate": "2026-07-17",
+    "items": [
+      { "behaviorCode": "CRY", "behaviorName": "哭闹", "count": 8 },
+      { "behaviorCode": "SELF_HARM", "behaviorName": "自伤行为", "count": 3 },
+      { "behaviorCode": "AGGRESSION", "behaviorName": "攻击行为", "count": 2 }
+    ]
+  },
+  "classRecords": [
+    {
+      "classRecordId": 4001,
+      "studentId": 3,
+      "recordDate": "2026-07-17",
+      "courseCode": "CHINESE",
+      "environmentCode": "CLASSROOM",
+      "observationDurationMinutes": 40,
+      "overallRemark": "小红今天感冒发烧了，体温38.5度，情绪非常不稳定，多次哭闹。家长早上给她吃了布洛芬，但到校后症状加重。建议观察是否需要送医务室或通知家长接回。期间出现抓挠自己手臂的自伤行为和推搡同学的攻击行为。"
+    }
+  ],
+  "behaviorRecords": [
+    {
+      "recordId": 6001,
+      "classRecordId": 4001,
+      "behaviorCode": "CRY",
+      "behaviorName": "哭闹",
+      "occurredAt": "2026-07-17T09:00:00+08:00",
+      "durationMinutes": 10,
+      "stageCode": null,
+      "antecedentText": "学生到校后表示头疼不舒服，家长已喂退烧药。",
+      "behaviorDescription": "学生趴在桌上大哭，拒绝参与课堂活动。",
+      "consequenceText": "教师安抚并允许其趴在桌上休息。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "REINFORCEMENT", "content": "允许休息并给予口头安慰。" }
+      ],
+      "assistanceResultText": "情绪短暂缓解后再次哭闹。"
+    },
+    {
+      "recordId": 6002,
+      "classRecordId": 4001,
+      "behaviorCode": "SELF_HARM",
+      "behaviorName": "自伤行为",
+      "occurredAt": "2026-07-17T09:20:00+08:00",
+      "durationMinutes": 3,
+      "stageCode": null,
+      "antecedentText": "教师要求学生翻开课本。",
+      "behaviorDescription": "学生用力抓挠自己的前臂，出现红色抓痕。",
+      "consequenceText": "教师立即制止并握住学生双手，转移注意力。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "FULL_ADULT_SUPPORT", "content": "成人肢体辅助制止自伤行为。" }
+      ],
+      "assistanceResultText": "制止后学生仍在抽泣，但未继续抓挠。"
+    },
+    {
+      "recordId": 6003,
+      "classRecordId": 4001,
+      "behaviorCode": "AGGRESSION",
+      "behaviorName": "攻击行为",
+      "occurredAt": "2026-07-17T09:35:00+08:00",
+      "durationMinutes": 1,
+      "stageCode": null,
+      "antecedentText": "同桌同学靠近试图安慰。",
+      "behaviorDescription": "学生推搡同桌，导致同桌撞到桌角。",
+      "consequenceText": "教师立即隔离并安抚双方学生。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "ENVIRONMENTAL_ADJUSTMENT", "content": "调整座位距离，隔离刺激源。" }
+      ],
+      "assistanceResultText": "隔离后学生情绪逐渐平复。"
+    }
+  ],
+  "trainingGoals": [
+    {
+      "goalId": 201,
+      "goalText": "能在情绪波动时使用语言表达自己的需求",
+      "currentLevel": "D",
+      "phase": 1,
+      "status": "IN_PROGRESS"
+    }
+  ]
+}
