@@ -33,26 +33,21 @@ const COURSES = [
 /** 全天汇总特殊课程编码 */
 const ALL_DAY_COURSE = 'ALL_DAY_SUMMARY';
 
-/** 环境列表（全天汇总专用 "—" 项） */
+/** 环境列表（7 项） */
 const ENVIRONMENTS = [
   { code: 'CLASSROOM', label: '教室' },
-  { code: 'PLAYGROUND', label: '操场' },
-  { code: 'FUNCTION_ROOM', label: '功能教室' },
-  { code: 'MUSIC_ROOM', label: '音乐教室' },
-  { code: 'ART_ROOM', label: '美术教室' },
+  { code: 'LECTURE_HALL', label: '阶梯教室' },
+  { code: 'LABORATORY', label: '实验室' },
   { code: 'COMPUTER_ROOM', label: '机房' },
-  { code: 'CAFETERIA', label: '食堂' },
-  { code: 'SCHOOL_BUS', label: '校车' },
-  { code: 'OTHER', label: '其他' },
-  { code: 'NONE', label: '—' }
+  { code: 'PLAYGROUND', label: '操场' },
+  { code: 'CORRIDOR', label: '楼道' },
+  { code: 'OFF_CAMPUS', label: '校外' }
 ];
 
 /** 课程 → 自动默认环境；未列出取 CLASSROOM */
 const COURSE_DEFAULT_ENV = {
   PHYSICAL_EDUCATION: 'PLAYGROUND',
-  BREAK: 'PLAYGROUND',
-  LUNCH: 'CAFETERIA',
-  ALL_DAY_SUMMARY: 'NONE'
+  BREAK: 'PLAYGROUND'
 };
 
 /** 辅助方式（9 项分两组；勾选不强制填内容，保存时只传 {code}） */

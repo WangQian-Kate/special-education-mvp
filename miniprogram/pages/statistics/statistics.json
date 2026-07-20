@@ -1,5 +1,6 @@
 {
   "navigationBarTitleText": "学生评估",
+  "enablePullDownRefresh": true,
   "usingComponents": {
     "ec-canvas": "/components/ec-canvas/ec-canvas",
     "stat-grid": "/components/stat-grid/stat-grid",

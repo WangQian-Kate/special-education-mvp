@@ -1,94 +1,62 @@
 .section { margin-bottom: 20rpx; }
 
-/* ===== 视图切换 tabs ===== */
-.view-tabs {
-  display: flex; padding: 4rpx; margin-bottom: 20rpx;
-}
+.view-tabs { display: flex; padding: 4rpx; margin-bottom: 20rpx; }
 
 .view-tab {
-  flex: 1; text-align: center; padding: 12rpx 0;
-  font-size: 24rpx; font-weight: 600; color: #9ca3af;
-  border-radius: 20rpx; transition: all 0.2s;
+  flex: 1; text-align: center; padding: 10rpx 0;
+  font-size: 24rpx; font-weight: 600; color: #9ca3af; border-radius: 20rpx;
 }
 
-.view-tab.on {
-  background: var(--color-primary); color: #fff; font-weight: 700;
+.view-tab.on { background: var(--color-primary); color: #fff; font-weight: 700; }
+
+/* ===== 概况网格 ===== */
+.overview-grid { display: flex; text-align: center; }
+
+.ov-item { flex: 1; }
+
+.ov-val { display: block; font-size: 36rpx; font-weight: 800; color: var(--color-primary); }
+
+.ov-label { font-size: 20rpx; color: var(--color-text-sub); margin-top: 4rpx; }
+
+/* ===== 日报柱状图 ===== */
+.bar-chart {
+  display: flex; align-items: flex-end; justify-content: space-around;
+  height: 220rpx; padding-top: 16rpx;
 }
 
-/* ===== 图表 ===== */
-.chart-title { margin-bottom: 24rpx; }
+.bar-col { display: flex; flex-direction: column; align-items: center; height: 100%; width: 60rpx; }
 
-.chart-box { width: 100%; height: 360rpx; }
+.bar-fill {
+  width: 40rpx; background: var(--color-primary); border-radius: 6rpx 6rpx 0 0;
+  margin-top: auto; min-height: 4rpx; transition: height 0.3s;
+}
 
-ec-canvas { width: 100%; height: 100%; display: block; }
+.bar-fill.positive { background: var(--color-success); }
 
-/* ===== 趋势条 ===== */
+.bar-count { font-size: 20rpx; font-weight: 700; color: var(--color-text); margin-top: 4rpx; }
+
+.bar-name { font-size: 18rpx; color: var(--color-text-sub); margin-top: 2rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60rpx; }
+
+/* ===== 趋势列表 ===== */
 .trend-list { display: flex; flex-direction: column; gap: 14rpx; }
 
-.trend-row {
-  display: flex; align-items: center; gap: 12rpx;
-}
+.trend-row { display: flex; align-items: center; gap: 12rpx; }
 
-.trend-name { width: 128rpx; font-size: 24rpx; color: var(--color-text); flex-shrink: 0; }
+.trend-name { width: 140rpx; font-size: 24rpx; color: var(--color-text); flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.trend-bar-bg {
-  flex: 1; height: 28rpx; background: #f3f4f6; border-radius: 14rpx; overflow: hidden;
-}
+.trend-bar-bg { flex: 1; height: 28rpx; background: #f3f4f6; border-radius: 14rpx; overflow: hidden; }
 
-.trend-bar {
-  height: 100%; border-radius: 14rpx; min-width: 8rpx;
-}
+.trend-bar { height: 100%; border-radius: 14rpx; min-width: 8rpx; }
 
-.trend-count {
-  font-size: 24rpx; font-weight: 700; color: var(--color-text); width: 72rpx; text-align: right; flex-shrink: 0;
-}
+.trend-count { font-size: 24rpx; font-weight: 700; color: var(--color-text); width: 72rpx; text-align: right; flex-shrink: 0; }
 
-.trend-change {
-  font-size: 22rpx; font-weight: 700; width: 68rpx; text-align: right; flex-shrink: 0;
-}
+.trend-change { font-size: 20rpx; font-weight: 700; width: 110rpx; text-align: right; flex-shrink: 0; color: #9ca3af; }
 
-.trend-change.up { color: #22c55e; }
+.trend-change.up { color: #ef4444; }
 
-.trend-change.down { color: #ef4444; }
+.trend-change.down { color: #22c55e; }
 
-/* ===== 维度评估 ===== */
-.dim-list { display: flex; flex-direction: column; gap: 18rpx; }
-
-.dim-row { display: flex; align-items: center; gap: 12rpx; }
-
-.dim-name { font-size: 24rpx; font-weight: 700; color: var(--color-text); width: 168rpx; flex-shrink: 0; }
-
-.dim-head { display: flex; justify-content: space-between; margin-bottom: 4rpx; }
-
-.dim-label { font-size: 20rpx; color: var(--color-text-sub); }
-
-.dim-bar-bg {
-  flex: 1; height: 24rpx; background: #f3f4f6; border-radius: 12rpx; overflow: hidden;
-}
-
-.dim-double { position: relative; }
-
-.dim-bar { height: 100%; border-radius: 12rpx; background: var(--color-primary); }
-
-.dim-bar-initial {
-  position: absolute; left: 0; top: 0; height: 100%;
-  border-radius: 12rpx; background: #d1d5db; z-index: 1;
-}
-
-.dim-bar-current {
-  position: absolute; left: 0; top: 0; height: 100%;
-  border-radius: 12rpx; z-index: 2;
-}
-
-.dim-change {
-  font-size: 22rpx; font-weight: 700; width: 68rpx; text-align: right; flex-shrink: 0;
-}
-
-.dim-change.up { color: #22c55e; }
-
-.dim-change.down { color: #ef4444; }
-
-/* ===== AI 卡片 ===== */
+/* ===== AI ===== */
 .ai-header { margin-bottom: 20rpx; }
 
 .ai-title { font-size: 28rpx; font-weight: 700; }
