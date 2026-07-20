@@ -42,9 +42,9 @@
       <view class="card">
         <view class="block-title">今日行为统计</view>
         <block wx:if="{{dayStats.length}}">
-          <view wx:for="{{dayStats}}" wx:key="behaviorCode" class="stat-row">
+          <view wx:for="{{dayStats}}" wx:key="behaviorCode" class="stat-row stat-tappable" bindtap="onDayStatTap" data-code="{{item.behaviorCode}}" data-label="{{item.behaviorLabel}}">
             <text class="stat-name">{{item.behaviorLabel}}</text>
-            <text class="stat-count">{{item.count}}次</text>
+            <text class="stat-count">{{item.count}}次 ›</text>
           </view>
         </block>
         <view wx:else class="empty-tip">今日暂无行为记录</view>
@@ -70,7 +70,7 @@
       <view class="card empty-tip" wx:elif="{{!loading}}">该课程暂无行为卡片配置，仅可记录课堂备注</view>
     </block>
 
-    <abc-modal visible="{{abcVisible}}" class-record-id="{{classRecordId}}" record-date="{{date}}" behavior="{{abcBehavior}}" bind:close="onAbcClose" bind:changed="onAbcChanged" />
+    <abc-modal visible="{{abcVisible}}" class-record-id="{{classRecordId}}" record-date="{{date}}" behavior="{{abcBehavior}}" all-day="{{courses[courseIndex].code === 'ALL_DAY_SUMMARY'}}" bind:close="onAbcClose" bind:changed="onAbcChanged" />
   </block>
 
   <!-- ========== 周视图（只读） ========== -->

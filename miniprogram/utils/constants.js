@@ -9,25 +9,24 @@ const SHADOW_TEACHERS = [
   { id: 't003', name: '李老师', school: 'XX市随班就读试点小学', role: '班主任' }
 ];
 
-/** 课程列表（18 门；全天汇总为前端特殊模式，无后端接口，仅做统计展示+六维评价） */
+/** 课程列表（16 门；全天汇总为前端特殊模式） */
 const COURSES = [
+  { code: 'ALL_DAY_SUMMARY', label: '全天汇总' },
   { code: 'CHINESE', label: '语文' },
   { code: 'MATHEMATICS', label: '数学' },
   { code: 'ENGLISH', label: '英语' },
-  { code: 'BREAK', label: '课间' },
-  { code: 'MUSIC', label: '音乐' },
   { code: 'PHYSICAL_EDUCATION', label: '体育' },
+  { code: 'MUSIC', label: '音乐' },
   { code: 'ART', label: '美术' },
-  { code: 'DAOFA', label: '道法' },
-  { code: 'LABOR', label: '劳动' },
-  { code: 'COMPREHENSIVE', label: '综合' },
   { code: 'SCIENCE', label: '科学' },
-  { code: 'LOCAL', label: '地方' },
+  { code: 'DAOFA', label: '道法' },
+  { code: 'PHYSICAL_FITNESS', label: '体能' },
+  { code: 'INDIVIDUAL_TRAINING', label: '个训' },
+  { code: 'BREAK', label: '课间' },
   { code: 'LUNCH', label: '午餐' },
   { code: 'NOON_REST', label: '午休' },
   { code: 'SELF_STUDY', label: '自习' },
-  { code: 'OTHER', label: '其他' },
-  { code: 'ALL_DAY_SUMMARY', label: '全天汇总' }
+  { code: 'OTHER', label: '其它' }
 ];
 
 /** 全天汇总特殊课程编码 */
@@ -35,19 +34,19 @@ const ALL_DAY_COURSE = 'ALL_DAY_SUMMARY';
 
 /** 环境列表（7 项） */
 const ENVIRONMENTS = [
-  { code: 'CLASSROOM', label: '教室' },
-  { code: 'LECTURE_HALL', label: '阶梯教室' },
-  { code: 'LABORATORY', label: '实验室' },
-  { code: 'COMPUTER_ROOM', label: '机房' },
+  { code: 'CLASSROOM', label: '普通教室' },
+  { code: 'RESOURCE_ROOM', label: '资源教室' },
   { code: 'PLAYGROUND', label: '操场' },
   { code: 'CORRIDOR', label: '楼道' },
-  { code: 'OFF_CAMPUS', label: '校外' }
+  { code: 'RESTROOM', label: '卫生间' },
+  { code: 'OFF_CAMPUS', label: '校外' },
+  { code: 'OTHER', label: '其它' }
 ];
 
 /** 课程 → 自动默认环境；未列出取 CLASSROOM */
 const COURSE_DEFAULT_ENV = {
   PHYSICAL_EDUCATION: 'PLAYGROUND',
-  BREAK: 'PLAYGROUND'
+  ALL_DAY_SUMMARY: 'OTHER'
 };
 
 /** 辅助方式（9 项分两组；勾选不强制填内容，保存时只传 {code}） */

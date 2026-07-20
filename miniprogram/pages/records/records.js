@@ -280,7 +280,10 @@ Page({
     this.setData({ abcVisible: true, abcBehavior: { behaviorCode: behavior.behaviorCode, behaviorLabel: behavior.behaviorLabel } });
   },
   onAbcClose() { this.setData({ abcVisible: false }); },
-  onAbcChanged() { this.refreshCards(); },
+  onAbcChanged() {
+    if (this.isAllDay()) this.loadDayStats();
+    else this.refreshCards();
+  },
 
   // ==================== 周/月视图 ====================
 
@@ -291,6 +294,15 @@ Page({
     try { const data = await recordApi.getSummary('MONTHLY', this.data.date); this.setData({ monthData: data }); } catch (err) { this.setData({ monthData: null }); }
   },
   onEvalInput(e) { const { field } = e.currentTarget.dataset; this.setData({ [`evaluation.${field}`]: e.detail.value }); },
+
+  /** 全天汇总：点击行为统计行 → 打开聚合弹窗 */
+  onDayStatTap(e) {
+    const { code, label } = e.currentTarget.dataset;
+    this.setData({
+      abcVisible: true,
+      abcBehavior: { behaviorCode: code, behaviorLabel: label }
+    });
+  },
 
   /** 全天汇总：加载当日行为统计 */
   async loadDayStats() {

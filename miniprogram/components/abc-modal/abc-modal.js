@@ -34,17 +34,19 @@ Component({
     visible: { type: Boolean, value: false },
     classRecordId: { type: null, value: null },
     recordDate: { type: String, value: '' },
-    behavior: { type: null, value: null }
+    behavior: { type: null, value: null },
+    allDay: { type: Boolean, value: false }
   },
 
   observers: {
     visible(visible) {
-      if (visible && this.properties.behavior && this.properties.classRecordId) {
+      if (visible && this.properties.behavior && (this.properties.classRecordId || this.properties.allDay)) {
         this.setData({
           supplementOpen: false,
           supplementTime: nowHhmm(),
-          currentRecordId: null,
-          foldOpen: false
+          foldOpen: false,
+          allDayClassIds: [],
+          loadingList: true
         });
         this.loadList();
       }
@@ -85,18 +87,40 @@ Component({
     async loadList() {
       this.setData({ loadingList: true });
       try {
-        const list = await recordApi.listBehaviorRecords(
-          this.properties.classRecordId,
-          this.properties.behavior.behaviorCode
-        );
-        const records = (list || []).map((r) => ({
-          id: r.id,
-          timeText: formatTime(r.occurredAt),
-          detailSaved: r.detailSaved
-        }));
+        let list;
+        if (this.properties.allDay) {
+          // 全天汇总：聚合当日所有课堂记录
+          const dayRecords = await recordApi.getDayRecords(this.properties.recordDate);
+          const all = [];
+          const crs = dayRecords || [];
+          for (let i = 0; i < crs.length; i++) {
+            try {
+              const recs = await recordApi.listBehaviorRecords(crs[i].id, this.properties.behavior.behaviorCode);
+              var mapped = (recs || []).map(function (r) { return { id: r.id, occurredAt: r.occurredAt, detailSaved: r.detailSaved, _classRecordId: crs[i].id }; });
+              for (var j = 0; j < mapped.length; j++) all.push(mapped[j]);
+            } catch (e) { /* skip */ }
+          }
+          all.sort(function (a, b) { return new Date(b.occurredAt) - new Date(a.occurredAt); });
+          var idSet = {};
+          var ids = [];
+          for (var k = 0; k < all.length; k++) {
+            if (!idSet[all[k]._classRecordId]) { idSet[all[k]._classRecordId] = true; ids.push(all[k]._classRecordId); }
+          }
+          this.setData({ allDayClassIds: ids });
+          list = all;
+        } else {
+          list = await recordApi.listBehaviorRecords(
+            this.properties.classRecordId, this.properties.behavior.behaviorCode
+          );
+        }
+        const records = (list || []).map(function (r) {
+          return { id: r.id, timeText: formatTime(r.occurredAt), detailSaved: r.detailSaved };
+        });
+        // 按时间倒序，最新在前
+        records.sort(function (a, b) { return (b.id - a.id); });
         this.setData({ records });
-        // 自动选中最新一条（列表按时间升序，取最后一条=最新）
-        if (records.length) this.openForm(records[records.length - 1].id);
+        // 自动选中最新一条（排序后第一条=最新）
+        if (records.length) this.openForm(records[0].id);
       } catch (err) {
         // request.js 已 toast
       }
@@ -143,17 +167,29 @@ Component({
     },
 
     async onSupplementConfirm() {
-      const { recordDate } = this.properties;
+      const { recordDate, allDay } = this.properties;
       const hhmm = this.data.supplementTime;
       if (isFutureTime(recordDate, hhmm)) {
         wx.showToast({ title: '补记时间不能晚于当前时刻', icon: 'none' });
         return;
       }
+      // 全天汇总：取第一个有该行为配置的课堂记录，没有则创建
+      let crId = this.properties.classRecordId;
+      if (allDay && !crId) {
+        crId = this.data.allDayClassIds[0];
+        if (!crId) {
+          try {
+            const detail = await recordApi.createClassRecord({
+              recordDate, courseCode: 'OTHER', environmentCode: 'OTHER',
+              observationDurationMinutes: 480
+            });
+            crId = detail.id;
+          } catch (e) { wx.showToast({ title: '补记失败', icon: 'none' }); return; }
+        }
+      }
       try {
         const result = await recordApi.supplementBehavior(
-          this.properties.classRecordId,
-          this.properties.behavior.behaviorCode,
-          formatIsoCst(recordDate, hhmm)
+          crId, this.properties.behavior.behaviorCode, formatIsoCst(recordDate, hhmm)
         );
         this.triggerEvent('changed');
         this.setData({ supplementOpen: false });
@@ -168,8 +204,9 @@ Component({
       try {
         const d = await recordApi.getBehaviorDetail(recordId);
         const assistances = buildAssistances().map((row) => {
-          const hit = (d.assistances || []).find((a) => a.code === row.code);
-          return hit ? { ...row, checked: true } : row;
+          const hit = (d.assistances || []).find(function (a) { return a.code === row.code; });
+          var result = { group: row.group, groupFirst: row.groupFirst, code: row.code, label: row.label, checked: !!hit };
+          return result;
         });
         const rec = this.data.records.find((r) => r.id === recordId);
         const funcIdx = funcIndex(d.functionCode);
@@ -243,10 +280,12 @@ Component({
         wx.showToast({ title: '已保存', icon: 'success' });
         this.triggerEvent('changed');
         // 本地把该条置为已详录
-        const records = this.data.records.map((r) =>
-          r.id === this.data.currentRecordId ? { ...r, detailSaved: true } : r
-        );
+        const records = this.data.records.map(function (r) {
+          if (r.id === this.data.currentRecordId) { r.detailSaved = true; }
+          return r;
+        }.bind(this));
         this.setData({ records });
+        this.triggerEvent('close');
       } catch (err) {
         wx.showToast({ title: '保存失败: ' + ((err && err.message) || '网络异常'), icon: 'none' });
       }
