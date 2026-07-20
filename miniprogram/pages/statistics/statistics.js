@@ -87,7 +87,7 @@ Page({
 
   loadSemester() {
     // 学期报告后端暂无接口，保留静态占位
-    const overview = { totalCourses: '4.5', totalRecords: 1860, totalAbcRecords: 520, totalNotes: 98 };
+    const overview = { observationCourseCount: 4, behaviorRecordCount: 1860, abcRecordCount: 520, remarkCount: 98 };
     this.setData({ overview, totalCount: 1860, empty: false,
       aiCards: [
         { type: 'info', title: '学期总评', content: '本学期六大能力维度均有显著提升，平均进步20%，干预策略整体有效。' },

@@ -18,10 +18,10 @@
     <view class="card section" wx:if="{{overview}}">
       <view class="sec-title">今日概况</view>
       <view class="overview-grid">
-        <view class="ov-item"><text class="ov-val">{{overview.totalRecords || totalCount}}</text><text class="ov-label">行为记录</text></view>
-        <view class="ov-item"><text class="ov-val">{{overview.totalAbcRecords || 0}}</text><text class="ov-label">ABC详录</text></view>
-        <view class="ov-item"><text class="ov-val">{{overview.totalCourses || 0}}</text><text class="ov-label">观察课程</text></view>
-        <view class="ov-item"><text class="ov-val">{{overview.totalNotes || 0}}</text><text class="ov-label">备注</text></view>
+        <view class="ov-item"><text class="ov-val">{{overview.behaviorRecordCount || totalCount}}</text><text class="ov-label">行为记录</text></view>
+        <view class="ov-item"><text class="ov-val">{{overview.abcRecordCount || 0}}</text><text class="ov-label">ABC详录</text></view>
+        <view class="ov-item"><text class="ov-val">{{overview.observationCourseCount || 0}}</text><text class="ov-label">观察课程</text></view>
+        <view class="ov-item"><text class="ov-val">{{overview.remarkCount || 0}}</text><text class="ov-label">备注</text></view>
       </view>
     </view>
 
@@ -47,8 +47,8 @@
     <view class="card section" wx:if="{{overview}}">
       <view class="sec-title">{{view === 'weekly' ? '本周' : '本月'}}概况</view>
       <view class="overview-grid">
-        <view class="ov-item"><text class="ov-val">{{overview.totalRecords || totalCount}}</text><text class="ov-label">行为记录</text></view>
-        <view class="ov-item"><text class="ov-val">{{overview.totalAbcRecords || 0}}</text><text class="ov-label">ABC详录</text></view>
+        <view class="ov-item"><text class="ov-val">{{overview.behaviorRecordCount || totalCount}}</text><text class="ov-label">行为记录</text></view>
+        <view class="ov-item"><text class="ov-val">{{overview.abcRecordCount || 0}}</text><text class="ov-label">ABC详录</text></view>
       </view>
     </view>
 
@@ -74,9 +74,9 @@
   <block wx:elif="{{view === 'semester'}}">
     <view class="card section"><view class="sec-title">学期概览</view>
       <view class="overview-grid">
-        <view class="ov-item"><text class="ov-val">{{overview.totalRecords}}</text><text class="ov-label">行为记录</text></view>
-        <view class="ov-item"><text class="ov-val">{{overview.totalAbcRecords}}</text><text class="ov-label">ABC详录</text></view>
-        <view class="ov-item"><text class="ov-val">{{overview.totalNotes}}</text><text class="ov-label">备注</text></view>
+        <view class="ov-item"><text class="ov-val">{{overview.behaviorRecordCount}}</text><text class="ov-label">行为记录</text></view>
+        <view class="ov-item"><text class="ov-val">{{overview.abcRecordCount}}</text><text class="ov-label">ABC详录</text></view>
+        <view class="ov-item"><text class="ov-val">{{overview.remarkCount}}</text><text class="ov-label">备注</text></view>
       </view>
     </view>
     <view class="card section" wx:if="{{aiCards.length}}">
