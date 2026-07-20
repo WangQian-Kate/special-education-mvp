@@ -95,8 +95,8 @@ Component({
           detailSaved: r.detailSaved
         }));
         this.setData({ records });
-        // 自动选中最新一条（列表返回按 occurredAt 降序或按 id 升序，取第一条）
-        if (records.length) this.openForm(records[0].id);
+        // 自动选中最新一条（列表按时间升序，取最后一条=最新）
+        if (records.length) this.openForm(records[records.length - 1].id);
       } catch (err) {
         // request.js 已 toast
       }
@@ -108,7 +108,10 @@ Component({
     },
 
     async onDeleteTap(e) {
-      const { id, saved } = e.currentTarget.dataset;
+      const id = Number(e.currentTarget.dataset.id);
+      // dataset 值为字符串，需显式转换
+      const saved = e.currentTarget.dataset.saved === 'true';
+      if (!id) { wx.showToast({ title: '无法定位该记录', icon: 'none' }); return; }
       const confirmed = await new Promise((resolve) => {
         wx.showModal({
           title: '确认删除',
@@ -125,6 +128,7 @@ Component({
         await recordApi.deleteBehaviorRecord(id);
         this.triggerEvent('changed');
         await this.loadList();
+        wx.showToast({ title: '已删除', icon: 'success' });
       } catch (err) { /* 已 toast */ }
     },
 
@@ -244,7 +248,7 @@ Component({
         );
         this.setData({ records });
       } catch (err) {
-        // 已 toast
+        wx.showToast({ title: '保存失败: ' + ((err && err.message) || '网络异常'), icon: 'none' });
       }
       this.setData({ saving: false });
     },

@@ -239,7 +239,9 @@ Page({
   onCountChange(e) {
     if (this.isAllDay()) return;
     const { behaviorCode, delta } = e.detail;
-    delta > 0 ? this._handlePlus(behaviorCode) : this._handleMinus(behaviorCode);
+    if (delta === 0) { this.refreshCards(); return; }
+    if (delta > 0) this._handlePlus(behaviorCode);
+    else this._handleMinus(behaviorCode);
   },
 
   _cardIdx(code) { return this.data.behaviors.findIndex((b) => b.behaviorCode === code); },
@@ -261,24 +263,13 @@ Page({
     }
   },
 
-  async _handleMinus(code) {
-    const idx = this._cardIdx(code); if (idx < 0) return;
+  _handleMinus(code) {
+    const idx = this._cardIdx(code);
+    if (idx < 0) return;
     const card = this.data.behaviors[idx];
     if (card.pending || card.count <= 0 || !card.latestRecordId) return;
-    if (card.latestDetailSaved) {
-      const r = await new Promise((resolve) => wx.showModal({ title: '确认删除', content: '最近一次记录已填写详细信息，删除后不可恢复', confirmColor: '#f87171', success: (res) => resolve(res.confirm), fail: () => resolve(false) }));
-      if (!r.confirm) return;
-    }
-    const epoch = this._epoch;
-    this._patchCard(idx, { pending: true, count: card.count - 1 });
-    try {
-      await recordApi.deleteBehaviorRecord(card.latestRecordId); if (epoch !== this._epoch) return;
-      await this.refreshCards();
-    } catch (err) {
-      if (epoch !== this._epoch) return;
-      const i2 = this._cardIdx(code); if (i2 >= 0) this._patchCard(i2, { pending: false, count: this.data.behaviors[i2].count + 1 });
-      if (err && err.code === 40401) this.refreshCards();
-    }
+    // 乐观 -1，真正删除由 behavior-counter 组件完成
+    this._patchCard(idx, { count: card.count - 1 });
   },
 
   // ==================== ABC 弹窗 ====================

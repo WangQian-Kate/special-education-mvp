@@ -2,7 +2,8 @@
 // 随班记录域接口封装（CLASS-001 ~ CLASS-012 + 行为卡片字典）
 // 路径与契约见 docs/前端相关端口.md；统一走 utils/request 携带 X-Teacher-Id
 
-const { get, post, put, patch, del } = require('../utils/request');
+const request = require('../utils/request');
+const { get, post } = request;
 
 /** CLASS-001 查询指定日期课堂记录列表 → ClassRecordSummary[]（按 id 升序） */
 const getDayRecords = (recordDate) => get('/class-records', { recordDate });
@@ -23,7 +24,8 @@ const getClassRecordDetail = (id) => get(`/class-records/${id}`);
  * CLASS-006 局部更新课堂信息/备注（自动保存用，可高频调用）→ ClassRecordDetail
  * partial 仅限白名单 7 字段；备注静默保存，页面自行做状态提示
  */
-const patchClassRecord = (id, partial) => patch(`/class-records/${id}`, partial, { hideError: true });
+const patchClassRecord = (id, partial) =>
+  request.request({ url: `/class-records/${id}`, method: 'PATCH', data: partial, hideError: true });
 
 /** CLASS-007 快速新增一次行为（点 +，时间后端生成）→ { record, card } */
 const quickAddBehavior = (id, behaviorCode) =>
@@ -46,10 +48,13 @@ const getBehaviorDetail = (recordId) => get(`/behavior-records/${recordId}`);
  *            consequenceText, functionCode, assistances[{code,content}], assistanceResultText }
  * assistances 必传（可空数组）；stage/function 字典为空时传 null
  */
-const saveBehaviorDetail = (recordId, payload) => put(`/behavior-records/${recordId}/details`, payload);
+const saveBehaviorDetail = (recordId, payload) =>
+  request.request({ url: `/behavior-records/${recordId}/details`, method: 'PUT', data: payload });
 
 /** CLASS-012 删除一条行为记录 → null（是否先确认由前端按 detailSaved 判断） */
-const deleteBehaviorRecord = (recordId) => del(`/behavior-records/${recordId}`);
+/** CLASS-012 删除一条行为记录 → null */
+const deleteBehaviorRecord = (recordId) =>
+  request.request({ url: `/behavior-records/${recordId}`, method: 'DELETE', data: undefined });
 
 /** CLASS-004 查询周/月只读汇总 → BehaviorCountStatistics */
 const getSummary = (period, referenceDate) => get('/class-records/summary', { period, referenceDate });

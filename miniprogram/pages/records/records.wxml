@@ -65,7 +65,7 @@
 
       <view class="sec-title">行为计数（点卡片进 ABC 详录）</view>
       <view class="behavior-grid" wx:if="{{behaviors.length}}">
-        <behavior-counter wx:for="{{behaviors}}" wx:key="behaviorCode" behavior="{{item}}" bind:change="onCountChange" bind:detail="onBehaviorDetail" />
+        <behavior-counter wx:for="{{behaviors}}" wx:key="behaviorCode" behavior="{{item}}" bind:countchange="onCountChange" bind:opendetail="onBehaviorDetail" />
       </view>
       <view class="card empty-tip" wx:elif="{{!loading}}">该课程暂无行为卡片配置，仅可记录课堂备注</view>
     </block>
