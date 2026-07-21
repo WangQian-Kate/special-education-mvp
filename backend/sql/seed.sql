@@ -99,13 +99,15 @@ AS new
 ON DUPLICATE KEY UPDATE label = new.label;
 
 INSERT INTO assistance_type (code, label, group_code, display_order) VALUES
-  ('VISUAL_PROMPT', '视觉提示', 'INTERNAL_STIMULUS', 1),
-  ('VERBAL_PROMPT', '语言提示', 'INTERNAL_STIMULUS', 2),
-  ('ACTION_PROMPT', '动作提示', 'INTERNAL_STIMULUS', 3),
-  ('DEMONSTRATION', '示范', 'EXTERNAL_STIMULUS', 4),
-  ('PHYSICAL_ASSISTANCE', '身体辅助', 'EXTERNAL_STIMULUS', 5),
-  ('REINFORCEMENT', '强化', 'EXTERNAL_STIMULUS', 6),
-  ('ASSISTIVE_DEVICE', '辅助设备', 'EXTERNAL_STIMULUS', 7)
+  ('ADD_EXTERNAL_OBJECT', '增加外在物品', 'INTERNAL_STIMULUS', 1),
+  ('CHANGE_TARGET_SIZE', '改变目标物大小', 'INTERNAL_STIMULUS', 2),
+  ('FULL_BODY_ASSISTANCE', '全身体辅助', 'EXTERNAL_STIMULUS', 3),
+  ('HALF_BODY_ASSISTANCE', '半身辅助', 'EXTERNAL_STIMULUS', 4),
+  ('POSTURE_ASSISTANCE', '姿势辅助', 'EXTERNAL_STIMULUS', 5),
+  ('POSITION_ASSISTANCE', '位置辅助', 'EXTERNAL_STIMULUS', 6),
+  ('VERBAL_ASSISTANCE', '语言辅助', 'EXTERNAL_STIMULUS', 7),
+  ('DEMONSTRATION_ASSISTANCE', '示范辅助', 'EXTERNAL_STIMULUS', 8),
+  ('VISUAL_ASSISTANCE', '视觉辅助', 'EXTERNAL_STIMULUS', 9)
 AS new
 ON DUPLICATE KEY UPDATE
   label = new.label,
@@ -328,5 +330,6 @@ ON DUPLICATE KEY UPDATE
 
 INSERT IGNORE INTO schema_migration (version) VALUES ('2.1.0');
 INSERT IGNORE INTO schema_migration (version) VALUES ('2.2.0');
+INSERT IGNORE INTO schema_migration (version) VALUES ('2.3.0');
 
 -- 行为环节、行为功能和训练等级数据尚未提供，暂不写入虚假数据。

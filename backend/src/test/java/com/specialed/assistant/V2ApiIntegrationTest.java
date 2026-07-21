@@ -180,23 +180,26 @@ class V2ApiIntegrationTest {
                         .content("""
                                 {"durationMinutes":1,"stageCode":"TASK","antecedentText":"A",
                                  "behaviorDescription":"B","consequenceText":"C","functionCode":"ESCAPE",
-                                 "assistances":[{"code":"VERBAL_PROMPT","content":"语言提示"}],
+                                 "assistances":[{"code":"VERBAL_ASSISTANCE"}],
                                  "assistanceResultText":"成功返回座位"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.detailSaved").value(true))
-                .andExpect(jsonPath("$.data.assistances[0].content").value("语言提示"));
+                .andExpect(jsonPath("$.data.assistances[0].code").value("VERBAL_ASSISTANCE"))
+                .andExpect(jsonPath("$.data.assistances[0].content").value(nullValue()));
 
         mockMvc.perform(put("/behavior-records/{id}/details", recordId).header(TEACHER_HEADER, "t001")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"durationMinutes":null,"stageCode":null,"antecedentText":null,
-                                 "behaviorDescription":null,"consequenceText":null,"functionCode":null,
-                                 "assistances":[],"assistanceResultText":null}
-                                """))
+                        .content("{\"antecedentText\":\"仅填写前因\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.detailSaved").value(true))
+                .andExpect(jsonPath("$.data.antecedentText").value("仅填写前因"))
                 .andExpect(jsonPath("$.data.assistances.length()").value(0));
+
+        mockMvc.perform(put("/behavior-records/{id}/details", recordId).header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("详细记录至少需要填写一项内容"));
 
         mockMvc.perform(patch("/class-records/{id}", classRecordId).header(TEACHER_HEADER, "t001")
                         .contentType(MediaType.APPLICATION_JSON)

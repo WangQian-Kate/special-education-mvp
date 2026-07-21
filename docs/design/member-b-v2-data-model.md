@@ -2,7 +2,7 @@
 
 ## 1. 设计依据
 
-本设计依据 2026-07-16 至 2026-07-17 已确认的软件原型和交互规则，替代此前以旧接口为基础的数据模型。V2 SQL、受保护迁移脚本和 Java 接口已经实现；正式 MySQL 已于 2026-07-17 切换到 V2.2.0。
+本设计依据 2026-07-16 至 2026-07-21 已确认的软件原型和交互规则，替代此前以旧接口为基础的数据模型。V2 SQL、受保护迁移脚本和 Java 接口已经实现；正式 MySQL 已切换到 V2.3.0。
 
 一级页面固定为：
 
@@ -25,22 +25,25 @@
 - 补记由前端提交过去的发生时间。
 - 行为卡片类型仍使用稳定 code，例如 `LEAVE_SEAT`。
 - 详细记录中的 A、B、C 是自由文本，不是字典 code。
-- 用户首次执行“保存更新”后，`detail_saved` 永久为 `TRUE`；即使后来清空详细字段也不恢复。
+- 持续时间、行为环节、A、B、C、行为功能、辅助方式或辅助结果任意一项有值即可保存，全部为空时拒绝。
+- 用户首次成功执行“保存更新”后，`detail_saved` 永久为 `TRUE`。
 - 删除当前行为的最近记录时，前端根据 `detail_saved` 决定是否弹出确认框。
 
 ### 2.3 辅助方式
 
-每种辅助方式独立保存 code 和必填内容。当前已确认的方式为：
+每种辅助方式独立保存稳定 code；补充内容可不填写。当前已确认的方式为：
 
 | 分组 | code | 名称 |
 |---|---|---|
-| 刺激内辅助 | `VISUAL_PROMPT` | 视觉提示 |
-| 刺激内辅助 | `VERBAL_PROMPT` | 语言提示 |
-| 刺激内辅助 | `ACTION_PROMPT` | 动作提示 |
-| 刺激外辅助 | `DEMONSTRATION` | 示范 |
-| 刺激外辅助 | `PHYSICAL_ASSISTANCE` | 身体辅助 |
-| 刺激外辅助 | `REINFORCEMENT` | 强化 |
-| 刺激外辅助 | `ASSISTIVE_DEVICE` | 辅助设备 |
+| 刺激内辅助 | `ADD_EXTERNAL_OBJECT` | 增加外在物品 |
+| 刺激内辅助 | `CHANGE_TARGET_SIZE` | 改变目标物大小 |
+| 刺激外辅助 | `FULL_BODY_ASSISTANCE` | 全身体辅助 |
+| 刺激外辅助 | `HALF_BODY_ASSISTANCE` | 半身辅助 |
+| 刺激外辅助 | `POSTURE_ASSISTANCE` | 姿势辅助 |
+| 刺激外辅助 | `POSITION_ASSISTANCE` | 位置辅助 |
+| 刺激外辅助 | `VERBAL_ASSISTANCE` | 语言辅助 |
+| 刺激外辅助 | `DEMONSTRATION_ASSISTANCE` | 示范辅助 |
+| 刺激外辅助 | `VISUAL_ASSISTANCE` | 视觉辅助 |
 
 辅助结果为自由文本，不再使用“成功、部分成功、失败”枚举。
 
@@ -75,7 +78,7 @@
 
 ### 3.2 迁移版本表 `schema_migration`
 
-这是技术表，不属于业务页面。每个已成功应用的结构版本保存一行；当前最新版本为 `2.2.0`，用于保证迁移和标准数据脚本可追踪。
+这是技术表，不属于业务页面。每个已成功应用的结构版本保存一行；当前最新版本为 `2.3.0`，用于保证迁移和标准数据脚本可追踪。
 
 ### 3.3 当前学生表 `app_user_current_student`
 
@@ -164,7 +167,7 @@
 |---|---|---|---|
 | `behavior_record_id` | `BIGINT UNSIGNED` | 是 | 行为记录 ID |
 | `assistance_code` | `VARCHAR(64)` | 是 | 辅助方式 code |
-| `content` | `VARCHAR(500)` | 是 | 该辅助方式的具体内容 |
+| `content` | `VARCHAR(500)` | 否 | 该辅助方式的可选补充内容 |
 
 联合主键为 `(behavior_record_id, assistance_code)`，同一记录不能重复选择同一种辅助方式。
 

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 特殊教育课堂助手 API
-  version: 0.7.0
+  version: 0.8.0
   description: |
     根据 V2 软件原型重写的接口契约，按“随班记录、训练计划、学生评估、我的、系统”五个页面模块组织。
     当前采用白名单伪登录，业务接口使用 X-Teacher-Id: t001/t002/t003 确定当前教师；不接收 X-User-Id。
@@ -428,8 +428,9 @@ paths:
       operationId: saveBehaviorRecordDetails
       summary: 保存完整详细记录
       description: |
-        每次保存按请求整体覆盖详细字段，并把 detailSaved 永久设为 true。
-        已经为 true 的记录即使清空全部可空字段也不会恢复为 false。
+        每次保存按请求整体覆盖详细字段。持续时间、行为环节、A/B/C、行为功能、
+        辅助方式或辅助结果至少填写一项；全部为空时返回 400。
+        保存成功后把 detailSaved 永久设为 true。
       requestBody:
         required: true
         content:
@@ -442,8 +443,7 @@ paths:
               behaviorDescription: 学生离开座位走向门口。
               consequenceText: 教师口头提示后返回。
               assistances:
-                - code: VERBAL_PROMPT
-                  content: 提示学生回到座位。
+                - code: VERBAL_ASSISTANCE
               assistanceResultText: 一次语言提示后返回座位。
       responses:
         '401':
@@ -1253,16 +1253,27 @@ components:
 
     AssistanceInput:
       type: object
-      required: [code, content]
+      required: [code]
       properties:
         code:
           type: string
           minLength: 1
           maxLength: 64
+          enum:
+            - ADD_EXTERNAL_OBJECT
+            - CHANGE_TARGET_SIZE
+            - FULL_BODY_ASSISTANCE
+            - HALF_BODY_ASSISTANCE
+            - POSTURE_ASSISTANCE
+            - POSITION_ASSISTANCE
+            - VERBAL_ASSISTANCE
+            - DEMONSTRATION_ASSISTANCE
+            - VISUAL_ASSISTANCE
         content:
           type: string
-          minLength: 1
+          nullable: true
           maxLength: 500
+          description: 可选补充内容；缺省、null 或空白字符串均按 null 保存。
 
     AssistanceDetail:
       allOf:
@@ -1278,7 +1289,7 @@ components:
 
     SaveBehaviorDetailsRequest:
       type: object
-      required: [assistances]
+      description: 所有详细字段至少填写一项；assistances 缺省或为 null 时按空数组处理。
       properties:
         durationMinutes:
           type: integer
@@ -1309,6 +1320,8 @@ components:
           maxLength: 64
         assistances:
           type: array
+          nullable: true
+          maxItems: 9
           uniqueItems: true
           items:
             $ref: '#/components/schemas/AssistanceInput'

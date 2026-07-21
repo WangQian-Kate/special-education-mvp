@@ -6,11 +6,11 @@
 
 | 内容 | 当前状态 |
 |---|---|
-| OpenAPI 契约 | `0.7.0`，共 24 个接口 |
+| OpenAPI 契约 | `0.8.0`，共 24 个接口 |
 | Java 实现 | 已完成，按前端页面分包 |
-| MySQL | `special_ed_assistant` 已迁移到 `2.2.0`，内置 165 项标准目标 |
+| MySQL | `special_ed_assistant` 已迁移到 `2.3.0`，内置 165 项标准目标 |
 | 自动化测试 | 6 个数据库集成场景覆盖全部 24 个接口，已通过 |
-| Apifox | 需将 0.7.0 重新导入现有新版模块 |
+| Apifox | 需将 0.8.0 重新导入现有新版模块 |
 
 ## 页面模块
 
@@ -36,7 +36,7 @@ src/main/java/com/specialed/assistant/api/
 
 详细契约见：
 
-- `docs/openapi.yaml`：OpenAPI 0.7.0 统一契约。
+- `docs/openapi.yaml`：OpenAPI 0.8.0 统一契约。
 - `docs/接口文档.md`：中文接口总览。
 - `docs/api/`：按页面拆分的中文接口说明。
 - `../docs/design/member-b-v2-data-model.md`：V2 数据模型。
@@ -131,8 +131,9 @@ Invoke-RestMethod http://localhost:3000/api/health
 | `sql/migrate-v2.sql` | V0.3 空业务库升级到 V2，检测到旧业务数据时自动中止 |
 | `sql/migrate-v2.1-training-goals.sql` | V2.0.0 增加标准目标业务编号结构 |
 | `sql/migrate-v2.2-whitelist-identities.sql` | V2.1.0 增加教师/学生外部编号、性别和白名单数据 |
+| `sql/migrate-v2.3-assistance-validation.sql` | V2.2.0 替换辅助方式字典并允许辅助内容为空 |
 
-正式本地数据库已于 2026-07-17 完成迁移，当前版本为 `2.2.0`、共 18 张表，并包含 3 名白名单教师、6 名绑定学生和编号连续的 165 项标准训练目标。应用账号只需要 `special_ed_assistant.*` 上的 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。
+正式本地数据库已升级到 `2.3.0`、共 18 张表，并包含 3 名白名单教师、6 名绑定学生和编号连续的 165 项标准训练目标。应用账号只需要 `special_ed_assistant.*` 上的 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。
 
 `seed.sql` 只用于本地开发，不应直接用于生产数据环境。
 
@@ -142,8 +143,8 @@ Invoke-RestMethod http://localhost:3000/api/health
 - 一条行为记录代表一次发生，次数按记录条数统计。
 - 快速记录时间由后端生成；补记必须提交过去的发生时间。
 - A、B、C 使用自由文本。
-- 辅助方式保存稳定 code，勾选项必须填写内容。
-- 详细记录首次保存后，`detailSaved` 永久保持为 `true`。
+- 辅助方式限定为 9 项稳定 code，勾选后可不填写补充内容。
+- 详细记录任意一项有值即可保存，全部为空时拒绝；首次保存成功后 `detailSaved` 永久保持为 `true`。
 - 日记录可编辑；周记录和月记录只读。
 - 学生评估直接统计随班记录数据，并返回周期概况和较上一周期的行为趋势。
 - 训练计划支持标准目标分配和当前学生的自定义目标。

@@ -143,11 +143,9 @@ migration: BEGIN
   CREATE TABLE IF NOT EXISTS behavior_record_assistance (
     behavior_record_id BIGINT UNSIGNED NOT NULL,
     assistance_code VARCHAR(64) NOT NULL,
-    content VARCHAR(500) NOT NULL,
+    content VARCHAR(500) NULL,
     PRIMARY KEY (behavior_record_id, assistance_code),
     KEY idx_behavior_record_assistance_type (assistance_code),
-    CONSTRAINT chk_behavior_record_assistance_content
-      CHECK (CHAR_LENGTH(TRIM(content)) > 0),
     CONSTRAINT fk_behavior_record_assistance_record
       FOREIGN KEY (behavior_record_id) REFERENCES behavior_record (id) ON DELETE CASCADE,
     CONSTRAINT fk_behavior_record_assistance_type

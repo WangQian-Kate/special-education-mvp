@@ -95,7 +95,7 @@ public final class ClassRecordModels {
 
     public record AssistanceInput(
             @NotBlank @Size(max = 64) String code,
-            @NotBlank @Size(max = 500) String content
+            @Size(max = 500) String content
     ) {
     }
 
@@ -114,7 +114,7 @@ public final class ClassRecordModels {
             @Size(max = 1000) String behaviorDescription,
             @Size(max = 1000) String consequenceText,
             @Size(min = 1, max = 64) String functionCode,
-            @NotNull List<@Valid AssistanceInput> assistances,
+            @Size(max = 9) List<@NotNull @Valid AssistanceInput> assistances,
             @Size(max = 1000) String assistanceResultText
     ) {
     }

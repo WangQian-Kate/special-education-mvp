@@ -148,35 +148,63 @@ public class ClassRecordService {
                                                      SaveBehaviorDetailsRequest request) {
         Long studentId = profileService.requireCurrentStudentId(userId);
         BehaviorRecordEntity entity = requireBehaviorRecord(recordId, studentId);
-        if (request.stageCode() != null && !mapper.existsStage(request.stageCode())) {
+        List<AssistanceInput> assistances = request.assistances() == null ? List.of() : request.assistances();
+        if (!hasDetailContent(request, assistances)) {
+            throw validation("详细记录至少需要填写一项内容");
+        }
+
+        String stageCode = normalizeOptionalText(request.stageCode());
+        String functionCode = normalizeOptionalText(request.functionCode());
+        if (stageCode != null && !mapper.existsStage(stageCode)) {
             throw notFound("行为环节不存在");
         }
-        if (request.functionCode() != null && !mapper.existsFunction(request.functionCode())) {
+        if (functionCode != null && !mapper.existsFunction(functionCode)) {
             throw notFound("行为功能不存在");
         }
         Set<String> assistanceCodes = new HashSet<>();
-        for (AssistanceInput assistance : request.assistances()) {
-            if (!assistanceCodes.add(assistance.code())) {
+        for (AssistanceInput assistance : assistances) {
+            String assistanceCode = assistance.code().strip();
+            if (!assistanceCodes.add(assistanceCode)) {
                 throw validation("辅助方式不能重复");
             }
-            if (!mapper.existsAssistance(assistance.code())) {
-                throw notFound("辅助方式不存在：" + assistance.code());
+            if (!mapper.existsAssistance(assistanceCode)) {
+                throw notFound("辅助方式不存在：" + assistanceCode);
             }
         }
 
         entity.setDurationMinutes(request.durationMinutes());
-        entity.setStageCode(request.stageCode());
-        entity.setAntecedentText(request.antecedentText());
-        entity.setBehaviorDescription(request.behaviorDescription());
-        entity.setConsequenceText(request.consequenceText());
-        entity.setFunctionCode(request.functionCode());
-        entity.setAssistanceResultText(request.assistanceResultText());
+        entity.setStageCode(stageCode);
+        entity.setAntecedentText(normalizeOptionalText(request.antecedentText()));
+        entity.setBehaviorDescription(normalizeOptionalText(request.behaviorDescription()));
+        entity.setConsequenceText(normalizeOptionalText(request.consequenceText()));
+        entity.setFunctionCode(functionCode);
+        entity.setAssistanceResultText(normalizeOptionalText(request.assistanceResultText()));
         mapper.updateBehaviorDetails(entity);
         mapper.deleteAssistances(recordId);
-        for (AssistanceInput assistance : request.assistances()) {
-            mapper.insertAssistance(recordId, assistance.code(), assistance.content());
+        for (AssistanceInput assistance : assistances) {
+            mapper.insertAssistance(recordId, assistance.code().strip(),
+                    normalizeOptionalText(assistance.content()));
         }
         return getBehaviorDetail(recordId, studentId);
+    }
+
+    private boolean hasDetailContent(SaveBehaviorDetailsRequest request, List<AssistanceInput> assistances) {
+        return request.durationMinutes() != null
+                || hasText(request.stageCode())
+                || hasText(request.antecedentText())
+                || hasText(request.behaviorDescription())
+                || hasText(request.consequenceText())
+                || hasText(request.functionCode())
+                || !assistances.isEmpty()
+                || hasText(request.assistanceResultText());
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private String normalizeOptionalText(String value) {
+        return hasText(value) ? value.strip() : null;
     }
 
     @Transactional
