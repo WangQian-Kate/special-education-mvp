@@ -98,6 +98,17 @@ INSERT INTO behavior_type (code, label) VALUES
 AS new
 ON DUPLICATE KEY UPDATE label = new.label;
 
+DELETE FROM behavior_function_type
+WHERE code NOT IN ('ATTENTION', 'TANGIBLE', 'ESCAPE', 'SENSORY');
+
+INSERT INTO behavior_function_type (code, label) VALUES
+  ('ATTENTION', '获取关注'),
+  ('TANGIBLE', '获取实物'),
+  ('ESCAPE', '逃避'),
+  ('SENSORY', '感官刺激')
+AS new
+ON DUPLICATE KEY UPDATE label = new.label;
+
 INSERT INTO assistance_type (code, label, group_code, display_order) VALUES
   ('ADD_EXTERNAL_OBJECT', '增加外在物品', 'INTERNAL_STIMULUS', 1),
   ('CHANGE_TARGET_SIZE', '改变目标物大小', 'INTERNAL_STIMULUS', 2),
@@ -331,5 +342,6 @@ ON DUPLICATE KEY UPDATE
 INSERT IGNORE INTO schema_migration (version) VALUES ('2.1.0');
 INSERT IGNORE INTO schema_migration (version) VALUES ('2.2.0');
 INSERT IGNORE INTO schema_migration (version) VALUES ('2.3.0');
+INSERT IGNORE INTO schema_migration (version) VALUES ('2.4.0');
 
--- 行为环节、行为功能和训练等级数据尚未提供，暂不写入虚假数据。
+-- 行为环节和训练等级数据尚未提供，暂不写入虚假数据。

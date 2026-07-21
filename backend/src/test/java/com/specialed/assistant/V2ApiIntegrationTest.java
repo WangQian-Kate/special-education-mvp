@@ -48,16 +48,16 @@ class V2ApiIntegrationTest {
                 INSERT INTO behavior_stage_type (code, label) VALUES ('TASK', '任务阶段') AS new
                 ON DUPLICATE KEY UPDATE label = new.label
                 """);
-        jdbc.update("""
-                INSERT INTO behavior_function_type (code, label) VALUES ('ESCAPE', '逃避') AS new
-                ON DUPLICATE KEY UPDATE label = new.label
-                """);
         standardGoalId = jdbc.queryForObject(
                 "SELECT id FROM training_goal WHERE standard_number = 1", Long.class);
     }
 
     @Test
     void profileAndReferenceEndpointsFollowContract() throws Exception {
+        Integer functionCount = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM behavior_function_type", Integer.class);
+        org.assertj.core.api.Assertions.assertThat(functionCount).isEqualTo(4);
+
         mockMvc.perform(get("/api/health").contextPath("/api"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))

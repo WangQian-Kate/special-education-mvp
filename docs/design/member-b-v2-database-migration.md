@@ -8,7 +8,7 @@ V2 数据库脚本已通过 MySQL 8.0.45 临时数据库演练，并于 2026-07-
 
 | 项目 | 结果 |
 |---|---|
-| 数据库版本 | `2.3.0` |
+| 数据库版本 | `2.4.0` |
 | 表总数 | 18 |
 | 原用户、学生和绑定关系 | 已保留 |
 | 当前学生 | 已初始化 |
@@ -137,11 +137,13 @@ source C:/项目绝对路径/backend/sql/migrate-v2.3-assistance-validation.sql;
 
 正式迁移完成后执行了以下验证：
 
-- `schema_migration` 最新版本为 `2.3.0`。
+- `schema_migration` 最新版本为 `2.4.0`。
 - 数据库共有 18 张表。
 - `class_record`、`behavior_record` 和 `student_training_goal` 均为空。
 - `training_goal` 包含 165 项标准目标，`standard_number` 从 1 到 165 且无重复。
 - 3 名白名单教师、6 名学生、师生绑定和当前学生均存在。
+- `behavior_function_type` 包含 `ATTENTION`、`TANGIBLE`、`ESCAPE`、`SENSORY` 4 项。
+- `migrate-v2.4-behavior-functions.sql` 在正式数据库连续执行两次均成功，随后重复执行 `seed.sql` 也成功。
 - 应用账号 `special_ed_app` 可通过正式配置访问数据库。
 - 6 个数据库集成测试场景全部通过；测试事务均已回滚，未污染正式业务数据。
 

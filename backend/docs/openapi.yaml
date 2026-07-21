@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 特殊教育课堂助手 API
-  version: 0.8.0
+  version: 0.9.0
   description: |
     根据 V2 软件原型重写的接口契约，按“随班记录、训练计划、学生评估、我的、系统”五个页面模块组织。
     当前采用白名单伪登录，业务接口使用 X-Teacher-Id: t001/t002/t003 确定当前教师；不接收 X-User-Id。
@@ -1318,6 +1318,8 @@ components:
           nullable: true
           minLength: 1
           maxLength: 64
+          description: 行为功能稳定编码
+          enum: [ATTENTION, TANGIBLE, ESCAPE, SENSORY]
         assistances:
           type: array
           nullable: true
@@ -1377,6 +1379,7 @@ components:
         functionCode:
           type: string
           nullable: true
+          enum: [ATTENTION, TANGIBLE, ESCAPE, SENSORY]
         functionLabel:
           type: string
           nullable: true
