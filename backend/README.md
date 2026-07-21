@@ -6,11 +6,11 @@
 
 | 内容 | 当前状态 |
 |---|---|
-| OpenAPI 契约 | `0.9.0`，共 24 个接口 |
+| OpenAPI 契约 | `0.10.0`，共 24 个接口 |
 | Java 实现 | 已完成，按前端页面分包 |
-| MySQL | `special_ed_assistant` 已迁移到 `2.4.0`，内置 4 项行为功能和 165 项标准目标 |
+| MySQL | `special_ed_assistant` 已迁移到 `2.5.0`，内置 16 项课程、7 项环境、4 项行为功能和 165 项标准目标 |
 | 自动化测试 | 6 个数据库集成场景覆盖全部 24 个接口，已通过 |
-| Apifox | 需将 0.9.0 重新导入现有新版模块 |
+| Apifox | 需将 0.10.0 重新导入现有新版模块 |
 
 ## 页面模块
 
@@ -36,7 +36,7 @@ src/main/java/com/specialed/assistant/api/
 
 详细契约见：
 
-- `docs/openapi.yaml`：OpenAPI 0.9.0 统一契约。
+- `docs/openapi.yaml`：OpenAPI 0.10.0 统一契约。
 - `docs/接口文档.md`：中文接口总览。
 - `docs/api/`：按页面拆分的中文接口说明。
 - `../docs/design/member-b-v2-data-model.md`：V2 数据模型。
@@ -133,8 +133,9 @@ Invoke-RestMethod http://localhost:3000/api/health
 | `sql/migrate-v2.2-whitelist-identities.sql` | V2.1.0 增加教师/学生外部编号、性别和白名单数据 |
 | `sql/migrate-v2.3-assistance-validation.sql` | V2.2.0 替换辅助方式字典并允许辅助内容为空 |
 | `sql/migrate-v2.4-behavior-functions.sql` | V2.3.0 增加 4 项行为功能字典 |
+| `sql/migrate-v2.5-course-environment-dictionaries.sql` | V2.4.0 收敛为 16 项课程和 7 项环境字典 |
 
-正式本地数据库已升级到 `2.4.0`、共 18 张表，并包含 3 名白名单教师、6 名绑定学生、4 项行为功能和编号连续的 165 项标准训练目标。应用账号只需要 `special_ed_assistant.*` 上的 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。
+正式本地数据库已升级到 `2.5.0`、共 18 张表，并包含 3 名白名单教师、6 名绑定学生、16 项课程、7 项环境、4 项行为功能和编号连续的 165 项标准训练目标。应用账号只需要 `special_ed_assistant.*` 上的 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。
 
 `seed.sql` 只用于本地开发，不应直接用于生产数据环境。
 

@@ -8,7 +8,7 @@ V2 数据库脚本已通过 MySQL 8.0.45 临时数据库演练，并于 2026-07-
 
 | 项目 | 结果 |
 |---|---|
-| 数据库版本 | `2.4.0` |
+| 数据库版本 | `2.5.0` |
 | 表总数 | 18 |
 | 原用户、学生和绑定关系 | 已保留 |
 | 当前学生 | 已初始化 |
@@ -23,6 +23,7 @@ V2 数据库脚本已通过 MySQL 8.0.45 临时数据库演练，并于 2026-07-
 C:\Users\Asus\Downloads\special_ed_assistant-v03-backup-20260717-0125.sql
 C:\Users\Asus\Downloads\special_ed_assistant-v20-before-goals-20260717-022338.sql
 C:\Users\Asus\Downloads\special_ed_assistant-v21-before-whitelist-20260717-143813.sql
+C:\Users\Asus\Downloads\special_ed_assistant-v24-before-dictionaries-20260721-181750.sql
 ```
 
 ## 2. 文件用途
@@ -35,6 +36,8 @@ C:\Users\Asus\Downloads\special_ed_assistant-v21-before-whitelist-20260717-14381
 | `backend/sql/migrate-v2.1-training-goals.sql` | V2.0.0 增加标准目标业务编号结构 | 是 |
 | `backend/sql/migrate-v2.2-whitelist-identities.sql` | V2.1.0 增加白名单教师、学生外部编号和性别 | 是 |
 | `backend/sql/migrate-v2.3-assistance-validation.sql` | V2.2.0 替换辅助方式字典并允许辅助内容为空 | 是 |
+| `backend/sql/migrate-v2.4-behavior-functions.sql` | V2.3.0 固化 4 项行为功能字典 | 是 |
+| `backend/sql/migrate-v2.5-course-environment-dictionaries.sql` | V2.4.0 收敛课程和环境字典 | 是 |
 
 `seed.sql` 是本地开发数据，会更新 ID 为 `1` 的演示用户和学生。生产数据环境不能直接执行种子文件。
 
@@ -104,6 +107,16 @@ source C:/项目绝对路径/backend/sql/migrate-v2.3-assistance-validation.sql;
 
 脚本将辅助方式替换为确认后的 9 项，删除辅助内容非空检查并将 `content` 改为可空，最后写入 `2.3.0` 版本记录。若检测到仍使用旧编码的辅助明细，脚本会主动中止，避免静默丢失历史数据。
 
+### 4.6 已存在的 V2.4.0 本地数据库
+
+先备份，再执行：
+
+```sql
+source C:/项目绝对路径/backend/sql/migrate-v2.5-course-environment-dictionaries.sql;
+```
+
+脚本写入确认后的 16 项课程和 7 项环境。现有标准编码保持不变；不在新列表中的旧课程与旧环境统一迁到 `OTHER`，原中文名称写入对应的其他说明字段。旧课程行为卡配置合并到 `OTHER`，随后删除旧字典项并记录 `2.5.0`。
+
 ## 5. 临时数据库演练结果
 
 | 验收项 | 结果 |
@@ -130,6 +143,9 @@ source C:/项目绝对路径/backend/sql/migrate-v2.3-assistance-validation.sql;
 | 白名单迁移脚本重复执行 | 通过 |
 | V2.2.0 升级到 V2.3.0 | 通过 |
 | 辅助方式迁移脚本重复执行 | 通过 |
+| V2.4.0 升级到 V2.5.0 | 通过 |
+| 课程和环境迁移脚本重复执行 | 通过 |
+| 种子脚本在 V2.5.0 重复执行 | 通过 |
 
 临时数据库在演练结束后已删除。
 
@@ -137,13 +153,14 @@ source C:/项目绝对路径/backend/sql/migrate-v2.3-assistance-validation.sql;
 
 正式迁移完成后执行了以下验证：
 
-- `schema_migration` 最新版本为 `2.4.0`。
+- `schema_migration` 最新版本为 `2.5.0`。
 - 数据库共有 18 张表。
 - `class_record`、`behavior_record` 和 `student_training_goal` 均为空。
 - `training_goal` 包含 165 项标准目标，`standard_number` 从 1 到 165 且无重复。
 - 3 名白名单教师、6 名学生、师生绑定和当前学生均存在。
 - `behavior_function_type` 包含 `ATTENTION`、`TANGIBLE`、`ESCAPE`、`SENSORY` 4 项。
-- `migrate-v2.4-behavior-functions.sql` 在正式数据库连续执行两次均成功，随后重复执行 `seed.sql` 也成功。
+- `course_type` 精确包含 16 项确认课程，`environment_type` 精确包含 7 项确认环境。
+- `migrate-v2.5-course-environment-dictionaries.sql` 在正式数据库连续执行两次均成功，随后重复执行 `seed.sql` 两次也成功。
 - 应用账号 `special_ed_app` 可通过正式配置访问数据库。
 - 6 个数据库集成测试场景全部通过；测试事务均已回滚，未污染正式业务数据。
 

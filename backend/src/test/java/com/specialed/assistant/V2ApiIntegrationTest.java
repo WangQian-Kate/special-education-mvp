@@ -58,6 +58,39 @@ class V2ApiIntegrationTest {
                 "SELECT COUNT(*) FROM behavior_function_type", Integer.class);
         org.assertj.core.api.Assertions.assertThat(functionCount).isEqualTo(4);
 
+        var courseDictionary = jdbc.queryForList(
+                "SELECT CONCAT(code, ':', label) FROM course_type ORDER BY code", String.class);
+        org.assertj.core.api.Assertions.assertThat(courseDictionary).containsExactly(
+                "ALL_DAY_SUMMARY:全天汇总",
+                "ART:美术",
+                "BREAK:课间",
+                "CHINESE:语文",
+                "ENGLISH:英语",
+                "INDIVIDUAL_TRAINING:个训",
+                "LUNCH:午餐",
+                "MATHEMATICS:数学",
+                "MORAL_EDUCATION:道法",
+                "MUSIC:音乐",
+                "NOON_REST:午休",
+                "OTHER:其他",
+                "PHYSICAL_EDUCATION:体育",
+                "PHYSICAL_TRAINING:体能",
+                "SCIENCE:科学",
+                "SELF_STUDY:自习"
+        );
+
+        var environmentDictionary = jdbc.queryForList(
+                "SELECT CONCAT(code, ':', label) FROM environment_type ORDER BY code", String.class);
+        org.assertj.core.api.Assertions.assertThat(environmentDictionary).containsExactly(
+                "CLASSROOM:普通教室",
+                "CORRIDOR:楼道",
+                "OFF_CAMPUS:校外",
+                "OTHER:其他",
+                "PLAYGROUND:操场",
+                "RESOURCE_CLASSROOM:资源教室",
+                "RESTROOM:卫生间"
+        );
+
         mockMvc.perform(get("/api/health").contextPath("/api"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
@@ -88,6 +121,16 @@ class V2ApiIntegrationTest {
                         .queryParam("courseCode", "CHINESE"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[?(@.code == 'LEAVE_SEAT')]").exists());
+
+        mockMvc.perform(post("/class-records").header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"recordDate":"2026-07-21","courseCode":"SCIENCE",
+                                 "environmentCode":"RESOURCE_CLASSROOM","observationDurationMinutes":15}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.courseLabel").value("科学"))
+                .andExpect(jsonPath("$.data.environmentLabel").value("资源教室"));
 
         mockMvc.perform(get("/me").header(TEACHER_HEADER, "t002"))
                 .andExpect(status().isOk())
@@ -406,6 +449,18 @@ class V2ApiIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"recordDate\":\"2026-07-17\",\"courseCode\":\"UNKNOWN\","
                                 + "\"environmentCode\":\"CLASSROOM\",\"observationDurationMinutes\":15}"))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(post("/class-records").header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"recordDate\":\"2026-07-17\",\"courseCode\":\"LABOR\","
+                                + "\"environmentCode\":\"CLASSROOM\",\"observationDurationMinutes\":15}"))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(post("/class-records").header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"recordDate\":\"2026-07-17\",\"courseCode\":\"CHINESE\","
+                                + "\"environmentCode\":\"FUNCTION_ROOM\",\"observationDurationMinutes\":15}"))
                 .andExpect(status().isNotFound());
 
         mockMvc.perform(patch("/training-plan/items/999").header(TEACHER_HEADER, "t001")

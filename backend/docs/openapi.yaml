@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 特殊教育课堂助手 API
-  version: 0.9.0
+  version: 0.10.0
   description: |
     根据 V2 软件原型重写的接口契约，按“随班记录、训练计划、学生评估、我的、系统”五个页面模块组织。
     当前采用白名单伪登录，业务接口使用 X-Teacher-Id: t001/t002/t003 确定当前教师；不接收 X-User-Id。
@@ -781,9 +781,7 @@ components:
       in: query
       required: true
       schema:
-        type: string
-        minLength: 1
-        maxLength: 64
+        $ref: '#/components/schemas/CourseCodeValue'
     BehaviorCode:
       name: behaviorCode
       in: query
@@ -794,6 +792,37 @@ components:
         maxLength: 64
 
   schemas:
+    CourseCodeValue:
+      type: string
+      enum:
+        - CHINESE
+        - MATHEMATICS
+        - ENGLISH
+        - PHYSICAL_EDUCATION
+        - MUSIC
+        - ART
+        - SCIENCE
+        - MORAL_EDUCATION
+        - PHYSICAL_TRAINING
+        - INDIVIDUAL_TRAINING
+        - BREAK
+        - LUNCH
+        - NOON_REST
+        - SELF_STUDY
+        - OTHER
+        - ALL_DAY_SUMMARY
+
+    EnvironmentCodeValue:
+      type: string
+      enum:
+        - CLASSROOM
+        - RESOURCE_CLASSROOM
+        - PLAYGROUND
+        - CORRIDOR
+        - RESTROOM
+        - OFF_CAMPUS
+        - OTHER
+
     SuccessResponse:
       type: object
       required: [code, message, data]
@@ -1083,17 +1112,13 @@ components:
           type: string
           format: date
         courseCode:
-          type: string
-          minLength: 1
-          maxLength: 64
+          $ref: '#/components/schemas/CourseCodeValue'
         courseOtherDescription:
           type: string
           nullable: true
           maxLength: 255
         environmentCode:
-          type: string
-          minLength: 1
-          maxLength: 64
+          $ref: '#/components/schemas/EnvironmentCodeValue'
         environmentOtherDescription:
           type: string
           nullable: true
@@ -1115,17 +1140,13 @@ components:
           type: string
           format: date
         courseCode:
-          type: string
-          minLength: 1
-          maxLength: 64
+          $ref: '#/components/schemas/CourseCodeValue'
         courseOtherDescription:
           type: string
           nullable: true
           maxLength: 255
         environmentCode:
-          type: string
-          minLength: 1
-          maxLength: 64
+          $ref: '#/components/schemas/EnvironmentCodeValue'
         environmentOtherDescription:
           type: string
           nullable: true
@@ -1157,14 +1178,14 @@ components:
           type: string
           format: date
         courseCode:
-          type: string
+          $ref: '#/components/schemas/CourseCodeValue'
         courseLabel:
           type: string
         courseOtherDescription:
           type: string
           nullable: true
         environmentCode:
-          type: string
+          $ref: '#/components/schemas/EnvironmentCodeValue'
         environmentLabel:
           type: string
         environmentOtherDescription:
