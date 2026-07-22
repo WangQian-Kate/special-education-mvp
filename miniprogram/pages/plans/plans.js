@@ -1,6 +1,7 @@
 // pages/plans/plans.js
 // TAB2 训练计划（阶段二：mock 数据 + 搜索/筛选/行内编辑跑通交互；阶段三接后端接口）
 const mockPlans = require('../../mock/plans');
+const planApi = require('../../api/plan');
 const store = require('../../utils/store');
 
 const STATUS_LIST = ['未开始', '进行中', '已完成'];
@@ -17,7 +18,12 @@ Page({
     levels: LEVELS,
     phases: PHASES,
     filteredItems: [],    // 当前分类过滤后的条目
-    totalCount: 0         // 当前分类总条数
+    totalCount: 0,        // 当前分类总条数
+    // 训练目标关联记录弹窗
+    goalRecordsVisible: false,
+    goalRecordsTitle: '',
+    goalRecords: [],
+    goalRecordsLoading: false
   },
 
   onLoad() {
@@ -71,5 +77,42 @@ Page({
     item[field] = value;
     this.applyFilters();
     // TODO 阶段三：api/plan.js 更新接口
+  },
+
+  /** 点击训练目标行 → 展示关联行为记录弹窗 */
+  async onGoalTap(e) {
+    const standardNumber = e.currentTarget.dataset.standardNumber;
+    const goalText = e.currentTarget.dataset.goalText;
+    if (!standardNumber) {
+      wx.showToast({ title: '该目标暂无编号', icon: 'none' });
+      return;
+    }
+    this.setData({
+      goalRecordsVisible: true,
+      goalRecordsTitle: '【' + standardNumber + '】' + goalText,
+      goalRecords: [],
+      goalRecordsLoading: true
+    });
+    try {
+      // 阶段二：优先用 mock；阶段三：切后端接口
+      var res;
+      try {
+        res = await planApi.getGoalRecords(standardNumber, 10);
+      } catch (_apiErr) {
+        // 后端不可用时 fallback 到 mock
+        res = (mockPlans.goalRecords || {})[String(standardNumber)] || null;
+      }
+      var records = Array.isArray(res) ? res : (res && res.records ? res.records : []);
+      this.setData({ goalRecords: records });
+    } catch (err) {
+      this.setData({ goalRecords: [] });
+    } finally {
+      this.setData({ goalRecordsLoading: false });
+    }
+  },
+
+  /** 关闭关联记录弹窗 */
+  onGoalRecordsClose() {
+    this.setData({ goalRecordsVisible: false });
   }
 });

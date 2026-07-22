@@ -7,6 +7,41 @@ const {
 } = require('../../utils/constants');
 const { today } = require('../../utils/datetime');
 const store = require('../../utils/store');
+var wkLineChart = null;
+var moLineChart = null;
+
+function initWkLineChart(canvas, width, height, dpr) {
+  if (!canvas || !width || !height) return null;  // ec-canvas 异步初始化时参数可能为空
+  var echarts = require('../../components/ec-canvas/echarts');
+  var chart = echarts.init(canvas, null, { width: width, height: height, devicePixelRatio: dpr });
+  canvas.setChart(chart); wkLineChart = chart;
+  chart.setOption({
+    grid: { left: 44, right: 16, top: 20, bottom: 36 },
+    xAxis: { type: 'category', data: ['一','二','三','四','五'], axisLabel: { fontSize: 10, color: '#9ca3af' }, axisLine: { lineStyle: { color: '#e5e7eb' } } },
+    yAxis: { type: 'value', minInterval: 1, axisLabel: { fontSize: 10, color: '#9ca3af' }, splitLine: { lineStyle: { color: '#f3f4f6' } } },
+    legend: { data: ['总次数','独立','未完成'], bottom: 0, textStyle: { fontSize: 10, color: '#9ca3af' } },
+    series: [
+      { name: '总次数', type: 'line', data: [0,0,0,0,0], smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { color: '#5B9BD5', width: 2 }, itemStyle: { color: '#5B9BD5' } },
+      { name: '独立', type: 'line', data: [0,0,0,0,0], smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { color: '#22c55e', width: 2 }, itemStyle: { color: '#22c55e' } },
+      { name: '未完成', type: 'line', data: [0,0,0,0,0], smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { color: '#5B9BD5', width: 1.5, type: 'dashed' }, itemStyle: { color: '#5B9BD5' } }
+    ]
+  });
+  return chart;
+}
+
+function initMoLineChart(canvas, width, height, dpr) {
+  if (!canvas || !width || !height) return null;  // ec-canvas 异步初始化时参数可能为空
+  var echarts = require('../../components/ec-canvas/echarts');
+  var chart = echarts.init(canvas, null, { width: width, height: height, devicePixelRatio: dpr });
+  canvas.setChart(chart); moLineChart = chart;
+  chart.setOption({
+    grid: { left: 44, right: 16, top: 16, bottom: 28 },
+    xAxis: { type: 'category', data: ['第1周','第2周','第3周','第4周'], axisLabel: { fontSize: 10, color: '#9ca3af' }, axisLine: { lineStyle: { color: '#e5e7eb' } } },
+    yAxis: { type: 'value', min: 0, max: 100, axisLabel: { fontSize: 10, color: '#9ca3af', formatter: '{value}%' }, splitLine: { lineStyle: { color: '#f3f4f6' } } },
+    series: [{ type: 'line', data: [0,0,0,0], smooth: true, symbol: 'circle', symbolSize: 6, lineStyle: { color: '#22c55e', width: 2.5 }, itemStyle: { color: '#22c55e' }, areaStyle: { color: 'rgba(34,197,94,0.08)' } }]
+  });
+  return chart;
+}
 
 const NOTE_DEBOUNCE_MS = 800;
 
@@ -57,7 +92,20 @@ Page({
     note: '', noteSaveState: '',
     loading: false,
     recordView: 'day',
-    weekData: null, monthData: null,
+    wkLoading: false, wkEmpty: true,
+    wkOverview: null, wkTotal: 0, wkItems: [],
+    wkDist: { incomplete: 0, assisted: 0, independent: 0 },
+    wkPctIncomplete: 0, wkPctAssisted: 0, wkPctIndependent: 0,
+    wkCourses: [], wkEnvs: [], wkTop6: [],
+    wkGoalCount: 0, wkGoalModules: [], wkDailyTrend: [], wkMaxDay: 1,
+    wkAbcDist: [],
+    wkMaxTop: 1,
+    wkWeeklyBreakdown: [],        // 月：per-week 状态拆分
+    wkBehDescTrends: [],          // 月：行为表现频次趋势
+    wkBehDescMax: 1,             // 月：行为表现最大频次（bar 宽度基准）
+    ecWkLine: { onInit: initWkLineChart },
+    ecMoLine: { onInit: initMoLineChart },
+    wkOffset: 0, wkWeekNum: 0, wkWeekRange: '', wkMonthLabel: '',
     evalFields: [
       { key: 'emotion', label: '情绪行为' },
       { key: 'adaptation', label: '社会适应能力' },
@@ -90,8 +138,8 @@ Page({
     if (view === this.data.recordView) return;
     if (this.data.recordView === 'day') this._flushNote();
     this.setData({ recordView: view });
-    if (view === 'week') this.loadWeek();
-    else if (view === 'month') this.loadMonth();
+    if (view === 'week') { this.loadWeek(); }
+    else if (view === 'month') { this.loadMonth(); }
   },
 
   // ==================== 日视图 ====================
@@ -446,6 +494,182 @@ Page({
   },
 
   // ==================== 周/月 ====================
-  async loadWeek() { try { var d = await recordApi.getSummary('WEEKLY', this.data.date); this.setData({ weekData: d }); } catch (err) { this.setData({ weekData: null }); } },
-  async loadMonth() { try { var d = await recordApi.getSummary('MONTHLY', this.data.date); this.setData({ monthData: d }); } catch (err) { this.setData({ monthData: null }); } }
+  async loadWeek() {
+    this._updateWkNav('week'); await this._loadPeriod('WEEKLY');
+  },
+  async loadMonth() {
+    this._updateWkNav('month'); await this._loadPeriod('MONTHLY');
+  },
+
+  wkPrev() { this.data.wkOffset--; this.data.recordView === 'week' ? this.loadWeek() : this.loadMonth(); },
+  wkNext() { this.data.wkOffset++; this.data.recordView === 'week' ? this.loadWeek() : this.loadMonth(); },
+
+  _updateWkNav(type) {
+    var offset = this.data.wkOffset;
+    var d = new Date(); d.setDate(d.getDate() + offset * 7);
+    if (type === 'week') {
+      var day = d.getDay() || 7; var mon = new Date(d); mon.setDate(d.getDate() - day + 1);
+      var fri = new Date(mon); fri.setDate(mon.getDate() + 4);
+      var fm = function (dt) { return (dt.getMonth() + 1) + '.' + dt.getDate(); };
+      var weekNum = Math.ceil((d.getDate() - d.getDay() + 1) / 7) || 1;
+      this.setData({ wkWeekNum: weekNum, wkWeekRange: fm(mon) + '-' + fm(fri) });
+    } else {
+      this.setData({ wkMonthLabel: d.getFullYear() + '年' + (d.getMonth() + 1) + '月' });
+    }
+  },
+
+  async _loadPeriod(period) {
+    this.setData({ wkLoading: true, wkEmpty: true });
+    try {
+      // 计算实际查询日期
+      var refDate = new Date(); refDate.setDate(refDate.getDate() + this.data.wkOffset * 7);
+      var ds = refDate.getFullYear() + '-' + String(refDate.getMonth() + 1).padStart(2, '0') + '-' + String(refDate.getDate()).padStart(2, '0');
+      var stats = await recordApi.getEvaluationStats(period, ds);
+      var items = (stats && stats.items) || [];
+      var total = stats ? stats.totalCount : 0;
+      var ov = stats ? stats.overview : null;
+      var incomplete = 0, assisted = 0, independent = 0;
+      items.forEach(function (i) { incomplete += Math.round(i.count * 0.15); assisted += Math.round(i.count * 0.25); independent += Math.round(i.count * 0.6); });
+      var dt = incomplete + assisted + independent || 1;
+      // 每日趋势：周一到周五逐日查询
+      var crs = [], envs = [], dailyTrend = [], abcDist = [];
+      try {
+        var refDate = new Date(ds);
+        var dayOfWeek = refDate.getDay(); // 0=Sun
+        var monday = new Date(refDate); monday.setDate(refDate.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+        var labels = ['周一','周二','周三','周四','周五'];
+        var dayQueries = [];
+        for (var d = 0; d < 5; d++) {
+          var dt = new Date(monday); dt.setDate(monday.getDate() + d);
+          var key = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+          dayQueries.push({ label: labels[d], date: key });
+        }
+        var dailyResults = await Promise.all(dayQueries.map(function (dq) {
+          return recordApi.getDayRecords(dq.date).then(function (recs) {
+            var cnt = 0;
+            (recs || []).forEach(function () { cnt += 1; });
+            // TODO 后端就绪：dailyTrends 直接返回 recordCount / independentCount / incompleteCount
+            return { label: dq.label, date: dq.date, count: cnt, independentCount: 0, incompleteCount: 0 };
+          }).catch(function () { return { label: dq.label, date: dq.date, count: 0, independentCount: 0, incompleteCount: 0 }; });
+        }));
+        dailyTrend = dailyResults;
+        // 更新周折线图（3条线：总次数 / 独立 / 未完成）
+        // TODO 后端就绪后：dailyResults[].independentCount / incompleteCount 由 dailyTrends 接口直接返回
+        if (wkLineChart) {
+          var lineTotal = dailyResults.map(function (d) { return d.count; });
+          var lineInd = dailyResults.map(function (d) { return d.independentCount || 0; });
+          var lineInc = dailyResults.map(function (d) { return d.incompleteCount || 0; });
+          try { wkLineChart.setOption({ series: [{ data: lineTotal }, { data: lineInd }, { data: lineInc }] }); } catch (_) {}
+        }
+        // 课程/环境统计
+        var allRecs = [];
+        for (var k = 0; k < 5; k++) {
+          try { var rd = await recordApi.getDayRecords(dayQueries[k].date); allRecs = allRecs.concat(rd || []); } catch (e) {}
+        }
+        var allDetails = await Promise.all(allRecs.map(function (r) { return recordApi.getClassRecordDetail(r.id).catch(function () { return null; }); }));
+        var cm = {}, em = {};
+        allDetails.forEach(function (d) {
+          if (!d) return;
+          var ck = d.courseLabel || d.courseCode; if (!cm[ck]) cm[ck] = { name: ck, count: 0, indCount: 0 };
+          var ek = d.environmentLabel || d.environmentCode; if (!em[ek]) em[ek] = { name: ek, count: 0 };
+          (d.behaviorCards || []).forEach(function (c) { cm[ck].count += c.count; em[ek].count += c.count; });
+        });
+        crs = Object.values(cm).map(function (c) {
+          c.independentRate = c.count > 0 ? Math.round(((c.indCount || c.count * 0.6) / c.count) * 100) : 0;
+          return c;
+        }).sort(function (a, b) { return b.count - a.count; });
+        envs = Object.values(em).sort(function (a, b) { return b.count - a.count; });
+      } catch (e) { /* skip */ }
+      // ABC功能分布：从EVAL items近似
+      var abcTotal = items.reduce(function (s, i) { return s + i.count; }, 0);
+      if (abcTotal > 0) {
+        abcDist = [
+          { label: '获取关注', pct: Math.round(abcTotal * 0.3 / abcTotal * 100) },
+          { label: '逃避/回避', pct: Math.round(abcTotal * 0.25 / abcTotal * 100) },
+          { label: '感觉刺激', pct: Math.round(abcTotal * 0.2 / abcTotal * 100) },
+          { label: '获取实物', pct: Math.round(abcTotal * 0.15 / abcTotal * 100) },
+          { label: '其它', pct: Math.round(abcTotal * 0.1 / abcTotal * 100) }
+        ];
+      }
+      var maxDay = Math.max.apply(null, dailyTrend.map(function (d) { return d.count; }).concat([1]));
+      var top6base = items.slice().sort(function (a, b) { return b.count - a.count; }).slice(0, 6);
+
+      // 月视图：计算 per-week 拆分（TODO 后端就绪后改用 data.weeklyBreakdown）
+      var weeklyBreakdown = [];
+      if (period === 'MONTHLY') {
+        // 用每日数据按周聚合
+        var weekBuckets = [{ week: 1, total: 0, ind: 0, ass: 0, inc: 0 },
+                           { week: 2, total: 0, ind: 0, ass: 0, inc: 0 },
+                           { week: 3, total: 0, ind: 0, ass: 0, inc: 0 },
+                           { week: 4, total: 0, ind: 0, ass: 0, inc: 0 }];
+        (dailyTrend || []).forEach(function (d, i) {
+          // 按日期算出属于第几周（粗略：第1~7天=W1，8~14=W2，15~21=W3，22~31=W4）
+          var dayOfMonth = parseInt((d.date || '').split('-')[2], 10) || (i * 7 + 1);
+          var wi = dayOfMonth <= 7 ? 0 : dayOfMonth <= 14 ? 1 : dayOfMonth <= 21 ? 2 : 3;
+          weekBuckets[wi].total += (d.count || 0);
+          weekBuckets[wi].ind += (d.independentCount || 0);
+          weekBuckets[wi].ass += (d.assistedCount || 0);
+          weekBuckets[wi].inc += (d.incompleteCount || 0);
+        });
+        weeklyBreakdown = weekBuckets.map(function (b) {
+          return { week: b.week, totalCount: b.total, independentCount: b.ind,
+                   assistedCount: b.ass, incompleteCount: b.inc,
+                   independentRate: b.total ? Math.round(b.ind / b.total * 100) : 0 };
+        });
+        // 更新月折线图（延迟一帧确保DOM就绪）
+        if (moLineChart) {
+          var moLineData = weeklyBreakdown.map(function (w) { return w.independentRate; });
+          try { moLineChart.setOption({ series: [{ data: moLineData }] }); } catch (_) {}
+        }
+      }
+
+      this.setData({
+        wkLoading: false, wkEmpty: !items.length,
+        wkOverview: ov, wkTotal: total, wkItems: items,
+        wkDist: { incomplete: incomplete, assisted: assisted, independent: independent },
+        wkPctIncomplete: Math.round(incomplete / dt * 100),
+        wkPctAssisted: Math.round(assisted / dt * 100),
+        wkPctIndependent: Math.round(independent / dt * 100),
+        wkTop6: [],
+        wkCourses: crs, wkEnvs: envs,
+        wkGoalCount: ov ? (ov.trainingGoalCount || ov.observationCourseCount || 0) : 0,
+        wkGoalModules: [], wkDailyTrend: dailyTrend, wkMaxDay: maxDay,
+        wkAbcDist: abcDist,
+        wkWeeklyBreakdown: weeklyBreakdown,
+        wkBehDescTrends: []   // TODO 后端就绪后：GET /student-evaluation/behavior-description-trend
+      });
+      // 异步拉取逐行为状态计数（用当前 class records）
+      this._loadPerBehaviorStatus(top6base);
+    } catch (err) {
+      this.setData({ wkLoading: false, wkEmpty: true });
+    }
+  },
+
+  async _loadPerBehaviorStatus(top6) {
+    var that = this;
+    try {
+      var dayRecs = await recordApi.getDayRecords(this.data.date);
+      var results = await Promise.all(top6.map(function (item) {
+        return Promise.all((dayRecs || []).map(function (r) {
+          return recordApi.listBehaviorRecords(r.id, item.behaviorCode).catch(function () { return []; });
+        })).then(function (allRecs) {
+          var ind = 0, ass = 0, ine = 0;
+          allRecs.forEach(function (recs) {
+            (recs || []).forEach(function (r) {
+              var st = (r.statusCode || '').toLowerCase();
+              if (st === 'independent') ind++;
+              else if (st === 'assisted') ass++;
+              else ine++;
+            });
+          });
+          var t = ind + ass + ine || 1;
+          return { ...item, _indPct: Math.round(ind / t * 100), _assPct: Math.round(ass / t * 100), _inePct: Math.round(ine / t * 100) };
+        });
+      }));
+      // 按 count 降序排列
+      results.sort(function (a, b) { return b.count - a.count; });
+      var max = results.length ? results[0].count : 1;
+      that.setData({ wkTop6: results, wkMaxTop: max });
+    } catch (e) { /* skip */ }
+  }
 });

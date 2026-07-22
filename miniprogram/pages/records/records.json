@@ -4,6 +4,7 @@
     "behavior-counter": "/components/behavior-counter/behavior-counter",
     "behavior-module": "/components/behavior-module/behavior-module",
     "status-bar": "/components/status-bar/status-bar",
-    "abc-modal": "/components/abc-modal/abc-modal"
+    "abc-modal": "/components/abc-modal/abc-modal",
+    "ec-canvas": "/components/ec-canvas/ec-canvas"
   }
 }

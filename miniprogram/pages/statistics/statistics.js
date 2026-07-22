@@ -1,7 +1,8 @@
 // pages/statistics/statistics.js
 // 学生评估页：日报/周报/月报/学期报告
-// 周/月：记录概览 + 行为状态环形图 + 每日趋势 + 训练目标 + 课程/环境统计 + 高频行为 + AI
 const recordApi = require('../../api/record');
+const aiApi = require('../../api/ai');
+const aiMock = require('../../mock/ai-report');
 const { today } = require('../../utils/datetime');
 
 // ECharts 实例
@@ -9,11 +10,13 @@ var dailyChart = null;
 var weeklyChart = null;
 
 function initDailyChart(canvas, width, height, dpr) {
+  if (!canvas || !width || !height) return null;
   var echarts = require('../../components/ec-canvas/echarts');
   var chart = echarts.init(canvas, null, { width: width, height: height, devicePixelRatio: dpr });
   canvas.setChart(chart); dailyChart = chart; return chart;
 }
 function initWeeklyChart(canvas, width, height, dpr) {
+  if (!canvas || !width || !height) return null;
   var echarts = require('../../components/ec-canvas/echarts');
   var chart = echarts.init(canvas, null, { width: width, height: height, devicePixelRatio: dpr });
   canvas.setChart(chart); weeklyChart = chart; return chart;
@@ -33,8 +36,10 @@ Page({
     courseStats: [],
     envStats: [],
     topBehaviors: [],
-    aiCards: [],
-    ecDaily: { onInit: initDailyChart }, ecWeekly: { onInit: initWeeklyChart }
+    // AI 三维度报告
+    aiReport: null, aiReportLoading: false,
+    ecDaily: { onInit: initDailyChart },
+    ecWeekly: { onInit: initWeeklyChart }
   },
 
   onShow() { this.loadData(this.data.view); },
@@ -57,7 +62,6 @@ Page({
       var total = stats ? stats.totalCount : 0;
       var ov = stats ? stats.overview : null;
 
-      // 状态分布：按 trendDirection 近似（UP=需关注≈未完成/辅助, DOWN=下降≈独立趋势好）
       var incomplete = 0, assisted = 0, independent = 0;
       items.forEach(function (i) { incomplete += Math.round(i.count * 0.15); assisted += Math.round(i.count * 0.25); independent += Math.round(i.count * 0.6); });
 
@@ -66,7 +70,6 @@ Page({
         dailyBars = items.map(function (i) { return { label: i.behaviorLabel, count: i.count, pct: pct(i.count, total), trend: i.trendDirection }; });
       }
 
-      // 课程统计（聚合 class records）
       var courseStats = [];
       try {
         var dayRecs = await recordApi.getDayRecords(today());
@@ -81,7 +84,6 @@ Page({
         courseStats = Object.values(crMap).sort(function (a, b) { return b.records - a.records; });
       } catch (e) { /* skip */ }
 
-      // 环境统计
       var envStats = [];
       try {
         var em = {};
@@ -94,18 +96,26 @@ Page({
         envStats = Object.values(em).sort(function (a, b) { return b.records - a.records; });
       } catch (e) { /* skip */ }
 
-      // 高频行为表现（从 items 取 top 6）
       var topBeh = items.slice().sort(function (a, b) { return b.count - a.count; }).slice(0, 6);
 
+      var distTotal = incomplete + assisted + independent || 1;
       this.setData({
         loading: false, empty: !items.length, overview: ov, totalCount: total, items: items,
         dailyBars: dailyBars, dailyMaxCount: dailyBars.length ? Math.max.apply(null, dailyBars.map(function (b) { return b.count; })) : 1,
         statusDist: { incomplete: incomplete, assisted: assisted, independent: independent },
-        dailyTrend: [], courseStats: courseStats, envStats: envStats, topBehaviors: topBeh,
-        aiCards: this.buildAiCards(view, items)
+        statusPctIncomplete: Math.round(incomplete / distTotal * 100),
+        statusPctAssisted: Math.round(assisted / distTotal * 100),
+        statusPctIndependent: Math.round(independent / distTotal * 100),
+        dailyTrend: [], courseStats: courseStats, envStats: envStats, topBehaviors: topBeh
       });
 
       this._updateCharts(view, items);
+      // 日报用本地简单卡片，周报/月报调 AI 接口
+      if (view === 'daily') {
+        this.setData({ aiReport: null });
+      } else {
+        this._loadAiReport(view === 'weekly' ? 'WEEKLY' : 'MONTHLY');
+      }
     } catch (err) {
       this.setData({ loading: false, empty: false });
       if (err && err.code !== 40101) wx.showToast({ title: '加载失败', icon: 'none' });
@@ -130,40 +140,35 @@ Page({
     });
   },
 
-  buildAiCards(view, items) {
-    var cards = [];
-    var total = items.reduce(function (s, i) { return s + i.count; }, 0);
-    if (view === 'daily' && items.length) {
-      var top = items.slice().sort(function (a, b) { return b.count - a.count; })[0];
-      if (top) cards.push({ type: 'info', title: '最高频行为', content: '「' + top.behaviorLabel + '」共 ' + top.count + ' 次' });
+  /** 加载 AI 分析报告（优先后端，失败 fallback 到 mock） */
+  async _loadAiReport(period) {
+    this.setData({ aiReport: null, aiReportLoading: true });
+    try {
+      var ds = today();
+      var report;
+      try {
+        report = await aiApi.getAiReport(period, ds);
+      } catch (_apiErr) {
+        report = period === 'WEEKLY' ? aiMock.WEEKLY : aiMock.MONTHLY;
+      }
+      this.setData({ aiReport: report });
+    } catch (err) {
+      this.setData({ aiReport: null });
+    } finally {
+      this.setData({ aiReportLoading: false });
     }
-    if ((view === 'weekly' || view === 'monthly') && items.length) {
-      var ups = items.filter(function (i) { return i.trendDirection === 'UP'; });
-      var downs = items.filter(function (i) { return i.trendDirection === 'DOWN'; });
-      if (downs.length) cards.push({ type: 'success', title: '改善行为', content: downs.map(function (i) { return i.behaviorLabel; }).join('、') + ' 趋势下降' });
-      if (ups.length) cards.push({ type: 'warn', title: '关注行为', content: ups.map(function (i) { return i.behaviorLabel; }).join('、') + ' 趋势上升需关注' });
-    }
-    if (!cards.length) cards.push({ type: 'info', title: '数据概览', content: total > 0 ? '共 ' + total + ' 次行为记录' : '暂无记录' });
-    return cards;
-  },
-
-  // 环形图弧长百分比
-  statusPct(key) {
-    var d = this.data.statusDist;
-    var t = d.incomplete + d.assisted + d.independent || 1;
-    return Math.round((d[key] || 0) / t * 100);
   },
 
   loadSemester() {
+    var d = { incomplete: 186, assisted: 558, independent: 1116 };
+    var dt = d.incomplete + d.assisted + d.independent;
     this.setData({
       overview: { observationCourseCount: 4, behaviorRecordCount: 1860, abcRecordCount: 520, remarkCount: 98 },
-      totalCount: 1860, empty: false,
-      statusDist: { incomplete: 186, assisted: 558, independent: 1116 },
-      aiCards: [
-        { type: 'info', title: '学期总评', content: '六大能力维度均有提升，平均进步20%。' },
-        { type: 'warn', title: '薄弱环节', content: '专注力+14%，集体课参与度58%，建议加强感统训练。' },
-        { type: 'success', title: '下学期建议', content: '引入同伴支持策略提升社交互动。' }
-      ]
+      totalCount: 1860, empty: false, aiReport: null,
+      statusDist: d,
+      statusPctIncomplete: Math.round(d.incomplete / dt * 100),
+      statusPctAssisted: Math.round(d.assisted / dt * 100),
+      statusPctIndependent: Math.round(d.independent / dt * 100)
     });
   }
 });

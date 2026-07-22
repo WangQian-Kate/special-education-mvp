@@ -47,8 +47,9 @@ module.exports = { statusClass: function (s) { return map[s] || 'pending'; } };
       <view class="td col-c">阶段</view>
       <view class="td col-status">状态</view>
     </view>
-    <view class="tr {{index % 2 ? 'odd' : ''}}" wx:for="{{filteredItems}}" wx:key="id">
-      <view class="td col-id">{{item.id}}</view>
+    <view class="tr {{index % 2 ? 'odd' : ''}}" wx:for="{{filteredItems}}" wx:key="id"
+          bindtap="onGoalTap" data-standard-number="{{item.standardNumber || item.id}}" data-goal-text="{{item.title}}">
+      <view class="td col-id">{{item.standardNumber || item.id}}</view>
       <view class="td col-title">{{item.title}}</view>
       <view class="td col-c dim">{{item.level1}}</view>
       <picker class="td col-c" range="{{levels}}" data-id="{{item.id}}" data-field="levelNow" bindchange="onFieldChange">
@@ -62,5 +63,38 @@ module.exports = { statusClass: function (s) { return map[s] || 'pending'; } };
       </picker>
     </view>
     <view class="empty-tip" wx:if="{{!filteredItems.length}}">无匹配的训练目标</view>
+  </view>
+
+  <!-- 训练目标关联记录弹窗 -->
+  <view class="goal-records-mask" wx:if="{{goalRecordsVisible}}" bindtap="onGoalRecordsClose">
+    <view class="goal-records-panel" catchtap="{{null}}">
+      <view class="gr-header">
+        <text class="gr-title">{{goalRecordsTitle}}</text>
+        <text class="gr-close" bindtap="onGoalRecordsClose">✕</text>
+      </view>
+      <view class="gr-subtitle" wx:if="{{!goalRecordsLoading}}">共 {{goalRecords.length}} 条关联记录</view>
+      <view class="gr-loading" wx:if="{{goalRecordsLoading}}">加载中…</view>
+      <scroll-view class="gr-list" scroll-y wx:if="{{!goalRecordsLoading}}">
+        <view class="gr-empty" wx:if="{{goalRecords.length === 0}}">暂无关联的行为记录</view>
+        <view class="gr-item" wx:for="{{goalRecords}}" wx:key="id">
+          <view class="gr-item-row gr-item-meta">
+            <text class="gr-date">📅 {{item.recordDate}}</text>
+            <text class="gr-time">🕐 {{item.occurredTime}}</text>
+          </view>
+          <view class="gr-item-row gr-item-meta">
+            <text class="gr-course">📖 {{item.courseLabel}}</text>
+            <text class="gr-env">📍 {{item.environmentLabel}}</text>
+          </view>
+          <view class="gr-item-row gr-perf-row">
+            <text class="gr-perf-label">行为表现：</text>
+            <text class="gr-perf-value">{{item.performanceText || '未填写'}}</text>
+          </view>
+          <view class="gr-item-row gr-status-row">
+            <text class="gr-behavior-label">{{item.subBehaviorLabel ? item.subBehaviorLabel + ' · ' : ''}}{{item.behaviorLabel}}</text>
+            <text class="gr-status s-{{item.statusCode}}">{{item.statusLabel}}</text>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
   </view>
 </view>

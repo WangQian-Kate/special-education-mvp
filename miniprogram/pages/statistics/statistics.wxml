@@ -26,8 +26,6 @@
       </view></view>
     </view>
 
-    <view class="card section" wx:if="{{aiCards.length}}"><view class="block-title">AI 分析</view>
-      <ai-card wx:for="{{aiCards}}" wx:key="title" type="{{item.type}}" title="{{item.title}}" content="{{item.content}}" /></view>
   </block>
 
   <!-- ==================== 周报 / 月报 ==================== -->
@@ -43,16 +41,18 @@
     <!-- 2. 行为状态环形图 -->
     <view class="card section"><view class="block-title">行为状态分布</view>
       <view class="donut-wrap">
-        <view class="donut"><view class="donut-inner"><text class="donut-big">{{totalCount}}</text><text class="donut-sm">总次数</text></view></view>
+        <view class="donut-stats">
+          <view class="donut-bar c-ind" style="width:{{statusPctIncomplete}}%"></view>
+          <view class="donut-bar c-ass" style="width:{{statusPctAssisted}}%"></view>
+          <view class="donut-bar c-inde" style="width:{{statusPctIndependent}}%"></view>
+        </view>
         <view class="donut-legends">
-          <view class="dl"><view class="dl-dot c-ind"></view><text>未完成 {{statusDist.incomplete}}次 {{statusPct('incomplete')}}%</text></view>
-          <view class="dl"><view class="dl-dot c-ass"></view><text>辅助完成 {{statusDist.assisted}}次 {{statusPct('assisted')}}%</text></view>
-          <view class="dl"><view class="dl-dot c-inde"></view><text>独立完成 {{statusDist.independent}}次 {{statusPct('independent')}}%</text></view>
+          <view class="dl"><view class="dl-dot c-ind"></view><text>未完成 {{statusDist.incomplete}}次 ({{statusPctIncomplete}}%)</text></view>
+          <view class="dl"><view class="dl-dot c-ass"></view><text>辅助 {{statusDist.assisted}}次 ({{statusPctAssisted}}%)</text></view>
+          <view class="dl"><view class="dl-dot c-inde"></view><text>独立 {{statusDist.independent}}次 ({{statusPctIndependent}}%)</text></view>
         </view>
       </view>
     </view>
-
-    <!-- 3. 行为频次柱状图 -->
     <view class="card section" wx:if="{{items.length}}">
       <view class="block-title">行为频次{{view === 'weekly' ? '（红↑升 绿↓降 蓝→稳）' : ''}}</view>
       <view class="chart-box" wx:if="{{view === 'weekly'}}">
@@ -93,8 +93,28 @@
       </view>
     </view>
 
-    <view class="card section" wx:if="{{aiCards.length}}"><view class="block-title">AI 分析</view>
-      <ai-card wx:for="{{aiCards}}" wx:key="title" type="{{item.type}}" title="{{item.title}}" content="{{item.content}}" /></view>
+    <!-- AI 三维度分析报告 -->
+    <view class="card section" wx:if="{{aiReport}}">
+      <view class="block-title">🤖 AI 智能分析</view>
+      <!-- 维度一：行为变化（蓝色） -->
+      <view wx:if="{{aiReport.behaviorChanges && aiReport.behaviorChanges.length}}" class="ai-group">
+        <text class="ai-group-title">📊 {{view === 'weekly' ? '行为变化与趋势' : '月度发展总结'}}</text>
+        <ai-card wx:for="{{aiReport.behaviorChanges}}" wx:key="title" type="info" title="{{item.title}}" content="{{item.content}}" />
+      </view>
+      <!-- 维度二：关注提醒（橙色） -->
+      <view wx:if="{{aiReport.attentionConcerns && aiReport.attentionConcerns.length}}" class="ai-group">
+        <text class="ai-group-title">⚠️ 关注提醒</text>
+        <ai-card wx:for="{{aiReport.attentionConcerns}}" wx:key="title" type="warn" title="{{item.title}}" content="{{item.content}}" />
+      </view>
+      <!-- 维度三：替代建议（绿色） -->
+      <view wx:if="{{aiReport.alternativeSuggestions && aiReport.alternativeSuggestions.length}}" class="ai-group">
+        <text class="ai-group-title">💡 {{view === 'weekly' ? '干预建议' : '长期目标建议'}}</text>
+        <ai-card wx:for="{{aiReport.alternativeSuggestions}}" wx:key="title" type="success" title="{{item.title}}" content="{{item.content}}" />
+      </view>
+    </view>
+    <view class="card section" wx:elif="{{aiReportLoading}}"><view class="block-title">🤖 AI 智能分析</view>
+      <view class="empty-tip">AI 分析生成中，请稍候…</view>
+    </view>
   </block>
 
   <!-- ==================== 学期 ==================== -->
@@ -107,15 +127,21 @@
     <!-- 环形图 -->
     <view class="card section"><view class="block-title">行为状态分布</view>
       <view class="donut-wrap">
-        <view class="donut"><view class="donut-inner"><text class="donut-big">{{totalCount}}</text><text class="donut-sm">总次数</text></view></view>
+        <view class="donut-stats">
+          <view class="donut-bar c-ind" style="width:{{statusPctIncomplete}}%"></view>
+          <view class="donut-bar c-ass" style="width:{{statusPctAssisted}}%"></view>
+          <view class="donut-bar c-inde" style="width:{{statusPctIndependent}}%"></view>
+        </view>
         <view class="donut-legends">
           <view class="dl"><view class="dl-dot c-ind"></view><text>未完成 {{statusDist.incomplete}}次</text></view>
-          <view class="dl"><view class="dl-dot c-ass"></view><text>辅助完成 {{statusDist.assisted}}次</text></view>
-          <view class="dl"><view class="dl-dot c-inde"></view><text>独立完成 {{statusDist.independent}}次</text></view>
+          <view class="dl"><view class="dl-dot c-ass"></view><text>辅助 {{statusDist.assisted}}次</text></view>
+          <view class="dl"><view class="dl-dot c-inde"></view><text>独立 {{statusDist.independent}}次</text></view>
         </view>
       </view>
     </view>
-    <view class="card section" wx:if="{{aiCards.length}}"><view class="block-title">AI 学期总结</view>
-      <ai-card wx:for="{{aiCards}}" wx:key="title" type="{{item.type}}" title="{{item.title}}" content="{{item.content}}" /></view>
+    <view class="card section"><view class="block-title">AI 学期总结</view>
+      <ai-card type="info" title="学期总评" content="六大能力维度均有提升，平均进步20%。" />
+      <ai-card type="warn" title="薄弱环节" content="专注力+14%，集体课参与度58%，建议加强感统训练。" />
+      <ai-card type="success" title="下学期建议" content="引入同伴支持策略提升社交互动。" /></view>
   </block>
 </view>
