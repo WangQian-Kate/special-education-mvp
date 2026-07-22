@@ -17,6 +17,10 @@ const createClassRecord = (payload) => post('/class-records', payload);
 /** CLASS-003 查询课程对应行为卡片字典 → CodeLabel[]（未配置课程返回 []） */
 const getBehaviorOptions = (courseCode) => get('/class-records/behavior-options', { courseCode });
 
+/** 查询行为目录（v2.6：按课程+环境返回结构化模块/行为/子行为/状态） */
+const getBehaviorCatalog = (courseCode, environmentCode) =>
+  get('/class-records/behavior-options', { courseCode, environmentCode });
+
 /** CLASS-005 查询课堂详情和行为卡片次数 → ClassRecordDetail */
 const getClassRecordDetail = (id) => get(`/class-records/${id}`);
 
@@ -28,8 +32,8 @@ const patchClassRecord = (id, partial) =>
   request.request({ url: `/class-records/${id}`, method: 'PATCH', data: partial, hideError: true });
 
 /** CLASS-007 快速新增一次行为（点 +，时间后端生成）→ { record, card } */
-const quickAddBehavior = (id, behaviorCode) =>
-  post(`/class-records/${id}/behavior-records/quick`, { behaviorCode });
+const quickAddBehavior = (id, behaviorCode, subBehaviorCode, statusCode) =>
+  post(`/class-records/${id}/behavior-records/quick`, { behaviorCode, subBehaviorCode, statusCode });
 
 /** CLASS-008 补记过去发生的一次行为 → { record, card } */
 const supplementBehavior = (id, behaviorCode, occurredAt) =>
@@ -66,6 +70,7 @@ module.exports = {
   getDayRecords,
   createClassRecord,
   getBehaviorOptions,
+  getBehaviorCatalog,
   getClassRecordDetail,
   patchClassRecord,
   quickAddBehavior,

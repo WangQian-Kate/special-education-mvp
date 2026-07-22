@@ -1,21 +1,19 @@
 <view class="container">
   <!-- 日/周/月切换 -->
-  <view class="card view-tabs">
-    <view class="view-tab {{recordView === 'day' ? 'on' : ''}}" data-view="day" bindtap="switchRecordView">日记录</view>
-    <view class="view-tab {{recordView === 'week' ? 'on' : ''}}" data-view="week" bindtap="switchRecordView">周记录</view>
-    <view class="view-tab {{recordView === 'month' ? 'on' : ''}}" data-view="month" bindtap="switchRecordView">月记录</view>
+  <view class="rec-tabs">
+    <view class="rec-tab {{recordView === 'day' ? 'on' : ''}}" data-view="day" bindtap="switchRecordView">日记录</view>
+    <view class="rec-tab {{recordView === 'week' ? 'on' : ''}}" data-view="week" bindtap="switchRecordView">周记录</view>
+    <view class="rec-tab {{recordView === 'month' ? 'on' : ''}}" data-view="month" bindtap="switchRecordView">月记录</view>
   </view>
 
   <!-- ========== 日视图 ========== -->
   <block wx:if="{{recordView === 'day'}}">
-    <!-- 日期导航 -->
     <picker mode="date" value="{{date}}" end="{{todayStr}}" bindchange="onDateChange">
       <view class="card date-bar flex-center">
         <text class="date-text">{{date}}</text><text class="date-hint">点击切换</text>
       </view>
     </picker>
 
-    <!-- 课程 / 环境 / 观察周期 -->
     <view class="select-row flex-row">
       <picker class="select-picker" range="{{courses}}" range-key="label" value="{{courseIndex}}" bindchange="onCourseChange">
         <view class="card-sm select-view">{{courses[courseIndex].label}} ▾</view>
@@ -28,7 +26,7 @@
       </picker>
     </view>
 
-    <!-- 全天汇总 → 六维评价 + 行为统计列表 -->
+    <!-- 全天汇总 -->
     <block wx:if="{{courses[courseIndex].code === 'ALL_DAY_SUMMARY'}}">
       <view class="card"><view class="block-title">今日教师评价</view>
         <view class="eval-area">
@@ -38,7 +36,6 @@
           </view>
         </view>
       </view>
-
       <view class="card">
         <view class="block-title">今日行为统计</view>
         <block wx:if="{{dayStats.length}}">
@@ -51,7 +48,7 @@
       </view>
     </block>
 
-    <!-- 普通课程 → 备注 + 行为卡片 -->
+    <!-- 普通课程：行为模块 -->
     <block wx:else>
       <view class="card note-card">
         <view class="note-head flex-row">
@@ -63,33 +60,37 @@
         <textarea class="note-input" placeholder="记录本节课整体情况..." value="{{note}}" bindinput="onNoteInput" maxlength="500" />
       </view>
 
-      <view class="sec-title">行为计数（点卡片进 ABC 详录）</view>
-      <view class="behavior-grid" wx:if="{{behaviors.length}}">
-        <behavior-counter wx:for="{{behaviors}}" wx:key="behaviorCode" behavior="{{item}}" bind:countchange="onCountChange" bind:opendetail="onBehaviorDetail" />
+      <!-- 行为模块列表（全局状态栏只在最上方） -->
+      <status-bar />
+      <view wx:if="{{modules.length}}">
+        <behavior-module
+          wx:for="{{modules}}"
+          wx:key="code"
+          module="{{item}}"
+          expanded="{{!item.expanded}}"
+          bind:toggle="onModuleToggle"
+          bind:statuschange="onStatusChange"
+          bind:nametap="onBehaviorNameTap"
+          bind:subnametap="onSubNameTap"
+        />
       </view>
-      <view class="card empty-tip" wx:elif="{{!loading}}">该课程暂无行为卡片配置，仅可记录课堂备注</view>
+      <view wx:elif="{{!loading}}" class="card empty-tip">该课程暂无行为目录配置</view>
     </block>
 
-    <abc-modal visible="{{abcVisible}}" class-record-id="{{classRecordId}}" record-date="{{date}}" behavior="{{abcBehavior}}" all-day="{{courses[courseIndex].code === 'ALL_DAY_SUMMARY'}}" bind:close="onAbcClose" bind:changed="onAbcChanged" />
+    <abc-modal visible="{{abcVisible}}" class-record-id="{{classRecordId}}" record-date="{{date}}" behavior="{{abcBehavior}}" perf-options="{{abcPerfOptions}}" all-day="{{courses[courseIndex].code === 'ALL_DAY_SUMMARY'}}" bind:close="onAbcClose" bind:changed="onAbcChanged" />
   </block>
 
-  <!-- ========== 周视图（只读） ========== -->
+  <!-- ========== 周/月视图 ========== -->
   <block wx:elif="{{recordView === 'week'}}">
     <view wx:if="{{weekData}}" class="card"><view class="sec-title">本周概况</view>
-      <stat-grid items="{{[{value:weekData.totalCount,label:'行为记录',highlight:true}]}}" />
-      <view class="sec-title" style="margin-top:16rpx">行为频次</view>
       <view wx:for="{{weekData.items}}" wx:key="behaviorCode" class="stat-row">
         <text class="stat-name">{{item.behaviorLabel}}</text><text class="stat-count">{{item.count}}次</text>
       </view>
     </view>
     <view wx:else class="card empty-tip">本周暂无数据</view>
   </block>
-
-  <!-- ========== 月视图（只读） ========== -->
   <block wx:elif="{{recordView === 'month'}}">
     <view wx:if="{{monthData}}" class="card"><view class="sec-title">本月概况</view>
-      <stat-grid items="{{[{value:monthData.totalCount,label:'行为记录',highlight:true}]}}" />
-      <view class="sec-title" style="margin-top:16rpx">行为频次</view>
       <view wx:for="{{monthData.items}}" wx:key="behaviorCode" class="stat-row">
         <text class="stat-name">{{item.behaviorLabel}}</text><text class="stat-count">{{item.count}}次</text>
       </view>

@@ -19,8 +19,8 @@ const COURSES = [
   { code: 'MUSIC', label: '音乐' },
   { code: 'ART', label: '美术' },
   { code: 'SCIENCE', label: '科学' },
-  { code: 'DAOFA', label: '道法' },
-  { code: 'PHYSICAL_FITNESS', label: '体能' },
+  { code: 'MORAL_EDUCATION', label: '道法' },
+  { code: 'PHYSICAL_TRAINING', label: '体能' },
   { code: 'INDIVIDUAL_TRAINING', label: '个训' },
   { code: 'BREAK', label: '课间' },
   { code: 'LUNCH', label: '午餐' },
@@ -35,7 +35,7 @@ const ALL_DAY_COURSE = 'ALL_DAY_SUMMARY';
 /** 环境列表（7 项） */
 const ENVIRONMENTS = [
   { code: 'CLASSROOM', label: '普通教室' },
-  { code: 'RESOURCE_ROOM', label: '资源教室' },
+  { code: 'RESOURCE_CLASSROOM', label: '资源教室' },
   { code: 'PLAYGROUND', label: '操场' },
   { code: 'CORRIDOR', label: '楼道' },
   { code: 'RESTROOM', label: '卫生间' },
@@ -54,20 +54,20 @@ const ASSISTANCE_GROUPS = [
   {
     group: '刺激内辅助',
     items: [
-      { code: 'ADD_EXTERNAL_ITEM', label: '增加外在物品' },
+      { code: 'ADD_EXTERNAL_OBJECT', label: '增加外在物品' },
       { code: 'CHANGE_TARGET_SIZE', label: '改变目标物大小' }
     ]
   },
   {
     group: '刺激外辅助',
     items: [
-      { code: 'FULL_PHYSICAL', label: '全身体辅助' },
-      { code: 'PARTIAL_PHYSICAL', label: '半身辅助' },
-      { code: 'POSTURAL', label: '姿势辅助' },
-      { code: 'POSITIONAL', label: '位置辅助' },
-      { code: 'VERBAL', label: '语言辅助' },
-      { code: 'DEMONSTRATION', label: '示范辅助' },
-      { code: 'VISUAL', label: '视觉辅助' }
+      { code: 'FULL_BODY_ASSISTANCE', label: '全身体辅助' },
+      { code: 'HALF_BODY_ASSISTANCE', label: '半身辅助' },
+      { code: 'POSTURE_ASSISTANCE', label: '姿势辅助' },
+      { code: 'POSITION_ASSISTANCE', label: '位置辅助' },
+      { code: 'VERBAL_ASSISTANCE', label: '语言辅助' },
+      { code: 'DEMONSTRATION_ASSISTANCE', label: '示范辅助' },
+      { code: 'VISUAL_ASSISTANCE', label: '视觉辅助' }
     ]
   }
 ];
@@ -94,10 +94,10 @@ const STAGES = [];
 
 /** 行为功能（4 项，选填；后端表暂空，提交时若后端未就绪则传 null） */
 const FUNCTIONS = [
-  { code: 'ATTENTION', label: '获得注意' },
-  { code: 'TANGIBLE', label: '获得物品/活动' },
-  { code: 'ESCAPE', label: '逃避/回避' },
-  { code: 'SENSORY', label: '感觉刺激' }
+  { code: 'ATTENTION', label: '获取关注' },
+  { code: 'TANGIBLE', label: '获取实物' },
+  { code: 'ESCAPE', label: '逃避' },
+  { code: 'SENSORY', label: '感官刺激' }
 ];
 
 module.exports = {

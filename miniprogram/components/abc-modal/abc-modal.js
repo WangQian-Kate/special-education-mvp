@@ -35,7 +35,8 @@ Component({
     classRecordId: { type: null, value: null },
     recordDate: { type: String, value: '' },
     behavior: { type: null, value: null },
-    allDay: { type: Boolean, value: false }
+    allDay: { type: Boolean, value: false },
+    perfOptions: { type: Array, value: [] }
   },
 
   observers: {
@@ -70,10 +71,13 @@ Component({
       assistanceResultText: ''
     },
     assistances: buildAssistances(),
+    // 行为表现（可多选，来自 catalog performanceOptions）
+    perfChecks: [],
+    otherText: '',
     // 行为功能
     functionIndex: -1,
     functionLabel: '请选择行为功能...',
-    functionRange: ['未选择', '获得注意', '获得物品/活动', '逃避/回避', '感觉刺激'],
+    functionRange: ['未选择', '获取关注', '获取实物', '逃避', '感官刺激'],
     // 折叠面板
     foldOpen: true,
     // 当前选中记录的详录状态（删除确认用）
@@ -114,7 +118,8 @@ Component({
           );
         }
         const records = (list || []).map(function (r) {
-          return { id: r.id, timeText: formatTime(r.occurredAt), detailSaved: r.detailSaved };
+          var st = r.statusCode || '';
+          return { id: r.id, timeText: formatTime(r.occurredAt), detailSaved: r.detailSaved, statusCode: st };
         });
         // 按时间倒序，最新在前
         records.sort(function (a, b) { return (b.id - a.id); });
@@ -210,12 +215,21 @@ Component({
         });
         const rec = this.data.records.find((r) => r.id === recordId);
         const funcIdx = funcIndex(d.functionCode);
+        // 行为表现勾选：从前次保存的 behaviorDescription 中恢复
+        const savedLabels = (d.behaviorDescription || '').split('、').filter(Boolean);
+        const opts = this.properties.perfOptions || [];
+        const perfChecks = opts.map(function (o) {
+          return { code: o.code, label: o.label, checked: savedLabels.indexOf(o.label) >= 0, custom: o.requiresCustomText };
+        });
+        const otherChecked = perfChecks.some(function (c) { return c.checked && c.custom; });
         this.setData({
           currentRecordId: recordId,
           currentRecordSaved: rec ? rec.detailSaved : false,
           formTimeText: formatTime(d.occurredAt),
           functionIndex: funcIdx,
           functionLabel: funcIdx >= 0 ? this.data.functionRange[funcIdx + 1] : this.data.functionRange[0],
+          perfChecks: perfChecks,
+          otherText: otherChecked ? (d.behaviorDescription || '') : '',
           form: {
             durationMinutes: d.durationMinutes == null ? '' : String(d.durationMinutes),
             antecedentText: d.antecedentText || '',
@@ -246,8 +260,14 @@ Component({
       });
     },
 
-    toggleFold() {
-      this.setData({ foldOpen: !this.data.foldOpen });
+    onPerfToggle(e) {
+      var idx = Number(e.currentTarget.dataset.index);
+      var checked = !this.data.perfChecks[idx].checked;
+      this.setData({ ['perfChecks[' + idx + '].checked']: checked });
+    },
+
+    onOtherTextInput(e) {
+      this.setData({ otherText: e.detail.value });
     },
 
     async onSave() {
@@ -264,17 +284,24 @@ Component({
         }
         durationMinutes = v;
       }
-      // 行为功能/辅助方式后端字典暂未就绪，先传 null/[]，等后端建表后放开
+      const funcIdx = this.data.functionIndex;
+      const functionCode = (funcIdx >= 0 && FUNCTIONS[funcIdx]) ? FUNCTIONS[funcIdx].code : null;
+      const checked = this.data.assistances.filter(function (a) { return a.checked; });
+      // 行为表现 → 拼接为 behaviorDescription（用 、分隔）
+      var perfLabels = this.data.perfChecks.filter(function (c) { return c.checked && !c.custom; }).map(function (c) { return c.label; });
+      var otherOpt = this.data.perfChecks.filter(function (c) { return c.checked && c.custom; });
+      if (otherOpt.length && this.data.otherText.trim()) perfLabels.push(this.data.otherText.trim());
+      var behDesc = perfLabels.join('、') || null;
       this.setData({ saving: true });
       try {
         await recordApi.saveBehaviorDetail(this.data.currentRecordId, {
           durationMinutes,
           stageCode: null,
           antecedentText: f.antecedentText || null,
-          behaviorDescription: f.behaviorDescription || null,
+          behaviorDescription: behDesc,
           consequenceText: f.consequenceText || null,
-          functionCode: null,
-          assistances: [],
+          functionCode: functionCode,
+          assistances: checked.map(function (a) { return { code: a.code }; }),
           assistanceResultText: f.assistanceResultText || null
         });
         wx.showToast({ title: '已保存', icon: 'success' });

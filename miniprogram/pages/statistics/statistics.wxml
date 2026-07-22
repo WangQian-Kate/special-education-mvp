@@ -7,10 +7,8 @@
     <view class="view-tab {{view === 'semester' ? 'on' : ''}}" data-view="semester" bindtap="onSwitchView">学期报告</view>
   </view>
 
-  <!-- 加载中 -->
   <view wx:if="{{loading}}" class="card empty-tip">加载中…</view>
 
-  <!-- 空态（非加载、非学期） -->
   <view wx:elif="{{empty && view !== 'semester'}}" class="card empty-tip">当前周期暂无行为记录</view>
 
   <!-- ========== 日报 ========== -->
@@ -27,11 +25,15 @@
 
     <view class="card section" wx:if="{{dailyBars.length}}">
       <view class="block-title">行为频次统计</view>
-      <view class="bar-chart">
-        <view wx:for="{{dailyBars}}" wx:key="label" class="bar-col">
-          <view class="bar-fill {{item.positive ? 'positive' : ''}}" style="height:{{(item.count / dailyMaxCount) * 100}}%"></view>
-          <text class="bar-count">{{item.count}}</text>
-          <text class="bar-name">{{item.label}}</text>
+      <view class="chart-box">
+        <ec-canvas id="bar-chart" canvas-id="bar-chart" ec="{{ecBar}}"></ec-canvas>
+      </view>
+      <!-- 百分比标签 -->
+      <view class="pct-row">
+        <view wx:for="{{dailyBars}}" wx:key="label" class="pct-item">
+          <view class="pct-dot {{item.positive ? 'positive' : ''}}"></view>
+          <text class="pct-name">{{item.label}}</text>
+          <text class="pct-val">{{item.count}}次 ({{item.pct}}%)</text>
         </view>
       </view>
     </view>
@@ -42,24 +44,29 @@
     </view>
   </block>
 
-  <!-- ========== 周报 / 月报（共用趋势列表） ========== -->
+  <!-- ========== 周报 / 月报 ========== -->
   <block wx:elif="{{(view === 'weekly' || view === 'monthly') && !empty}}">
     <view class="card section" wx:if="{{overview}}">
       <view class="sec-title">{{view === 'weekly' ? '本周' : '本月'}}概况</view>
       <view class="overview-grid">
         <view class="ov-item"><text class="ov-val">{{overview.behaviorRecordCount || totalCount}}</text><text class="ov-label">行为记录</text></view>
         <view class="ov-item"><text class="ov-val">{{overview.abcRecordCount || 0}}</text><text class="ov-label">ABC详录</text></view>
+        <view class="ov-item"><text class="ov-val">{{overview.observationCourseCount || 0}}</text><text class="ov-label">观察课程</text></view>
+        <view class="ov-item"><text class="ov-val">{{overview.remarkCount || 0}}</text><text class="ov-label">备注</text></view>
       </view>
     </view>
 
     <view class="card section" wx:if="{{items.length}}">
       <view class="block-title">行为趋势{{view === 'weekly' ? '对比' : ''}}</view>
       <view class="trend-list">
-        <view wx:for="{{items}}" wx:key="behaviorCode" class="trend-row">
-          <text class="trend-name">{{item.behaviorLabel}}</text>
-          <view class="trend-bar-bg"><view class="trend-bar" style="width:{{(item.count / totalCount) * 100 || 0}}%;background:{{item.trendDirection === 'UP' ? '#ef4444' : item.trendDirection === 'DOWN' ? '#22c55e' : '#9ca3af'}}"></view></view>
-          <text class="trend-count">{{item.count}}次</text>
-          <text class="trend-change {{item.trendDirection === 'UP' ? 'up' : item.trendDirection === 'DOWN' ? 'down' : ''}}">{{item.trendDirection === 'UP' ? '↑' : item.trendDirection === 'DOWN' ? '↓' : '→'}} {{item.changePercent != null ? (item.changePercent >= 0 ? '+' : '') + item.changePercent + '%' : '新增'}}</text>
+        <view wx:for="{{items}}" wx:key="behaviorCode" class="tr-row">
+          <text class="tr-name">{{item.behaviorLabel}}</text>
+          <view class="tr-bar-bg"><view class="tr-bar" style="width:{{(item.count / totalCount) * 100 || 0}}%;background:{{item.trendDirection === 'UP' ? '#ef4444' : item.trendDirection === 'DOWN' ? '#22c55e' : '#9ca3af'}}"></view></view>
+          <text class="tr-count">{{item.count}}次</text>
+          <text class="tr-change {{item.trendDirection === 'UP' ? 'up' : item.trendDirection === 'DOWN' ? 'down' : ''}}">
+            {{item.trendDirection === 'UP' ? '↑' : item.trendDirection === 'DOWN' ? '↓' : '→'}}
+            {{item.changePercent != null ? (item.changePercent >= 0 ? '+' : '') + item.changePercent + '%' : '新增'}}
+          </text>
         </view>
       </view>
     </view>
@@ -70,7 +77,7 @@
     </view>
   </block>
 
-  <!-- ========== 学期报告（静态占位） ========== -->
+  <!-- ========== 学期报告 ========== -->
   <block wx:elif="{{view === 'semester'}}">
     <view class="card section"><view class="sec-title">学期概览</view>
       <view class="overview-grid">

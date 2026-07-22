@@ -1,0 +1,21 @@
+<view class="bmod card">
+  <!-- 模块标题（可折叠） -->
+  <view class="bmod-head" bindtap="onToggle">
+    <text class="bmod-title">{{module.name}}</text>
+    <text class="bmod-arrow">{{expanded ? '▼' : '▶'}}</text>
+  </view>
+
+  <!-- 展开时渲染行为和状态栏 -->
+  <block wx:if="{{expanded}}">
+    <view wx:for="{{module.behaviors}}" wx:key="code" class="bmod-item">
+      <behavior-row
+        behavior="{{item}}"
+        bind:statuschange="onStatusChange"
+        bind:statustap="onStatusTap"
+        bind:nametap="onNameTap"
+        bind:subnametap="onSubNameTap"
+        bind:toggle="onRowToggle"
+      />
+    </view>
+  </block>
+</view>

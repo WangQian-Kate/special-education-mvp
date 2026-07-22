@@ -1,0 +1,6 @@
+<view class="status-bar">
+  <view class="sb-name">行为</view>
+  <view class="sb-cols">
+    <view wx:for="{{labels}}" wx:key="*this" class="sb-col">{{item}}</view>
+  </view>
+</view>

@@ -18,7 +18,7 @@
 
       <scroll-view scroll-x class="recs-scroll" wx:if="{{records.length}}">
         <view wx:for="{{records}}" wx:key="id"
-          class="rec-chip {{currentRecordId === item.id ? 'rec-chip-on' : ''}}"
+          class="rec-chip st-{{item.statusCode}} {{currentRecordId === item.id ? 'rec-chip-on' : ''}}"
           bindtap="onRecordTap" data-id="{{item.id}}">
           <text>{{item.timeText}}</text>
           <text wx:if="{{item.detailSaved}}" class="rec-chip-dot">✓</text>
@@ -45,7 +45,16 @@
 
         <view class="form-item">
           <view class="form-label">B · 行为表现</view>
-          <textarea class="form-textarea" value="{{form.behaviorDescription}}" data-field="behaviorDescription" bindinput="onFormInput" placeholder="记录具体行为表现..." maxlength="500" />
+          <view wx:if="{{perfChecks.length}}" class="perf-list">
+            <view wx:for="{{perfChecks}}" wx:key="code" class="perf-row">
+              <view class="perf-check {{item.checked ? 'on' : ''}}" data-index="{{index}}" bindtap="onPerfToggle">{{item.checked ? '✓' : ''}}</view>
+              <text class="perf-label" data-index="{{index}}" bindtap="onPerfToggle">{{item.label}}</text>
+            </view>
+            <view wx:if="{{otherText !== undefined}}" class="perf-other">
+              <input class="perf-input" value="{{otherText}}" bindinput="onOtherTextInput" placeholder="请填写具体表现..." maxlength="500" />
+            </view>
+          </view>
+          <textarea wx:else class="form-textarea" value="{{form.behaviorDescription}}" data-field="behaviorDescription" bindinput="onFormInput" placeholder="记录具体行为表现..." maxlength="500" />
         </view>
 
         <view class="form-item">

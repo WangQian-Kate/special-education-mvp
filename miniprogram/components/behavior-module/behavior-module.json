@@ -1,0 +1,6 @@
+{
+  "component": true,
+  "usingComponents": {
+    "behavior-row": "/components/behavior-row/behavior-row"
+  }
+}

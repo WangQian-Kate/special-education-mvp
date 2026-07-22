@@ -1,0 +1,13 @@
+.bmod { padding: 0; overflow: hidden; margin-bottom: 20rpx; }
+
+.bmod-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 20rpx 24rpx;
+  background: var(--color-primary-light);
+}
+
+.bmod-title { font-size: 28rpx; font-weight: 700; color: var(--color-primary); }
+
+.bmod-arrow { font-size: 22rpx; color: var(--color-text-sub); }
+
+.bmod-item { padding: 0 16rpx; }
