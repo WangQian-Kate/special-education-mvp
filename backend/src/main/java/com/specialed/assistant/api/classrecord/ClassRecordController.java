@@ -53,11 +53,12 @@ public class ClassRecordController {
     }
 
     @GetMapping("/class-records/behavior-options")
-    public List<CodeLabel> behaviorOptions(
+    public List<BehaviorCatalogItem> behaviorOptions(
             @CurrentUserId Long userId,
-            @RequestParam @NotBlank String courseCode
+            @RequestParam @NotBlank String courseCode,
+            @RequestParam(required = false) String environmentCode
     ) {
-        return service.listBehaviorOptions(userId, courseCode);
+        return service.listBehaviorOptions(userId, courseCode, environmentCode);
     }
 
     @GetMapping("/class-records/summary")

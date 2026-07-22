@@ -118,9 +118,24 @@ class V2ApiIntegrationTest {
                 .andExpect(jsonPath("$.data.id").value(1));
 
         mockMvc.perform(get("/class-records/behavior-options").header(TEACHER_HEADER, "t001")
-                        .queryParam("courseCode", "CHINESE"))
+                        .queryParam("courseCode", "CHINESE")
+                        .queryParam("environmentCode", "CLASSROOM"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[?(@.code == 'LEAVE_SEAT')]").exists());
+                .andExpect(jsonPath("$.data[?(@.code == 'B006')].label").value("调整桌椅"))
+                .andExpect(jsonPath("$.data[?(@.code == 'B006')].moduleCode").value("SCHOOL_ENTRY"))
+                .andExpect(jsonPath("$.data[?(@.code == 'B006')].performanceOptions.length()").value(5))
+                .andExpect(jsonPath("$.data[?(@.code == 'B006')].groups[0].statusOptions.length()").value(3))
+                .andExpect(jsonPath("$.data[?(@.code == 'B006')].groups[0].statusOptions[2].label")
+                        .value("独立"));
+
+        mockMvc.perform(get("/class-records/behavior-options").header(TEACHER_HEADER, "t001")
+                        .queryParam("courseCode", "OTHER")
+                        .queryParam("environmentCode", "OFF_CAMPUS"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[?(@.code == 'B001')].subBehaviors.length()").value(4))
+                .andExpect(jsonPath("$.data[?(@.code == 'B001')].subBehaviors[0].performanceOptions.length()")
+                        .value(5))
+                .andExpect(jsonPath("$.data[?(@.code == 'B001')].trainingGoals.length()").value(4));
 
         mockMvc.perform(post("/class-records").header(TEACHER_HEADER, "t001")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -181,7 +196,7 @@ class V2ApiIntegrationTest {
                                  "overallRemark":"初始备注"}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.behaviorCards.length()").value(8))
+                .andExpect(jsonPath("$.data.behaviorCards.length()").value(16))
                 .andReturn().getResponse().getContentAsString();
         long classRecordId = objectMapper.readTree(classResponse).get("data").get("id").longValue();
 
@@ -193,7 +208,7 @@ class V2ApiIntegrationTest {
         String quickResponse = mockMvc.perform(post("/class-records/{id}/behavior-records/quick", classRecordId)
                         .header(TEACHER_HEADER, "t001")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"behaviorCode\":\"LEAVE_SEAT\"}"))
+                        .content("{\"behaviorCode\":\"B006\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.card.count").value(1))
                 .andExpect(jsonPath("$.data.record.detailSaved").value(false))
@@ -202,19 +217,19 @@ class V2ApiIntegrationTest {
 
         mockMvc.perform(get("/behavior-records/{id}", recordId).header(TEACHER_HEADER, "t001"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.behaviorCode").value("LEAVE_SEAT"));
+                .andExpect(jsonPath("$.data.behaviorCode").value("B006"));
 
         mockMvc.perform(post("/class-records/{id}/behavior-records/supplement", classRecordId)
                         .header(TEACHER_HEADER, "t001")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"behaviorCode":"LEAVE_SEAT","occurredAt":"2026-07-17T00:30:00+08:00"}
+                                {"behaviorCode":"B006","occurredAt":"2026-07-17T00:30:00+08:00"}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.card.count").value(2));
 
         mockMvc.perform(get("/class-records/{id}/behavior-records", classRecordId)
-                        .header(TEACHER_HEADER, "t001").queryParam("behaviorCode", "LEAVE_SEAT"))
+                        .header(TEACHER_HEADER, "t001").queryParam("behaviorCode", "B006"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(2));
 
@@ -224,12 +239,20 @@ class V2ApiIntegrationTest {
                                 {"durationMinutes":1,"stageCode":"TASK","antecedentText":"A",
                                  "behaviorDescription":"B","consequenceText":"C","functionCode":"ESCAPE",
                                  "assistances":[{"code":"VERBAL_ASSISTANCE"}],
-                                 "assistanceResultText":"成功返回座位"}
+                                 "assistanceResultText":"成功调整桌椅",
+                                 "performanceSelections":[{"optionCode":"B006_P03"}]}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.detailSaved").value(true))
                 .andExpect(jsonPath("$.data.assistances[0].code").value("VERBAL_ASSISTANCE"))
-                .andExpect(jsonPath("$.data.assistances[0].content").value(nullValue()));
+                .andExpect(jsonPath("$.data.assistances[0].content").value(nullValue()))
+                .andExpect(jsonPath("$.data.performanceSelections[0].optionCode").value("B006_P03"));
+
+        mockMvc.perform(put("/behavior-records/{id}/details", recordId).header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"performanceSelections\":[{\"optionCode\":\"B006_P05\"}]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("“其它”行为表现必须填写自定义内容：B006_P05"));
 
         mockMvc.perform(put("/behavior-records/{id}/details", recordId).header(TEACHER_HEADER, "t001")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -268,21 +291,55 @@ class V2ApiIntegrationTest {
                 .andExpect(jsonPath("$.data").value(nullValue()));
         mockMvc.perform(get("/class-records/{id}", classRecordId).header(TEACHER_HEADER, "t001"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.behaviorCards[?(@.behaviorCode == 'LEAVE_SEAT')].count").value(1));
+                .andExpect(jsonPath("$.data.behaviorCards[?(@.behaviorCode == 'B006')].count").value(1));
+    }
+
+    @Test
+    void detailedRecordPersistsSubBehaviorAndItsPerformanceStatus() throws Exception {
+        String classResponse = mockMvc.perform(post("/class-records").header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"recordDate":"2026-07-18","courseCode":"OTHER",
+                                 "environmentCode":"OFF_CAMPUS","observationDurationMinutes":15}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long classRecordId = objectMapper.readTree(classResponse).get("data").get("id").longValue();
+        long recordId = createQuickBehavior(classRecordId, "B001");
+
+        mockMvc.perform(put("/behavior-records/{id}/details", recordId).header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"subBehaviorCodes":["B001_S01"],
+                                 "performanceSelections":[{"optionCode":"B001_P04"}]}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.detailSaved").value(true))
+                .andExpect(jsonPath("$.data.subBehaviorCodes[0]").value("B001_S01"))
+                .andExpect(jsonPath("$.data.performanceSelections[0].optionCode").value("B001_P04"))
+                .andExpect(jsonPath("$.data.performanceSelections[0].parentSubBehaviorCode")
+                        .value("B001_S01"));
+
+        mockMvc.perform(put("/behavior-records/{id}/details", recordId).header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"performanceSelections\":[{\"optionCode\":\"B001_P04\"}]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("选择子行为状态前必须先选择对应子行为：B001_S01"));
     }
 
     @Test
     void studentEvaluationIncludesOverviewAndPreviousPeriodComparison() throws Exception {
         long previousClassRecordId = createClassRecord("2026-07-06", "上周备注");
-        createQuickBehavior(previousClassRecordId, "LEAVE_SEAT");
-        createQuickBehavior(previousClassRecordId, "LEAVE_SEAT");
-        createQuickBehavior(previousClassRecordId, "LEAVE_SEAT");
-        createQuickBehavior(previousClassRecordId, "LEAVE_SEAT");
+        createQuickBehavior(previousClassRecordId, "B006");
+        createQuickBehavior(previousClassRecordId, "B006");
+        createQuickBehavior(previousClassRecordId, "B006");
+        createQuickBehavior(previousClassRecordId, "B006");
 
         long currentClassRecordId = createClassRecord("2026-07-13", "本周备注");
-        long detailedRecordId = createQuickBehavior(currentClassRecordId, "LEAVE_SEAT");
-        createQuickBehavior(currentClassRecordId, "LEAVE_SEAT");
-        createQuickBehavior(currentClassRecordId, "RAISE_HAND_ANSWER");
+        long detailedRecordId = createQuickBehavior(currentClassRecordId, "B006");
+        createQuickBehavior(currentClassRecordId, "B006");
+        createQuickBehavior(currentClassRecordId, "B094");
 
         mockMvc.perform(put("/behavior-records/{id}/details", detailedRecordId)
                         .header(TEACHER_HEADER, "t001")
@@ -308,13 +365,13 @@ class V2ApiIntegrationTest {
                 .andExpect(jsonPath("$.data.overview.abcRecordCount").value(1))
                 .andExpect(jsonPath("$.data.overview.remarkCount").value(1))
                 .andExpect(jsonPath("$.data.totalCount").value(3))
-                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'LEAVE_SEAT')].count").value(2))
-                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'LEAVE_SEAT')].previousCount").value(4))
-                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'LEAVE_SEAT')].changePercent").value(50))
-                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'LEAVE_SEAT')].trendDirection").value("DOWN"))
-                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'RAISE_HAND_ANSWER')].previousCount").value(0))
+                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'B006')].count").value(2))
+                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'B006')].previousCount").value(4))
+                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'B006')].changePercent").value(50))
+                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'B006')].trendDirection").value("DOWN"))
+                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'B094')].previousCount").value(0))
                 .andExpect(jsonPath("$.data.items[1].changePercent").value(nullValue()))
-                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'RAISE_HAND_ANSWER')].trendDirection")
+                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'B094')].trendDirection")
                         .value("UP"));
     }
 

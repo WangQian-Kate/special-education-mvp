@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 特殊教育课堂助手 API
-  version: 0.10.0
+  version: 0.11.0
   description: |
     根据 V2 软件原型重写的接口契约，按“随班记录、训练计划、学生评估、我的、系统”五个页面模块组织。
     当前采用白名单伪登录，业务接口使用 X-Teacher-Id: t001/t002/t003 确定当前教师；不接收 X-User-Id。
@@ -184,9 +184,10 @@ paths:
     get:
       tags: [随班记录]
       operationId: listBehaviorOptions
-      summary: 查询课程对应的行为卡片
+      summary: 查询课程和环境对应的标准行为目录
       parameters:
         - $ref: '#/components/parameters/CourseCode'
+        - $ref: '#/components/parameters/OptionalEnvironmentCode'
       responses:
         '401':
           $ref: '#/components/responses/UnauthorizedTeacher'
@@ -195,7 +196,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CodeLabelListApiResponse'
+                $ref: '#/components/schemas/BehaviorCatalogListApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '500':
@@ -299,7 +300,7 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateQuickBehaviorRequest'
             example:
-              behaviorCode: LEAVE_SEAT
+              behaviorCode: B006
       responses:
         '401':
           $ref: '#/components/responses/UnauthorizedTeacher'
@@ -331,7 +332,7 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateSupplementBehaviorRequest'
             example:
-              behaviorCode: LEAVE_SEAT
+              behaviorCode: B006
               occurredAt: '2026-07-17T09:12:45+08:00'
       responses:
         '401':
@@ -782,6 +783,13 @@ components:
       required: true
       schema:
         $ref: '#/components/schemas/CourseCodeValue'
+    OptionalEnvironmentCode:
+      name: environmentCode
+      in: query
+      required: false
+      description: 可选；提供后只返回同时推荐给该环境的行为。
+      schema:
+        $ref: '#/components/schemas/EnvironmentCodeValue'
     BehaviorCode:
       name: behaviorCode
       in: query
@@ -886,7 +894,7 @@ components:
             data:
               $ref: '#/components/schemas/ClassRecordDetail'
 
-    CodeLabelListApiResponse:
+    BehaviorCatalogListApiResponse:
       allOf:
         - $ref: '#/components/schemas/SuccessResponse'
         - type: object
@@ -894,7 +902,7 @@ components:
             data:
               type: array
               items:
-                $ref: '#/components/schemas/CodeLabel'
+                $ref: '#/components/schemas/BehaviorCatalogItem'
 
     BehaviorCountStatisticsApiResponse:
       allOf:
@@ -1091,14 +1099,129 @@ components:
           format: int64
           minimum: 1
 
-    CodeLabel:
+    BehaviorGroupStatusSummary:
       type: object
-      required: [code, label]
+      required: [code, label, displayOrder]
       properties:
         code:
           type: string
         label:
           type: string
+        displayOrder:
+          type: integer
+
+    BehaviorGroupSummary:
+      type: object
+      required: [code, label, displayOrder, itemDisplayOrder, statusOptions]
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        displayOrder:
+          type: integer
+        itemDisplayOrder:
+          type: integer
+        statusOptions:
+          type: array
+          description: 分组状态栏；无状态栏的普通分组返回空数组。
+          items:
+            $ref: '#/components/schemas/BehaviorGroupStatusSummary'
+
+    PerformanceOptionSummary:
+      type: object
+      required: [code, label, requiresCustomText]
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        requiresCustomText:
+          type: boolean
+
+    SubBehaviorSummary:
+      type: object
+      required: [code, label, displayOrder, performanceOptions]
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        displayOrder:
+          type: integer
+        performanceOptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PerformanceOptionSummary'
+
+    TrainingGoalReference:
+      type: object
+      required: [standardNumber, goalText]
+      properties:
+        standardNumber:
+          type: integer
+          minimum: 11
+          maximum: 165
+        goalText:
+          type: string
+        subBehaviorCode:
+          type: string
+          nullable: true
+
+    BehaviorCatalogItem:
+      type: object
+      required:
+        - code
+        - label
+        - moduleCode
+        - moduleLabel
+        - moduleDisplayOrder
+        - displayOrder
+        - groups
+        - recommendedCourseCodes
+        - recommendedEnvironmentCodes
+        - trainingGoals
+        - subBehaviors
+        - performanceOptions
+      properties:
+        code:
+          type: string
+          pattern: '^B\d{3}$'
+        label:
+          type: string
+        moduleCode:
+          type: string
+        moduleLabel:
+          type: string
+        moduleDisplayOrder:
+          type: integer
+        displayOrder:
+          type: integer
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/BehaviorGroupSummary'
+        recommendedCourseCodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseCodeValue'
+        recommendedEnvironmentCodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnvironmentCodeValue'
+        trainingGoals:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrainingGoalReference'
+        subBehaviors:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubBehaviorSummary'
+        performanceOptions:
+          type: array
+          description: 不隶属于子行为的主行为表现选项。
+          items:
+            $ref: '#/components/schemas/PerformanceOptionSummary'
 
     CreateClassRecordRequest:
       type: object
@@ -1308,9 +1431,38 @@ components:
               type: string
               enum: [INTERNAL_STIMULUS, EXTERNAL_STIMULUS]
 
+    PerformanceSelectionInput:
+      type: object
+      required: [optionCode]
+      properties:
+        optionCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+        customText:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: 仅 requiresCustomText=true 的“其它”选项允许且必须填写。
+
+    PerformanceSelectionDetail:
+      type: object
+      required: [optionCode, label]
+      properties:
+        optionCode:
+          type: string
+        label:
+          type: string
+        parentSubBehaviorCode:
+          type: string
+          nullable: true
+        customText:
+          type: string
+          nullable: true
+
     SaveBehaviorDetailsRequest:
       type: object
-      description: 所有详细字段至少填写一项；assistances 缺省或为 null 时按空数组处理。
+      description: 所有详细字段至少填写一项；数组缺省或为 null 时按空数组处理。
       properties:
         durationMinutes:
           type: integer
@@ -1352,6 +1504,21 @@ components:
           type: string
           nullable: true
           maxLength: 1000
+        subBehaviorCodes:
+          type: array
+          nullable: true
+          maxItems: 64
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+        performanceSelections:
+          type: array
+          nullable: true
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/PerformanceSelectionInput'
 
     BehaviorRecordDetail:
       type: object
@@ -1363,6 +1530,8 @@ components:
         - occurredAt
         - detailSaved
         - assistances
+        - subBehaviorCodes
+        - performanceSelections
       properties:
         id:
           type: integer
@@ -1411,6 +1580,14 @@ components:
         assistanceResultText:
           type: string
           nullable: true
+        subBehaviorCodes:
+          type: array
+          items:
+            type: string
+        performanceSelections:
+          type: array
+          items:
+            $ref: '#/components/schemas/PerformanceSelectionDetail'
 
     BehaviorCountItem:
       type: object

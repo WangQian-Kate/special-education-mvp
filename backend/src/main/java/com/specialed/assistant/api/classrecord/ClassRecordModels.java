@@ -17,7 +17,58 @@ public final class ClassRecordModels {
 
     public enum SummaryPeriod { WEEKLY, MONTHLY }
 
-    public record CodeLabel(String code, String label) {
+    public record BehaviorGroupStatusSummary(
+            String code,
+            String label,
+            Integer displayOrder
+    ) {
+    }
+
+    public record BehaviorGroupSummary(
+            String code,
+            String label,
+            Integer displayOrder,
+            Integer itemDisplayOrder,
+            List<BehaviorGroupStatusSummary> statusOptions
+    ) {
+    }
+
+    public record PerformanceOptionSummary(
+            String code,
+            String label,
+            boolean requiresCustomText
+    ) {
+    }
+
+    public record SubBehaviorSummary(
+            String code,
+            String label,
+            Integer displayOrder,
+            List<PerformanceOptionSummary> performanceOptions
+    ) {
+    }
+
+    public record TrainingGoalReference(
+            Integer standardNumber,
+            String goalText,
+            String subBehaviorCode
+    ) {
+    }
+
+    public record BehaviorCatalogItem(
+            String code,
+            String label,
+            String moduleCode,
+            String moduleLabel,
+            Integer moduleDisplayOrder,
+            Integer displayOrder,
+            List<BehaviorGroupSummary> groups,
+            List<String> recommendedCourseCodes,
+            List<String> recommendedEnvironmentCodes,
+            List<TrainingGoalReference> trainingGoals,
+            List<SubBehaviorSummary> subBehaviors,
+            List<PerformanceOptionSummary> performanceOptions
+    ) {
     }
 
     public record CreateClassRecordRequest(
@@ -107,6 +158,20 @@ public final class ClassRecordModels {
     ) {
     }
 
+    public record PerformanceSelectionInput(
+            @NotBlank @Size(max = 64) String optionCode,
+            @Size(max = 500) String customText
+    ) {
+    }
+
+    public record PerformanceSelectionDetail(
+            String optionCode,
+            String label,
+            String parentSubBehaviorCode,
+            String customText
+    ) {
+    }
+
     public record SaveBehaviorDetailsRequest(
             @Min(1) @Max(1440) Integer durationMinutes,
             @Size(min = 1, max = 64) String stageCode,
@@ -115,7 +180,9 @@ public final class ClassRecordModels {
             @Size(max = 1000) String consequenceText,
             @Size(min = 1, max = 64) String functionCode,
             @Size(max = 9) List<@NotNull @Valid AssistanceInput> assistances,
-            @Size(max = 1000) String assistanceResultText
+            @Size(max = 1000) String assistanceResultText,
+            @Size(max = 64) List<@NotBlank @Size(max = 64) String> subBehaviorCodes,
+            @Size(max = 64) List<@NotNull @Valid PerformanceSelectionInput> performanceSelections
     ) {
     }
 
@@ -135,7 +202,9 @@ public final class ClassRecordModels {
             String functionCode,
             String functionLabel,
             List<AssistanceDetail> assistances,
-            String assistanceResultText
+            String assistanceResultText,
+            List<String> subBehaviorCodes,
+            List<PerformanceSelectionDetail> performanceSelections
     ) {
     }
 

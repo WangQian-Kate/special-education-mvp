@@ -12,3 +12,5 @@ miniprogram_npm/
 Thumbs.db
 dist/
 .vscode/
+__pycache__/
+backend/backups/

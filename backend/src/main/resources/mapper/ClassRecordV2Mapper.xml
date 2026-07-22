@@ -87,8 +87,21 @@
     </select>
     <select id="existsBehaviorOption" resultType="boolean">
         SELECT COUNT(*) &gt; 0
-        FROM course_behavior_config
-        WHERE course_code = #{courseCode} AND behavior_code = #{behaviorCode}
+        FROM behavior_catalog_metadata metadata
+        WHERE metadata.behavior_code = #{behaviorCode}
+          AND (
+            #{courseCode} = 'ALL_DAY_SUMMARY'
+            OR EXISTS (
+              SELECT 1 FROM course_behavior_config course_config
+              WHERE course_config.course_code = #{courseCode}
+                AND course_config.behavior_code = metadata.behavior_code
+            )
+          )
+          AND EXISTS (
+            SELECT 1 FROM behavior_environment_config environment_config
+            WHERE environment_config.environment_code = #{environmentCode}
+              AND environment_config.behavior_code = metadata.behavior_code
+          )
     </select>
     <select id="existsStage" resultType="boolean">
         SELECT COUNT(*) &gt; 0 FROM behavior_stage_type WHERE code = #{code}
@@ -100,12 +113,105 @@
         SELECT COUNT(*) &gt; 0 FROM assistance_type WHERE code = #{code}
     </select>
 
-    <select id="findBehaviorOptions" resultType="com.specialed.assistant.api.classrecord.CodeLabelEntity">
-        SELECT bt.code, bt.label
-        FROM course_behavior_config config
-        JOIN behavior_type bt ON bt.code = config.behavior_code
-        WHERE config.course_code = #{courseCode}
-        ORDER BY bt.code
+    <sql id="behaviorCatalogFilter">
+        AND (
+          #{courseCode} = 'ALL_DAY_SUMMARY'
+          OR EXISTS (
+            SELECT 1 FROM course_behavior_config selected_course
+            WHERE selected_course.course_code = #{courseCode}
+              AND selected_course.behavior_code = metadata.behavior_code
+          )
+        )
+        <if test="environmentCode != null and environmentCode != ''">
+          AND EXISTS (
+            SELECT 1 FROM behavior_environment_config selected_environment
+            WHERE selected_environment.environment_code = #{environmentCode}
+              AND selected_environment.behavior_code = metadata.behavior_code
+          )
+        </if>
+    </sql>
+
+    <select id="findBehaviorCatalog" resultType="com.specialed.assistant.api.classrecord.BehaviorCatalogEntity">
+        SELECT behavior.code, behavior.label,
+               module.code AS module_code, module.label AS module_label,
+               module.display_order AS module_display_order,
+               metadata.display_order
+        FROM behavior_catalog_metadata metadata
+        JOIN behavior_type behavior ON behavior.code = metadata.behavior_code
+        JOIN behavior_module module ON module.code = metadata.module_code
+        WHERE 1 = 1
+        <include refid="behaviorCatalogFilter"/>
+        ORDER BY module.display_order, metadata.display_order
+    </select>
+
+    <select id="findBehaviorCatalogGroups" resultType="com.specialed.assistant.api.classrecord.BehaviorGroupItemEntity">
+        SELECT behavior_group.code AS group_code, behavior_group.label AS group_label,
+               behavior_group.display_order AS group_display_order,
+               item.behavior_code, item.display_order AS item_display_order
+        FROM behavior_catalog_metadata metadata
+        JOIN behavior_group_item item ON item.behavior_code = metadata.behavior_code
+        JOIN behavior_group behavior_group ON behavior_group.code = item.group_code
+        WHERE 1 = 1
+        <include refid="behaviorCatalogFilter"/>
+        ORDER BY behavior_group.module_code, behavior_group.display_order, item.display_order
+    </select>
+
+    <select id="findBehaviorCatalogGroupStatuses" resultType="com.specialed.assistant.api.classrecord.BehaviorGroupStatusEntity">
+        SELECT DISTINCT status_row.group_code, status_row.code, status_row.label, status_row.display_order
+        FROM behavior_catalog_metadata metadata
+        JOIN behavior_group_item item ON item.behavior_code = metadata.behavior_code
+        JOIN behavior_group_status_option status_row ON status_row.group_code = item.group_code
+        WHERE 1 = 1
+        <include refid="behaviorCatalogFilter"/>
+        ORDER BY status_row.group_code, status_row.display_order
+    </select>
+
+    <select id="findBehaviorCatalogOptions" resultType="com.specialed.assistant.api.classrecord.BehaviorCatalogOptionEntity">
+        SELECT option_row.code, option_row.behavior_code, option_row.option_type,
+               option_row.parent_option_code, option_row.label, option_row.display_order,
+               option_row.requires_custom_text
+        FROM behavior_catalog_metadata metadata
+        JOIN behavior_catalog_option option_row ON option_row.behavior_code = metadata.behavior_code
+        WHERE 1 = 1
+        <include refid="behaviorCatalogFilter"/>
+        ORDER BY metadata.module_code, metadata.display_order, option_row.option_type, option_row.display_order
+    </select>
+
+    <select id="findBehaviorCatalogCourses" resultType="com.specialed.assistant.api.classrecord.BehaviorCatalogRelationEntity">
+        SELECT relation.behavior_code, relation.course_code AS code
+        FROM behavior_catalog_metadata metadata
+        JOIN course_behavior_config relation ON relation.behavior_code = metadata.behavior_code
+        WHERE 1 = 1
+        <include refid="behaviorCatalogFilter"/>
+        ORDER BY relation.behavior_code, relation.course_code
+    </select>
+
+    <select id="findBehaviorCatalogEnvironments" resultType="com.specialed.assistant.api.classrecord.BehaviorCatalogRelationEntity">
+        SELECT relation.behavior_code, relation.environment_code AS code
+        FROM behavior_catalog_metadata metadata
+        JOIN behavior_environment_config relation ON relation.behavior_code = metadata.behavior_code
+        WHERE 1 = 1
+        <include refid="behaviorCatalogFilter"/>
+        ORDER BY relation.behavior_code, relation.environment_code
+    </select>
+
+    <select id="findBehaviorCatalogTrainingGoals" resultType="com.specialed.assistant.api.classrecord.BehaviorTrainingGoalEntity">
+        SELECT relation.behavior_code, relation.standard_number, goal.goal_text,
+               relation.sub_behavior_code
+        FROM behavior_catalog_metadata metadata
+        JOIN behavior_training_goal relation ON relation.behavior_code = metadata.behavior_code
+        JOIN training_goal goal ON goal.standard_number = relation.standard_number
+        WHERE 1 = 1
+        <include refid="behaviorCatalogFilter"/>
+        ORDER BY relation.behavior_code, relation.standard_number
+    </select>
+
+    <select id="findCatalogOptionsByBehavior" resultType="com.specialed.assistant.api.classrecord.BehaviorCatalogOptionEntity">
+        SELECT code, behavior_code, option_type, parent_option_code, label, display_order,
+               requires_custom_text
+        FROM behavior_catalog_option
+        WHERE behavior_code = #{behaviorCode}
+        ORDER BY option_type, display_order
     </select>
 
     <select id="findBehaviorCards" resultType="com.specialed.assistant.api.classrecord.BehaviorCardEntity">
@@ -116,8 +222,20 @@
                latest.detail_saved AS latest_detail_saved
         FROM (
             SELECT behavior_code
-            FROM course_behavior_config
-            WHERE course_code = #{courseCode}
+            FROM behavior_catalog_metadata metadata
+            WHERE (
+              #{courseCode} = 'ALL_DAY_SUMMARY'
+              OR EXISTS (
+                SELECT 1 FROM course_behavior_config course_config
+                WHERE course_config.course_code = #{courseCode}
+                  AND course_config.behavior_code = metadata.behavior_code
+              )
+            )
+              AND EXISTS (
+                SELECT 1 FROM behavior_environment_config environment_config
+                WHERE environment_config.environment_code = #{environmentCode}
+                  AND environment_config.behavior_code = metadata.behavior_code
+              )
             UNION
             SELECT behavior_code
             FROM behavior_record
@@ -135,8 +253,11 @@
               ORDER BY newest.occurred_at DESC, newest.id DESC
               LIMIT 1
           )
-        GROUP BY bt.code, bt.label, latest.id, latest.detail_saved
-        ORDER BY bt.code
+        LEFT JOIN behavior_catalog_metadata metadata ON metadata.behavior_code = bt.code
+        LEFT JOIN behavior_module module ON module.code = metadata.module_code
+        GROUP BY bt.code, bt.label, latest.id, latest.detail_saved,
+                 module.display_order, metadata.display_order
+        ORDER BY module.display_order, metadata.display_order, bt.code
     </select>
 
     <insert id="insertBehaviorRecord" parameterType="com.specialed.assistant.api.classrecord.BehaviorRecordEntity"
@@ -206,6 +327,24 @@
         JOIN assistance_type at ON at.code = bra.assistance_code
         WHERE bra.behavior_record_id = #{recordId}
         ORDER BY at.display_order
+    </select>
+
+    <delete id="deleteCatalogSelections">
+        DELETE FROM behavior_record_catalog_selection WHERE behavior_record_id = #{recordId}
+    </delete>
+
+    <insert id="insertCatalogSelection">
+        INSERT INTO behavior_record_catalog_selection (behavior_record_id, option_code, custom_text)
+        VALUES (#{recordId}, #{optionCode}, #{customText})
+    </insert>
+
+    <select id="findCatalogSelections" resultType="com.specialed.assistant.api.classrecord.CatalogSelectionEntity">
+        SELECT selection.option_code, option_row.option_type, option_row.label,
+               option_row.parent_option_code, selection.custom_text
+        FROM behavior_record_catalog_selection selection
+        JOIN behavior_catalog_option option_row ON option_row.code = selection.option_code
+        WHERE selection.behavior_record_id = #{recordId}
+        ORDER BY option_row.option_type, option_row.display_order
     </select>
 
     <select id="countBehaviors" resultType="com.specialed.assistant.api.classrecord.BehaviorCountEntity">

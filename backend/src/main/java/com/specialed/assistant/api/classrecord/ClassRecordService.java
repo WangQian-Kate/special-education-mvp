@@ -16,8 +16,12 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.specialed.assistant.api.classrecord.ClassRecordModels.*;
 
@@ -100,14 +104,88 @@ public class ClassRecordService {
         return getDetail(classRecordId, studentId);
     }
 
-    public List<CodeLabel> listBehaviorOptions(Long userId, String courseCode) {
+    public List<BehaviorCatalogItem> listBehaviorOptions(Long userId, String courseCode,
+                                                         String environmentCode) {
         profileService.requireCurrentStudentId(userId);
         if (!mapper.existsCourse(courseCode)) {
             throw notFound("课程不存在");
         }
-        return mapper.findBehaviorOptions(courseCode).stream()
-                .map(value -> new CodeLabel(value.getCode(), value.getLabel()))
-                .toList();
+        String normalizedEnvironment = normalizeOptionalText(environmentCode);
+        if (normalizedEnvironment != null && !mapper.existsEnvironment(normalizedEnvironment)) {
+            throw notFound("环境不存在");
+        }
+        return buildBehaviorCatalog(courseCode, normalizedEnvironment);
+    }
+
+    private List<BehaviorCatalogItem> buildBehaviorCatalog(String courseCode, String environmentCode) {
+        Map<String, List<BehaviorGroupItemEntity>> groups = mapper
+                .findBehaviorCatalogGroups(courseCode, environmentCode).stream()
+                .collect(Collectors.groupingBy(BehaviorGroupItemEntity::getBehaviorCode,
+                        LinkedHashMap::new, Collectors.toList()));
+        Map<String, List<BehaviorGroupStatusEntity>> groupStatuses = mapper
+                .findBehaviorCatalogGroupStatuses(courseCode, environmentCode).stream()
+                .collect(Collectors.groupingBy(BehaviorGroupStatusEntity::getGroupCode,
+                        LinkedHashMap::new, Collectors.toList()));
+        Map<String, List<BehaviorCatalogOptionEntity>> options = mapper
+                .findBehaviorCatalogOptions(courseCode, environmentCode).stream()
+                .collect(Collectors.groupingBy(BehaviorCatalogOptionEntity::getBehaviorCode,
+                        LinkedHashMap::new, Collectors.toList()));
+        Map<String, List<String>> courses = groupRelationCodes(
+                mapper.findBehaviorCatalogCourses(courseCode, environmentCode));
+        Map<String, List<String>> environments = groupRelationCodes(
+                mapper.findBehaviorCatalogEnvironments(courseCode, environmentCode));
+        Map<String, List<BehaviorTrainingGoalEntity>> goals = mapper
+                .findBehaviorCatalogTrainingGoals(courseCode, environmentCode).stream()
+                .collect(Collectors.groupingBy(BehaviorTrainingGoalEntity::getBehaviorCode,
+                        LinkedHashMap::new, Collectors.toList()));
+
+        return mapper.findBehaviorCatalog(courseCode, environmentCode).stream().map(behavior -> {
+            List<BehaviorCatalogOptionEntity> behaviorOptions = options.getOrDefault(behavior.getCode(), List.of());
+            List<SubBehaviorSummary> subBehaviors = behaviorOptions.stream()
+                    .filter(option -> "SUB_BEHAVIOR".equals(option.getOptionType()))
+                    .map(sub -> new SubBehaviorSummary(sub.getCode(), sub.getLabel(), sub.getDisplayOrder(),
+                            behaviorOptions.stream()
+                                    .filter(option -> "PERFORMANCE".equals(option.getOptionType())
+                                            && sub.getCode().equals(option.getParentOptionCode()))
+                                    .map(this::toPerformanceOption)
+                                    .toList()))
+                    .toList();
+            List<PerformanceOptionSummary> mainPerformances = behaviorOptions.stream()
+                    .filter(option -> "PERFORMANCE".equals(option.getOptionType())
+                            && option.getParentOptionCode() == null)
+                    .map(this::toPerformanceOption)
+                    .toList();
+            return new BehaviorCatalogItem(
+                    behavior.getCode(), behavior.getLabel(), behavior.getModuleCode(), behavior.getModuleLabel(),
+                    behavior.getModuleDisplayOrder(), behavior.getDisplayOrder(),
+                    groups.getOrDefault(behavior.getCode(), List.of()).stream()
+                            .map(group -> new BehaviorGroupSummary(group.getGroupCode(), group.getGroupLabel(),
+                                    group.getGroupDisplayOrder(), group.getItemDisplayOrder(),
+                                    groupStatuses.getOrDefault(group.getGroupCode(), List.of()).stream()
+                                            .map(status -> new BehaviorGroupStatusSummary(status.getCode(),
+                                                    status.getLabel(), status.getDisplayOrder()))
+                                            .toList()))
+                            .toList(),
+                    courses.getOrDefault(behavior.getCode(), List.of()),
+                    environments.getOrDefault(behavior.getCode(), List.of()),
+                    goals.getOrDefault(behavior.getCode(), List.of()).stream()
+                            .map(goal -> new TrainingGoalReference(goal.getStandardNumber(), goal.getGoalText(),
+                                    goal.getSubBehaviorCode()))
+                            .toList(),
+                    subBehaviors,
+                    mainPerformances
+            );
+        }).toList();
+    }
+
+    private Map<String, List<String>> groupRelationCodes(List<BehaviorCatalogRelationEntity> relations) {
+        return relations.stream().collect(Collectors.groupingBy(BehaviorCatalogRelationEntity::getBehaviorCode,
+                LinkedHashMap::new,
+                Collectors.mapping(BehaviorCatalogRelationEntity::getCode, Collectors.toList())));
+    }
+
+    private PerformanceOptionSummary toPerformanceOption(BehaviorCatalogOptionEntity option) {
+        return new PerformanceOptionSummary(option.getCode(), option.getLabel(), option.isRequiresCustomText());
     }
 
     @Transactional
@@ -149,7 +227,11 @@ public class ClassRecordService {
         Long studentId = profileService.requireCurrentStudentId(userId);
         BehaviorRecordEntity entity = requireBehaviorRecord(recordId, studentId);
         List<AssistanceInput> assistances = request.assistances() == null ? List.of() : request.assistances();
-        if (!hasDetailContent(request, assistances)) {
+        List<String> subBehaviorCodes = request.subBehaviorCodes() == null ? List.of()
+                : request.subBehaviorCodes().stream().map(String::strip).toList();
+        List<PerformanceSelectionInput> performanceSelections = request.performanceSelections() == null
+                ? List.of() : request.performanceSelections();
+        if (!hasDetailContent(request, assistances, subBehaviorCodes, performanceSelections)) {
             throw validation("详细记录至少需要填写一项内容");
         }
 
@@ -171,6 +253,43 @@ public class ClassRecordService {
                 throw notFound("辅助方式不存在：" + assistanceCode);
             }
         }
+        Map<String, BehaviorCatalogOptionEntity> catalogOptions = mapper
+                .findCatalogOptionsByBehavior(entity.getBehaviorCode()).stream()
+                .collect(Collectors.toMap(BehaviorCatalogOptionEntity::getCode, Function.identity()));
+        Set<String> selectedSubBehaviors = new HashSet<>();
+        for (String optionCode : subBehaviorCodes) {
+            if (!selectedSubBehaviors.add(optionCode)) {
+                throw validation("子行为不能重复");
+            }
+            BehaviorCatalogOptionEntity option = catalogOptions.get(optionCode);
+            if (option == null || !"SUB_BEHAVIOR".equals(option.getOptionType())) {
+                throw validation("子行为选项不属于当前行为：" + optionCode);
+            }
+        }
+        Set<String> selectedPerformances = new HashSet<>();
+        Map<String, String> performanceCustomTexts = new LinkedHashMap<>();
+        for (PerformanceSelectionInput selection : performanceSelections) {
+            String optionCode = selection.optionCode().strip();
+            if (!selectedPerformances.add(optionCode)) {
+                throw validation("行为表现选项不能重复");
+            }
+            BehaviorCatalogOptionEntity option = catalogOptions.get(optionCode);
+            if (option == null || !"PERFORMANCE".equals(option.getOptionType())) {
+                throw validation("行为表现选项不属于当前行为：" + optionCode);
+            }
+            if (option.getParentOptionCode() != null
+                    && !selectedSubBehaviors.contains(option.getParentOptionCode())) {
+                throw validation("选择子行为状态前必须先选择对应子行为：" + option.getParentOptionCode());
+            }
+            String customText = normalizeOptionalText(selection.customText());
+            if (option.isRequiresCustomText() && customText == null) {
+                throw validation("“其它”行为表现必须填写自定义内容：" + optionCode);
+            }
+            if (!option.isRequiresCustomText() && customText != null) {
+                throw validation("非“其它”行为表现不能填写自定义内容：" + optionCode);
+            }
+            performanceCustomTexts.put(optionCode, customText);
+        }
 
         entity.setDurationMinutes(request.durationMinutes());
         entity.setStageCode(stageCode);
@@ -185,10 +304,19 @@ public class ClassRecordService {
             mapper.insertAssistance(recordId, assistance.code().strip(),
                     normalizeOptionalText(assistance.content()));
         }
+        mapper.deleteCatalogSelections(recordId);
+        for (String optionCode : subBehaviorCodes) {
+            mapper.insertCatalogSelection(recordId, optionCode, null);
+        }
+        for (Map.Entry<String, String> selection : performanceCustomTexts.entrySet()) {
+            mapper.insertCatalogSelection(recordId, selection.getKey(), selection.getValue());
+        }
         return getBehaviorDetail(recordId, studentId);
     }
 
-    private boolean hasDetailContent(SaveBehaviorDetailsRequest request, List<AssistanceInput> assistances) {
+    private boolean hasDetailContent(SaveBehaviorDetailsRequest request, List<AssistanceInput> assistances,
+                                     List<String> subBehaviorCodes,
+                                     List<PerformanceSelectionInput> performanceSelections) {
         return request.durationMinutes() != null
                 || hasText(request.stageCode())
                 || hasText(request.antecedentText())
@@ -196,7 +324,9 @@ public class ClassRecordService {
                 || hasText(request.consequenceText())
                 || hasText(request.functionCode())
                 || !assistances.isEmpty()
-                || hasText(request.assistanceResultText());
+                || hasText(request.assistanceResultText())
+                || !subBehaviorCodes.isEmpty()
+                || !performanceSelections.isEmpty();
     }
 
     private boolean hasText(String value) {
@@ -240,8 +370,9 @@ public class ClassRecordService {
                                                       String behaviorCode, LocalDateTime occurredAt) {
         Long studentId = profileService.requireCurrentStudentId(userId);
         ClassRecordEntity classRecord = requireClassRecord(classRecordId, studentId);
-        if (!mapper.existsBehaviorOption(classRecord.getCourseCode(), behaviorCode)) {
-            throw validation("该课程未配置此行为卡片");
+        if (!mapper.existsBehaviorOption(classRecord.getCourseCode(), classRecord.getEnvironmentCode(),
+                behaviorCode)) {
+            throw validation("该课程和环境未配置此行为卡片");
         }
         BehaviorRecordEntity entity = new BehaviorRecordEntity();
         entity.setClassRecordId(classRecordId);
@@ -250,7 +381,8 @@ public class ClassRecordService {
         entity.setBehaviorCode(behaviorCode);
         mapper.insertBehaviorRecord(entity);
         entity.setDetailSaved(false);
-        BehaviorCardSummary card = mapper.findBehaviorCards(classRecordId, classRecord.getCourseCode()).stream()
+        BehaviorCardSummary card = mapper.findBehaviorCards(classRecordId, classRecord.getCourseCode(),
+                        classRecord.getEnvironmentCode()).stream()
                 .filter(value -> behaviorCode.equals(value.getBehaviorCode()))
                 .findFirst()
                 .map(this::toCard)
@@ -260,7 +392,8 @@ public class ClassRecordService {
 
     private ClassRecordDetail getDetail(Long classRecordId, Long studentId) {
         ClassRecordEntity entity = requireClassRecord(classRecordId, studentId);
-        List<BehaviorCardSummary> cards = mapper.findBehaviorCards(classRecordId, entity.getCourseCode()).stream()
+        List<BehaviorCardSummary> cards = mapper.findBehaviorCards(classRecordId, entity.getCourseCode(),
+                        entity.getEnvironmentCode()).stream()
                 .map(this::toCard)
                 .toList();
         return new ClassRecordDetail(entity.getId(), entity.getRecordDate(), entity.getCourseCode(),
@@ -274,11 +407,22 @@ public class ClassRecordService {
         List<AssistanceDetail> assistances = mapper.findAssistances(recordId).stream()
                 .map(value -> new AssistanceDetail(value.getCode(), value.getContent(), value.getLabel(), value.getGroup()))
                 .toList();
+        List<CatalogSelectionEntity> selections = mapper.findCatalogSelections(recordId);
+        List<String> subBehaviorCodes = selections.stream()
+                .filter(value -> "SUB_BEHAVIOR".equals(value.getOptionType()))
+                .map(CatalogSelectionEntity::getOptionCode)
+                .toList();
+        List<PerformanceSelectionDetail> performanceSelections = selections.stream()
+                .filter(value -> "PERFORMANCE".equals(value.getOptionType()))
+                .map(value -> new PerformanceSelectionDetail(value.getOptionCode(), value.getLabel(),
+                        value.getParentOptionCode(), value.getCustomText()))
+                .toList();
         return new BehaviorRecordDetail(entity.getId(), entity.getClassRecordId(), entity.getBehaviorCode(),
                 entity.getBehaviorLabel(), toOffset(entity.getOccurredAt()), entity.isDetailSaved(),
                 entity.getDurationMinutes(), entity.getStageCode(), entity.getStageLabel(),
                 entity.getAntecedentText(), entity.getBehaviorDescription(), entity.getConsequenceText(),
-                entity.getFunctionCode(), entity.getFunctionLabel(), assistances, entity.getAssistanceResultText());
+                entity.getFunctionCode(), entity.getFunctionLabel(), assistances, entity.getAssistanceResultText(),
+                subBehaviorCodes, performanceSelections);
     }
 
     private ClassRecordEntity requireClassRecord(Long id, Long studentId) {

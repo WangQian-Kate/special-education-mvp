@@ -6,11 +6,11 @@
 
 | 内容 | 当前状态 |
 |---|---|
-| OpenAPI 契约 | `0.10.0`，共 24 个接口 |
+| OpenAPI 契约 | `0.11.0`，共 24 个接口 |
 | Java 实现 | 已完成，按前端页面分包 |
-| MySQL | `special_ed_assistant` 已迁移到 `2.5.0`，内置 16 项课程、7 项环境、4 项行为功能和 165 项标准目标 |
-| 自动化测试 | 6 个数据库集成场景覆盖全部 24 个接口，已通过 |
-| Apifox | 需将 0.10.0 重新导入现有新版模块 |
+| MySQL | `special_ed_assistant` 已迁移到 `2.6.0`，内置 100 个标准行为及完整子行为/状态映射 |
+| 自动化测试 | 7 个数据库集成场景覆盖全部 24 个接口，已通过 |
+| Apifox | 需将 0.11.0 重新导入现有新版模块 |
 
 ## 页面模块
 
@@ -36,13 +36,15 @@ src/main/java/com/specialed/assistant/api/
 
 详细契约见：
 
-- `docs/openapi.yaml`：OpenAPI 0.10.0 统一契约。
+- `docs/openapi.yaml`：OpenAPI 0.11.0 统一契约。
+- `docs/behavior-catalog.json`：由确认版 Markdown 自动生成的行为目录交换文件。
 - `docs/接口文档.md`：中文接口总览。
 - `docs/api/`：按页面拆分的中文接口说明。
 - `../docs/design/member-b-v2-data-model.md`：V2 数据模型。
 - `../docs/design/member-b-v2-api-design.md`：V2 API 总设计。
 - `../docs/design/member-b-v2-database-migration.md`：迁移方案和正式迁移记录。
 - `../docs/design/member-b-v2-implementation-verification.md`：本次实现与验收报告。
+- `../docs/design/member-b-2026-07-22-behavior-catalog-report.md`：行为目录与状态栏实施报告。
 
 ## 技术环境
 
@@ -134,8 +136,9 @@ Invoke-RestMethod http://localhost:3000/api/health
 | `sql/migrate-v2.3-assistance-validation.sql` | V2.2.0 替换辅助方式字典并允许辅助内容为空 |
 | `sql/migrate-v2.4-behavior-functions.sql` | V2.3.0 增加 4 项行为功能字典 |
 | `sql/migrate-v2.5-course-environment-dictionaries.sql` | V2.4.0 收敛为 16 项课程和 7 项环境字典 |
+| `sql/migrate-v2.6-behavior-catalog.sql` | V2.5.0 增加标准行为目录、分组、状态和训练目标关联结构 |
 
-正式本地数据库已升级到 `2.5.0`、共 18 张表，并包含 3 名白名单教师、6 名绑定学生、16 项课程、7 项环境、4 项行为功能和编号连续的 165 项标准训练目标。应用账号只需要 `special_ed_assistant.*` 上的 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。
+正式本地数据库已升级到 `2.6.0`、共 27 张表，并包含 3 名白名单教师、6 名绑定学生、16 项课程、7 项环境、4 项行为功能、100 个主行为、88 个子行为、531 个表现/状态选项、28 个分组、3 个分组状态栏选项和编号连续的 165 项标准训练目标。应用账号只需要 `special_ed_assistant.*` 上的 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。
 
 `seed.sql` 只用于本地开发，不应直接用于生产数据环境。
 
@@ -145,6 +148,9 @@ Invoke-RestMethod http://localhost:3000/api/health
 - 一条行为记录代表一次发生，次数按记录条数统计。
 - 快速记录时间由后端生成；补记必须提交过去的发生时间。
 - A、B、C 使用自由文本。
+- 行为卡片由课程和环境共同筛选；`ALL_DAY_SUMMARY` 忽略课程限制，但仍按环境筛选。
+- 行为目录使用稳定编码 `B001-B100`，并返回模块、分组、推荐课程/环境、训练目标、子行为和可多选状态。
+- 详细记录可保存标准子行为和状态选项；状态必须属于当前主行为，“其它”必须填写自定义文本。
 - 辅助方式限定为 9 项稳定 code，勾选后可不填写补充内容。
 - 详细记录任意一项有值即可保存，全部为空时拒绝；首次保存成功后 `detailSaved` 永久保持为 `true`。
 - 日记录可编辑；周记录和月记录只读。
