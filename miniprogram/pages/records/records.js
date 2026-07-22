@@ -134,8 +134,9 @@ Page({
     var cards = detail.behaviorCards || [];
     var countPromises = cards.map(function (c) {
       if (!c.count) return Promise.resolve({ code: c.behaviorCode, counts: {} });
+      var beh = that._findBehaviorByCode(c.behaviorCode);
       return recordApi.listBehaviorRecords(id, c.behaviorCode).then(function (recs) {
-        var counts = that._countByStatus(recs || []);
+        var counts = that._countByStatus(recs || [], beh);
         return { code: c.behaviorCode, counts: counts };
       }).catch(function () { return { code: c.behaviorCode, counts: {} }; });
     });
@@ -173,13 +174,31 @@ Page({
     });
   },
 
-  _countByStatus(recs) {
-    var counts = { incomplete: 0, assisted: 0, independent: 0 };
+  _countByStatus(recs, beh) {
+    var hasSub = beh && beh.subBehaviors && beh.subBehaviors.length;
+    if (!hasSub) {
+      var counts = { incomplete: 0, assisted: 0, independent: 0 };
+      (recs || []).forEach(function (r) {
+        var st = (r.statusCode || 'incomplete').toLowerCase();
+        if (st !== 'incomplete' && st !== 'assisted' && st !== 'independent') st = 'incomplete';
+        counts[st] = (counts[st] || 0) + 1;
+      });
+      return counts;
+    }
+    // 有子行为：按子行为名称拆分计数
+    var subMap = {};
+    beh.subBehaviors.forEach(function (s) { subMap[s.code] = s.name; });
+    var counts = {};
+    beh.subBehaviors.forEach(function (s) {
+      counts[s.name] = { incomplete: 0, assisted: 0, independent: 0 };
+    });
     (recs || []).forEach(function (r) {
       var st = (r.statusCode || 'incomplete').toLowerCase();
       if (st !== 'incomplete' && st !== 'assisted' && st !== 'independent') st = 'incomplete';
-      // 简易计数：暂不拆分子行为
-      counts[st] = (counts[st] || 0) + 1;
+      var subName = subMap[r.subBehaviorCode] || (r.subBehaviorCode || '');
+      if (subName && counts[subName]) {
+        counts[subName][st] = (counts[subName][st] || 0) + 1;
+      }
     });
     return counts;
   },
@@ -191,6 +210,10 @@ Page({
       }
     }
     return null;
+  },
+
+  _findBehaviorByCode(code) {
+    return this._findOldBehavior(code);
   },
 
   async resetToEmpty(courseCode) {

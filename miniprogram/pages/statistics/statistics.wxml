@@ -26,7 +26,7 @@
     <view class="card section" wx:if="{{dailyBars.length}}">
       <view class="block-title">行为频次统计</view>
       <view class="chart-box">
-        <ec-canvas id="bar-chart" canvas-id="bar-chart" ec="{{ecBar}}"></ec-canvas>
+        <ec-canvas id="bar-chart" canvas-id="bar-chart" ec="{{ecDaily}}"></ec-canvas>
       </view>
       <!-- 百分比标签 -->
       <view class="pct-row">
@@ -57,7 +57,10 @@
     </view>
 
     <view class="card section" wx:if="{{items.length}}">
-      <view class="block-title">行为趋势{{view === 'weekly' ? '对比' : ''}}</view>
+      <view class="block-title">行为频次{{view === 'weekly' ? '（红=上升 绿=下降 蓝=平稳）' : ''}}</view>
+      <view class="chart-box" wx:if="{{view === 'weekly'}}">
+        <ec-canvas id="weekly-chart" canvas-id="weekly-chart" ec="{{ecWeekly}}"></ec-canvas>
+      </view>
       <view class="trend-list">
         <view wx:for="{{items}}" wx:key="behaviorCode" class="tr-row">
           <text class="tr-name">{{item.behaviorLabel}}</text>

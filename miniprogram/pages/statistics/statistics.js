@@ -5,13 +5,22 @@ const { POSITIVE_BEHAVIOR_CODES } = require('../../utils/constants');
 const { today } = require('../../utils/datetime');
 
 // ECharts 实例（全局持有，数据变化时 setOption）
-var chartInstance = null;
+var dailyChart = null;
+var weeklyChart = null;
 
-function initBarChart(canvas, width, height, dpr) {
+function initDailyChart(canvas, width, height, dpr) {
   var echarts = require('../../components/ec-canvas/echarts');
   var chart = echarts.init(canvas, null, { width: width, height: height, devicePixelRatio: dpr });
   canvas.setChart(chart);
-  chartInstance = chart;
+  dailyChart = chart;
+  return chart;
+}
+
+function initWeeklyChart(canvas, width, height, dpr) {
+  var echarts = require('../../components/ec-canvas/echarts');
+  var chart = echarts.init(canvas, null, { width: width, height: height, devicePixelRatio: dpr });
+  canvas.setChart(chart);
+  weeklyChart = chart;
   return chart;
 }
 
@@ -26,8 +35,9 @@ Page({
     dailyBars: [],
     dailyMaxCount: 1,
     aiCards: [],
-    // ECharts（日报柱状图）
-    ecBar: { onInit: initBarChart }
+    // ECharts
+    ecDaily: { onInit: initDailyChart },
+    ecWeekly: { onInit: initWeeklyChart }
   },
 
   onShow() {
@@ -77,13 +87,20 @@ Page({
   },
 
   _updateChart(view, items) {
-    if (view !== 'daily' || !chartInstance) return;
+    var chart = view === 'daily' ? dailyChart : weeklyChart;
+    if (!chart || !items || !items.length) return;
     var names = items.map(function (i) { return i.behaviorLabel; });
     var values = items.map(function (i) { return i.count; });
-    chartInstance.setOption({
-      xAxis: { type: 'category', data: names, axisLabel: { fontSize: 10, color: '#9ca3af' }, axisLine: { lineStyle: { color: '#e5e7eb' } } },
-      yAxis: { type: 'value', minInterval: 1, axisLabel: { fontSize: 10, color: '#9ca3af' }, splitLine: { lineStyle: { color: '#f3f4f6' } } },
-      series: [{ type: 'bar', data: values, barWidth: 18, itemStyle: { borderRadius: [4, 4, 0, 0], color: '#5B9BD5' } }],
+    var colors = items.map(function (i) {
+      if (i.trendDirection === 'UP') return '#ef4444';
+      if (i.trendDirection === 'DOWN') return '#22c55e';
+      return '#5B9BD5';
+    });
+    var maxVal = Math.max.apply(null, values.concat([1]));
+    chart.setOption({
+      xAxis: { type: 'category', data: names, axisLabel: { fontSize: 10, color: '#9ca3af', rotate: names.length > 6 ? 30 : 0 }, axisLine: { lineStyle: { color: '#e5e7eb' } } },
+      yAxis: { type: 'value', minInterval: 1, max: maxVal < 5 ? 5 : null, axisLabel: { fontSize: 10, color: '#9ca3af' }, splitLine: { lineStyle: { color: '#f3f4f6' } } },
+      series: [{ type: 'bar', data: values, barWidth: 18, itemStyle: { borderRadius: [4, 4, 0, 0], color: function (p) { return colors[p.dataIndex]; } } }],
       grid: { left: 40, right: 16, top: 16, bottom: 28 }
     });
   },
