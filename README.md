@@ -49,3 +49,9 @@ npm run lint
 ```
 
 用微信开发者工具打开项目根目录即可预览。
+
+## 协作文档与模拟数据
+
+- 项目协作文档见 `docs/`
+- 项目总文档见 `docs/project-documentation.md`
+- 测试与 AI 模拟数据见 `mock/`

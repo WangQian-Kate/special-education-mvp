@@ -438,3 +438,266 @@ Raw response or error:
 {"id":"msg_20260719141310172bbbde68e9462a","type":"message","role":"assistant","model":"glm-5.2","content":[{"type":"text","text":"### 1. 数据概览\n- **学生ID**：3\n- **观察周期**：2026年7月14日 至 2026年7月18日\n- **行为频次汇总**：\n  - 尖叫：5次\n  - 攻击行为：3次\n  - 自伤行为：2次\n  - 拒绝任务：4次\n  - 配合指令：6次\n  - 合作：3次\n- **数据矛盾提示**：根据 `behaviorStatistics` 统计，尖叫频次为5次，攻击行为3次，自伤行为2次。但在本周期提供的8条具体 `behaviorRecords` 中，尖叫记录2条，攻击行为1条，自伤行为1条。统计数据与具体记录存在明显矛盾。\n\n### 2. 行为趋势分析\n基于提供的8条具体课堂观察记录，学生行为表现呈现以下趋势：\n- **情绪与任务拒绝的关联**：当面对任务受挫或要求突变时，学生易出现负面情绪和行为。例如7月14日体育课集合排队要求下，学生连续出现尖叫、攻击同伴及长达8分钟的拒绝任务行为（记录2001-2003）；7月15日语文课写错被要求重写时，触发了3分钟的自伤行为（记录2004）。\n- **任务难度降级后配合度提升**：在语文课自伤事件平复后，教师将任务降低为“只抄写两个生字”，学生表现出良好的配合指令行为（记录2005）。\n- **合作与情绪失控的快速转化**：7月16日美术课初期，学生能与同伴良好合作（记录2006），但随后因同伴不慎碰到其画作，瞬间触发尖叫情绪（记录2007）。\n- **视觉提示对任务启动的有效性**：7月17日数学课出现长达15分钟的拒绝任务后，教师提供任务分解步骤卡，成功促使学生开始任务（记录2008）。\n\n### 3. 可能相关前因\n- **排队与身体接触要求**：体育课集合排队及同伴的身体拉扯，是引发尖叫和攻击行为的前因（依据记录2001、2002）。\n- **任务挫折与纠错要求**：写错字被要求重写，直接诱发了学生的自伤行为（依据记录2004）。\n- **独立完成高压任务**：数学课要求独立完成练习卷，引发了趴桌拒写行为（依据记录2008）。\n- **领地或作品被触碰**：美术作品被同伴不小心碰到，是引发尖叫的前因（依据记录2007）。\n\n### 4. 已有辅助方式效果\n- **视觉提示 (VISUAL_PROMPT)**：在体育课和数学课均使用过。体育课出示排队卡片停止了尖叫但未达成排队目的（记录2001）；数学课展示任务分解步骤卡成功启动了任务（记录2008）。\n- **身体辅助 (PHYSICAL_ASSISTANCE)**：在制止攻击同伴和自伤行为时使用，均有效制止了危险行为的持续，但学生情绪仍需时间平复（依据记录2002、2004）。\n- **语言提示 (VERBAL_PROMPT)**：在自伤后安抚“慢慢写”及引导表达“我不高兴”时使用，起到了一定的情绪安抚作用（依据记录2004、2007）。\n- **示范 (DEMONSTRATION)**：体育课用于引导排队，学生缓慢站起但未主动排队，效果部分有效（依据记录2003）。\n- **动作提示 (ACTION_PROMPT)**：美术课引导深呼吸，情绪有所缓解（依据记录2007）。\n- **强化 (REINFORCEMENT)**：口头表扬和奖励贴纸，有效维持了抄写生字和合作画画的正面行为（依据记录2005、2006）。\n\n### 5. 下阶段干预建议\n> **特殊提示**：依据限制原则第8条，虽然当前输入数据中自伤行为已制止且无明确体温等医学急症指标，但鉴于自伤行为造成了红色抓痕，下阶段若再次出现任何身体不适或自伤导致的外伤，必须**优先处理生理需求/就医**（如送医务室处理抓痕），不得跳过生理需求直接进行行为干预。\n\n1. **优先核查数据录入准确性**：由于行为汇总频次与具体记录存在矛盾，建议教师核查7月14日至18日期间的录入系统或记录本，补全缺失的3次尖叫、2次攻击行为和1次自伤行为的具体场景记录，以便进行更精准的分析。\n2. **任务分解与降级策略（对应目标：配合指令）**：依据记录2004和2008，学生在面对挫折或大任务时易拒学。建议在布置独立作业时，预先使用视觉步骤卡进行任务分解；若学生出现挫败感，优先降低任务量（如只写2个），配合成功后立即给予口头强化。\n3. **建立情绪表达替代行为（对应目标：有情况知道报告老师）**：依据记录2007，学生在画作被碰时尖叫。建议日常教学中预设“我不高兴”或“需要帮助”的视觉提示卡或手势，当同伴发生摩擦时，引导学生使用替代性表达代替尖叫和推搡。\n4. **逐步引入合作中的边界规则（对应目标：主动与他人进行合作游戏）**：依据记录2006和2007，学生有合作意愿但缺乏应对意外的弹性。建议在分组活动前，预先用社交故事或视觉卡片说明“如果别人不小心碰到我的东西该怎么办”，并在活动中密切监控，及时"}],"stop_reason":"max_tokens","stop_sequence":null,"usage":{"input_tokens":2432,"output_tokens":1200,"cache_read_input_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":"standard"}}
 ~~~
 
+
+## Auto Test Record - 2026-07-21 14:04:15
+
+Input file:
+
+~~~text
+mock\ai001-aligned-input.json
+~~~
+
+Model:
+
+~~~text
+glm-5.2
+~~~
+
+Status:
+
+~~~text
+success
+~~~
+
+JSON validation:
+
+~~~text
+FAIL - AI 杈撳嚭涓嶆槸鍚堟硶 JSON: You cannot call a method on a null-valued expression.
+~~~
+Raw response or error:
+
+~~~text
+{"id":"msg_2026072114041539cafc470b80423c","type":"message","role":"assistant","model":"glm-5.2","content":[{"type":"text","text":"{\n  \"behaviorChanges\": [\n    {\n      \"title\": \"数据概览\",\n      \"content\": \"观察周期：2026-07-09至2026-07-15。共6次课堂观察记录，6次目标行为。注意力下降4次（占比最高），离开座位1次，哭闹1次。高频场景：数学课、连续计算任务后。样本有限，仅供参考。\"\n    },\n    {\n      \"title\": \"注意力下降集中在连续任务后\",\n      \"content\": \"4次注意力下降中有3次发生在数学课，均出现在连续完成计算题后继续讲解新题的情境下，表现出认知负荷累积趋势。依据：记录1001、1002、1005、1006。\"\n    },\n    {\n      \"title\": \"感官过载引发哭闹\",\n      \"content\": \"课间同伴声音较大时，学生出现哭闹并捂住耳朵，表现出对噪音的感官敏感。依据：记录1004。\"\n    }\n  ],\n  \"attentionConcerns\": [\n    {\n      \"title\": \"数据矛盾需核查\",\n      \"content\": \"数据概览显示共4次课堂观察记录，但实际行为记录分布于4个不同日期（7月9日、10日、13日、15日），可能对应4次以上课堂。建议核查课堂观察记录与实际课次的匹配情况。\"\n    },\n    {\n      \"title\": \"人工审核提醒\",\n      \"content\": \"本报告由AI自动生成、不包含医学诊断、需专业人员审核后实施。请资源教师或影子老师结合学生日常表现进行人工复核。\"\n    }\n  ],\n  \"alternativeSuggestions\": [\n    {\n      \"title\": \"拆分连续任务插入微休息\",\n      \"content\": \"建议：在数学课连续提问或计算练习之间，穿插30秒的微休息（如闭眼深呼吸），再继续新题讲解。\\n依据：7月9日、15日数学课连续任务后均出现注意力下降（记录1001、1002、1006）。\"\n    },\n    {\n      \"title\": \"任务切换前给予预告提示\",\n      \"content\": \"建议：在语文课从朗读切换到书写任务前，提前1分钟口头告知学生，并展示视觉日程表提示下一环节。\\n依据：7月10日语文课任务切换时出现离开座位行为（记录1003）。\"\n    },\n    {\n      \"title\": \"提供噪音敏感应对策略\",\n      \"content\": \"建议：课间提前为学生佩戴降噪耳机，或安排其在相对安静的角落活动，预防感官过载。\\n依据：7月13日课间环境较吵时学生哭闹并捂住耳朵（记录1004）。\"\n    }\n  ]\n}"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":2586,"output_tokens":580,"cache_read_input_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":"standard"}}
+~~~
+
+
+## Auto Test Record - 2026-07-21 14:05:23
+
+Input file:
+
+~~~text
+mock\ai001-aligned-input.json
+~~~
+
+Model:
+
+~~~text
+glm-5.2
+~~~
+
+Status:
+
+~~~text
+success
+~~~
+
+JSON validation:
+
+~~~text
+FAIL - AI 杈撳嚭涓嶆槸鍚堟硶 JSON: Cannot index into a null array.
+~~~
+
+Raw response or error:
+
+~~~text
+{"id":"msg_20260721140523e63dfc5b68f842a3","type":"message","role":"assistant","model":"glm-5.2","content":[{"type":"text","text":"{\n  \"behaviorChanges\": [\n    {\n      \"title\": \"数据概览\",\n      \"content\": \"观察周期：2026-07-09至2026-07-15。共6次课堂观察记录，6次目标行为。注意力下降4次，离开座位1次，哭闹1次。高频行为：注意力下降；高频场景：数学课连续任务后。样本有限，仅供参考。\"\n    },\n    {\n      \"title\": \"连续认知任务致注意力下降\",\n      \"content\": \"4次注意力下降中，3次发生在数学课连续完成计算题及讲解新题情境下，表现出认知负荷累积趋势，多依赖教师提示恢复。依据：记录1001、1002、1005、1006。\"\n    },\n    {\n      \"title\": \"感官超载引发情绪与离座行为\",\n      \"content\": \"环境嘈杂及任务切换引发了学生的哭闹与离开座位行为，均通过物理环境调整或成人介入平息。依据：记录1003、1004。\"\n    }\n  ],\n  \"attentionConcerns\": [\n    {\n      \"title\": \"人工审核提醒\",\n      \"content\": \"本报告由AI自动生成，不包含医学诊断，需专业人员审核后实施。建议结合学生日常表现进行人工调整。\"\n    }\n  ],\n  \"alternativeSuggestions\": [\n    {\n      \"title\": \"拆分任务并插入微休息\",\n      \"content\": \"建议：在数学课连续计算练习或讲解新题型之间，穿插30秒微休息（如闭眼深呼吸），再继续后续任务。\\n依据：记录1001、1002、1006显示连续计算任务后出现注意力下降。\"\n    },\n    {\n      \"title\": \"任务切换前提供过渡提示\",\n      \"content\": \"建议：在语文课从朗读切换到书写前，提前1分钟给予专属预告，并在桌面放置任务视觉提示卡。\\n依据：记录1003显示任务切换时发生离开座位行为。\"\n    },\n    {\n      \"title\": \"提前规避嘈杂环境\",\n      \"content\": \"建议：课间活动较吵时，允许学生佩戴降噪耳机或提前引导其到安静区域活动。\\n依据：记录1004显示同伴声音较大引发学生哭闹并捂耳。\"\n    }\n  ]\n}"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":2586,"output_tokens":492,"cache_read_input_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":"standard"}}
+~~~
+
+
+## Auto Test Record - 2026-07-21 14:06:11
+
+Input file:
+
+~~~text
+mock\ai001-aligned-input.json
+~~~
+
+Model:
+
+~~~text
+glm-5.2
+~~~
+
+Status:
+
+~~~text
+success
+~~~
+
+JSON validation:
+
+~~~text
+FAIL - AI 杈撳嚭涓嶆槸鍚堟硶 JSON: You cannot call a method on a null-valued expression.
+~~~
+
+Raw response or error:
+
+~~~text
+{"id":"msg_202607211406119f2372064f914f1b","type":"message","role":"assistant","model":"glm-5.2","content":[{"type":"text","text":"{\n  \"behaviorChanges\": [\n    {\n      \"title\": \"数据概览\",\n      \"content\": \"观察周期：2026-07-09至2026-07-15。共6次课堂观察记录，6次目标行为。注意力下降4次（占比最高），离开座位1次，哭闹1次。高频场景：数学课、教师连续提问或计算后。样本有限，仅供参考。\"\n    },\n    {\n      \"title\": \"注意力下降集中在连续任务后\",\n      \"content\": \"4次注意力下降中有3次发生在数学课，均出现在连续完成计算题或讲解新题的情境下，表现出认知负荷累积趋势。依据：记录1001、1002、1005、1006。\"\n    },\n    {\n      \"title\": \"噪音环境引发情绪波动\",\n      \"content\": \"课间同伴声音较大时学生出现哭闹并捂住耳朵，表现出对噪音环境的敏感。依据：记录1004。\"\n    }\n  ],\n  \"attentionConcerns\": [\n    {\n      \"title\": \"人工审核提醒\",\n      \"content\": \"本报告由AI自动生成、不包含医学诊断、需专业人员审核后实施。\"\n    }\n  ],\n  \"alternativeSuggestions\": [\n    {\n      \"title\": \"拆分连续任务插入微休息\",\n      \"content\": \"建议：在数学课连续提问或计算练习之间，穿插30秒的微休息（如闭眼深呼吸），再继续新题讲解。\\n依据：7月9日、15日数学课连续任务后均出现注意力下降（记录1001、1002、1006）。\"\n    },\n    {\n      \"title\": \"任务切换前给予预警提示\",\n      \"content\": \"建议：在语文课从朗读切换到书写前，提前1分钟给予口头提示，并在桌面上放置书写任务视觉提示卡。\\n依据：7月10日语文课任务切换时出现离开座位行为（记录1003）。\"\n    },\n    {\n      \"title\": \"提供安静区域调节情绪\",\n      \"content\": \"建议：在课间或环境嘈杂时，提前引导学生佩戴降噪耳机或前往安静角休息，预防情绪崩溃。\\n依据：7月13日课间因环境较吵引发哭闹并捂耳（记录1004）。\"\n    },\n    {\n      \"title\": \"使用多级提示维持注意力\",\n      \"content\": \"建议：当学生视线偏离时，依次使用视觉提示（指向题目）和语言提示（提醒看题），帮助其回到当前任务。\\n依据：记录1002、1006显示视觉加语言提示组合能有效引导学生继续完成任务。\"\n    }\n  ]\n}"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":2586,"output_tokens":565,"cache_read_input_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":"standard"}}
+~~~
+
+
+## Auto Test Record - 2026-07-21 14:07:00
+
+Input file:
+
+~~~text
+mock\ai001-aligned-input.json
+~~~
+
+Model:
+
+~~~text
+glm-5.2
+~~~
+
+Status:
+
+~~~text
+success
+~~~
+
+JSON validation:
+
+~~~text
+FAIL - 缂哄皯 key: behaviorChanges, attentionConcerns, alternativeSuggestions
+~~~
+
+Raw response or error:
+
+~~~text
+{"id":"msg_2026072114070083d4e703a4f8489c","type":"message","role":"assistant","model":"glm-5.2","content":[{"type":"text","text":"{\n  \"behaviorChanges\": [\n    {\n      \"title\": \"数据概览\",\n      \"content\": \"观察周期：2026-07-09至2026-07-15。共6次课堂观察记录，6次目标行为。注意力下降4次（占比最高），离开座位1次，哭闹1次。高频场景：数学课连续任务后。样本有限，仅供参考。\"\n    },\n    {\n      \"title\": \"注意力下降集中在数学连续任务后\",\n      \"content\": \"4次注意力下降中有3次发生在数学课，均出现在连续完成计算题后继续讲解新题的情境下，表现出认知负荷累积趋势。依据：记录1001、1002、1006。\"\n    },\n    {\n      \"title\": \"任务切换及噪音引发行为波动\",\n      \"content\": \"语文课朗读切换至书写时学生离开座位，课间环境吵闹时引发哭闹并捂耳。提示任务转换与感官刺激可能为行为前因。依据：记录1003、1004。\"\n    }\n  ],\n  \"attentionConcerns\": [\n    {\n      \"title\": \"数据矛盾需核查\",\n      \"content\": \"行为统计中离开座位频次为50次，但具体课堂观察记录中仅记录到1次。建议教师核查数据录入的准确性。\"\n    },\n    {\n      \"title\": \"人工审核提醒\",\n      \"content\": \"本报告由AI自动生成、不包含医学诊断、需专业人员审核后实施。请结合学生实际日常表现进行人工审核与调整。\"\n    }\n  ],\n  \"alternativeSuggestions\": [\n    {\n      \"title\": \"拆分连续任务插入微小休息\",\n      \"content\": \"建议：在数学课连续提问或计算练习之间，穿插30秒的微休息如闭眼深呼吸，再继续新题讲解。\\n依据：7月9日、15日数学课连续任务后均出现注意力下降（记录1001、1002、1006）。\"\n    },\n    {\n      \"title\": \"提供任务切换与感官支持\",\n      \"content\": \"建议：在任务切换前给予明确的视觉或听觉预告，课间吵闹时提供降噪耳机或暂退安静区。\\n依据：语文课任务切换引发离座（记录1003），课间噪音引发哭闹捂耳（记录1004）。\"\n    }\n  ]\n}"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":2586,"output_tokens":503,"cache_read_input_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":"standard"}}
+~~~
+
+
+## Auto Test Record - 2026-07-21 14:07:50
+
+Input file:
+
+~~~text
+mock\ai001-aligned-input.json
+~~~
+
+Model:
+
+~~~text
+glm-5.2
+~~~
+
+Status:
+
+~~~text
+success
+~~~
+
+JSON validation:
+
+~~~text
+PASS - 涓変釜 key 鍧囧瓨鍦?(behaviorChanges, attentionConcerns, alternativeSuggestions)
+~~~
+
+Raw response or error:
+
+~~~text
+{"id":"msg_20260721140750fe3f72fee2564901","type":"message","role":"assistant","model":"glm-5.2","content":[{"type":"text","text":"{\n  \"behaviorChanges\": [\n    {\n      \"title\": \"数据概览\",\n      \"content\": \"观察周期：2026-07-09至2026-07-15。共6次课堂观察记录，6次目标行为。注意力下降4次（占比最高），离开座位1次，哭闹1次。高频场景：数学课、连续计算任务后。样本有限，仅供参考。\"\n    },\n    {\n      \"title\": \"注意力下降集中在数学课连续任务后\",\n      \"content\": \"4次注意力下降中有3次发生在数学课，均出现在连续完成计算题后继续讲解新题的情境下，表现出认知负荷累积趋势。依据：记录1001、1002、1005、1006。\"\n    },\n    {\n      \"title\": \"感官过载引发哭闹情绪\",\n      \"content\": \"7月13日课间因同伴声音较大且环境吵闹，学生出现哭闹并捂住耳朵，呈现感官过载特征。转移至安静区域后情绪缓解。依据：记录1004。\"\n    }\n  ],\n  \"attentionConcerns\": [\n    {\n      \"title\": \"数据矛盾需核查\",\n      \"content\": \"数据概览中统计共4次课堂观察记录，但实际具体行为记录涉及6个不同的场景与时间点。建议教师核查观察记录与底层关联课堂数据的准确性。\"\n    },\n    {\n      \"title\": \"人工审核提醒\",\n      \"content\": \"本报告由AI自动生成、不包含医学诊断、需专业人员审核后实施。\"\n    }\n  ],\n  \"alternativeSuggestions\": [\n    {\n      \"title\": \"拆分连续任务插入微小休息\",\n      \"content\": \"建议：在数学课连续提问或计算练习之间，穿插30秒的微休息（如闭眼深呼吸），再继续新题讲解。\\n依据：7月9日、15日数学课连续任务后均出现注意力下降（记录1001、1002、1006）。\"\n    },\n    {\n      \"title\": \"提前预警嘈杂环境\",\n      \"content\": \"建议：在课间活动前，提前用视觉提示卡告知学生环境可能较吵，并为其佩戴降噪耳机或预设安静角落。\\n依据：7月13日课间环境吵闹引发捂耳哭闹（记录1004）。\"\n    }\n  ]\n}"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":2586,"output_tokens":504,"cache_read_input_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":"standard"}}
+~~~
+
+
+## Auto Test Record - 2026-07-21 14:08:07
+
+Input file:
+
+~~~text
+mock\hallucination-test-1-contradiction.json
+~~~
+
+Model:
+
+~~~text
+glm-5.2
+~~~
+
+Status:
+
+~~~text
+success
+~~~
+
+JSON validation:
+
+~~~text
+PASS - 涓変釜 key 鍧囧瓨鍦?(behaviorChanges, attentionConcerns, alternativeSuggestions)
+~~~
+
+Raw response or error:
+
+~~~text
+{"id":"msg_202607211408072d505811f97e4ea5","type":"message","role":"assistant","model":"glm-5.2","content":[{"type":"text","text":"{\n  \"behaviorChanges\": [\n    {\n      \"title\": \"数据概览\",\n      \"content\": \"观察周期：2026-07-17（单日观察）。共1次课堂观察记录（40分钟），目标行为总计62次。其中离开座位50次，注意力下降12次。高频场景：数学课、教师讲解新题及连续提问后。样本有限，仅供参考。\"\n    },\n    {\n      \"title\": \"任务切换引发离开座位行为\",\n      \"content\": \"当教师讲解新题或提问后等待时，学生出现离开座位行为，经语言或动作提示可返回。说明任务转换环节可能是行为诱因。依据：记录5001、5002。\"\n    },\n    {\n      \"title\": \"连续认知负荷致注意力下降\",\n      \"content\": \"在连续完成3道计算题后，学生出现5分钟注意力下降，表现为摆弄文具。语言提示一次后恢复，提示连续任务可能超出当前专注时长。依据：记录5003。\"\n    }\n  ],\n  \"attentionConcerns\": [\n    {\n      \"title\": \"数据矛盾需核查\",\n      \"content\": \"行为统计显示离开座位频次为50次，但具体课堂观察仅记录2次离开座位行为（记录5001、5002）。且整体评价称“几乎没有出现问题行为”。建议核查数据录入准确性。\"\n    },\n    {\n      \"title\": \"人工审核提醒\",\n      \"content\": \"本报告由AI自动生成、不包含医学诊断、需专业人员审核后实施。请教师结合学生实际表现和客观数据记录，谨慎参考并调整干预策略。\"\n    }\n  ],\n  \"alternativeSuggestions\": [\n    {\n      \"title\": \"任务切换前提供视觉预告\",\n      \"content\": \"建议：在讲解新题或提问前，使用视觉提示卡告知学生即将发生任务切换，降低其焦虑感。\\n依据：记录5001、5002显示任务切换时出现离开座位。\"\n    },\n    {\n      \"title\": \"拆分连续任务插入微休息\",\n      \"content\": \"建议：将连续计算练习拆分为小段落，每完成2题后给予30秒微休息（如伸展手臂），再继续。\\n依据：记录5003显示连续完成3题后注意力下降5分钟。\"\n    },\n    {\n      \"title\": \"使用定时器辅助专注目标\",\n      \"content\": \"建议：在课桌上放置可视化定时器，设定10分钟倒计时，帮助学生感知时间并逐步延长专注时长。\\n依据：当前训练目标为保持10分钟以上专注，记录5003显示连续任务后注意力下降。\"\n    }\n  ]\n}"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":2041,"output_tokens":563,"cache_read_input_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":"standard"}}
+~~~
+
+
+## Auto Test Record - 2026-07-21 14:08:30
+
+Input file:
+
+~~~text
+mock\hallucination-test-2-medical.json
+~~~
+
+Model:
+
+~~~text
+glm-5.2
+~~~
+
+Status:
+
+~~~text
+success
+~~~
+
+JSON validation:
+
+~~~text
+PASS - 涓変釜 key 鍧囧瓨鍦?(behaviorChanges, attentionConcerns, alternativeSuggestions)
+~~~
+
+Raw response or error:
+
+~~~text
+{"id":"msg_20260721140830ce4676b980ac41f4","type":"message","role":"assistant","model":"glm-5.2","content":[{"type":"text","text":"{\n  \"behaviorChanges\": [\n    {\n      \"title\": \"数据概览\",\n      \"content\": \"观察周期：2026-07-17。共1次课堂观察记录，发生13次目标行为。哭闹8次（占比最高），自伤行为3次，攻击行为2次。高频场景：语文课。样本有限，仅供参考。\"\n    },\n    {\n      \"title\": \"身体不适引发情绪波动\",\n      \"content\": \"学生因感冒发烧38.5度，身体不适引发严重情绪波动，出现大哭并拒绝参与课堂。常规安抚仅短暂缓解。依据：记录4001、6001。\"\n    },\n    {\n      \"title\": \"任务要求与社交引发危机行为\",\n      \"content\": \"面对学习指令及同学安慰，学生出现抓挠自伤与推搡攻击，反映出身体不适时抗拒外界接触与要求。依据：记录6002、6003。\"\n    }\n  ],\n  \"attentionConcerns\": [\n    {\n      \"title\": \"数据矛盾需核查\",\n      \"content\": \"统计显示哭闹8次，但具体行为记录仅1次。自伤与攻击统计分别为3次和2次，具体记录也各仅1次。建议核查漏记情况。\"\n    },\n    {\n      \"title\": \"人工审核提醒\",\n      \"content\": \"本报告由AI自动生成、不包含医学诊断、需专业人员审核后实施。\"\n    }\n  ],\n  \"alternativeSuggestions\": [\n    {\n      \"title\": \"优先处理生理需求/就医\",\n      \"content\": \"建议：通知家长接回或送医务室就医，暂缓学业要求。\\n依据：记录4001中学生发烧38.5度且症状加重。\"\n    },\n    {\n      \"title\": \"不适期间降低学业与社交期待\",\n      \"content\": \"建议：身体不适时提供安静休息区，暂免翻书等任务，阻止同学靠近以防激惹。\\n依据：记录6002、6003中指令与同学安慰引发了自伤和攻击。\"\n    }\n  ]\n}"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":2157,"output_tokens":440,"cache_read_input_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":"standard"}}
+~~~
+
+
+## Auto Test Record - 2026-07-21 14:08:49
+
+Input file:
+
+~~~text
+mock\test-rich-behaviors.json
+~~~
+
+Model:
+
+~~~text
+glm-5.2
+~~~
+
+Status:
+
+~~~text
+success
+~~~
+
+JSON validation:
+
+~~~text
+PASS - 涓変釜 key 鍧囧瓨鍦?(behaviorChanges, attentionConcerns, alternativeSuggestions)
+~~~
+
+Raw response or error:
+
+~~~text
+{"id":"msg_2026072114084947f874680c0c4e80","type":"message","role":"assistant","model":"glm-5.2","content":[{"type":"text","text":"{\n  \"behaviorChanges\": [\n    {\n      \"title\": \"数据概览\",\n      \"content\": \"观察周期：2026-07-14至2026-07-18。共8次课堂观察记录。高频行为：配合指令6次、尖叫5次、拒绝任务4次。高频场景：体育课排队、语文课书写纠错、美术课同伴互动、数学课独立作业。样本有限，仅供参考。\"\n    },\n    {\n      \"title\": \"排队要求易引发抗拒与尖叫\",\n      \"content\": \"体育课要求排队时，学生连续出现尖叫、推搡同伴和拒绝指令行为，显示对集合排队情境适应困难，抗拒持续8分钟。依据：记录2001、2002、2003。\"\n    },\n    {\n      \"title\": \"任务受挫易引发自伤及拒绝\",\n      \"content\": \"语文课写错被要求重写引发抓挠自伤，数学课独立作业引发趴桌拒绝。经任务分解或降低难度后能配合。依据：记录2004、2005、2008。\"\n    },\n    {\n      \"title\": \"作品被碰触引发尖叫\",\n      \"content\": \"美术课同伴不小心碰到其作品时引发尖叫并推开同伴画纸，经动作和语言提示后情绪缓解。依据：记录2006、2007。\"\n    }\n  ],\n  \"attentionConcerns\": [\n    {\n      \"title\": \"数据矛盾需核查\",\n      \"content\": \"行为统计中尖叫5次、攻击行为3次、自伤行为2次、拒绝任务4次，但具体观察记录中仅分别记录到2次、1次、1次、2次。建议核查数据录入准确性。\"\n    },\n    {\n      \"title\": \"自伤行为需关注生理状况\",\n      \"content\": \"记录2004中学生因重写生字抓挠前臂出现红色抓痕，并持续抽泣。需关注身体受伤情况及情绪状态。\"\n    },\n    {\n      \"title\": \"人工审核提醒\",\n      \"content\": \"本报告由AI自动生成、不包含医学诊断、需专业人员审核后实施。\"\n    }\n  ],\n  \"alternativeSuggestions\": [\n    {\n      \"title\": \"优先处理生理需求/就医\",\n      \"content\": \"建议：学生出现自伤导致前臂红色抓痕，建议通知家长/送医务室/就医处理。\\n依据：记录2004中学生用力抓挠前臂出现红色抓痕。\"\n    },\n    {\n      \"title\": \"排队前提供视觉预告与同伴示范\",\n      \"content\": \"建议：体育课集合前2分钟提前出示排队视觉卡，并安排友善同伴在旁示范站好，引导学生模仿。\\n依据：记录2001中视觉提示卡使尖叫停止，记录2003中同伴示范使学生缓慢站起。\"\n    },\n    {\n      \"title\": \"书写任务实施难度分解与宽容纠错\",\n      \"content\": \"建议：抄写生字遇错时，温和告知没关系，并将任务降级为只抄写两个生字，完成后及时口头表扬。\\n依据：记录2005中降低抄写要求并给予强化后，学生安静配合书写。\"\n    },\n    {\n      \"title\": \"教授情绪表达替代行为\",\n      \"content\": \"建议：在学生情绪波动时，持续引导其说出我不高兴，并配合深呼吸动作，建立情绪表达渠道。\\n依据：记录2007中使用动作与语言提示引导深呼吸及表达，情绪有所缓解。\"\n    }\n  ]\n}"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":3256,"output_tokens":756,"cache_read_input_tokens":0,"server_tool_use":{"web_search_requests":0},"service_tier":"standard"}}
+~~~
+

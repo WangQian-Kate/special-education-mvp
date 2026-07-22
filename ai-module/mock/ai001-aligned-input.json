@@ -1,8 +1,8 @@
 {
   "metadata": {
     "purpose": "严格按照接口总文档 AI-001 请求体结构构造的测试输入",
-    "apiVersion": "0.6.0",
-    "source": "接口总文档 AI-001 + 数据字典 v2.2.0",
+    "apiVersion": "0.8.0",
+    "source": "接口总文档 AI-001 + 数据字典 v2.4.0",
     "note": "辅助方式内嵌在 behaviorRecords 中，训练目标包含在内"
   },
   "studentId": 1,
@@ -29,7 +29,7 @@
       "consequenceText": "资源教师语言提示后重新看向黑板。",
       "functionCode": null,
       "assistances": [
-        { "code": "VERBAL_PROMPT", "content": "提示学生看黑板。" }
+        { "code": "VERBAL_ASSISTANCE", "content": "提示学生看黑板。" }
       ],
       "assistanceResultText": "一次语言提示后注意力回到黑板。"
     },
@@ -46,7 +46,7 @@
       "consequenceText": "资源教师使用动作提示指向题目。",
       "functionCode": null,
       "assistances": [
-        { "code": "ACTION_PROMPT", "content": "指向当前题目。" }
+        { "code": "POSITION_ASSISTANCE", "content": "指向当前题目。" }
       ],
       "assistanceResultText": "动作提示后能继续完成一道题。"
     },
@@ -63,7 +63,7 @@
       "consequenceText": "影子老师进行手势提示。",
       "functionCode": null,
       "assistances": [
-        { "code": "ACTION_PROMPT", "content": "示意学生返回座位。" }
+        { "code": "POSITION_ASSISTANCE", "content": "示意学生返回座位。" }
       ],
       "assistanceResultText": "手势提示后返回座位。"
     },
@@ -80,7 +80,7 @@
       "consequenceText": "成人陪同到安静区域进行情绪安抚。",
       "functionCode": null,
       "assistances": [
-        { "code": "REINFORCEMENT", "content": "情绪稳定后给予肯定。" }
+        { "code": "VERBAL_ASSISTANCE", "content": "情绪稳定后给予肯定。" }
       ],
       "assistanceResultText": "安静区域休息后情绪逐渐缓解。"
     },
@@ -97,7 +97,7 @@
       "consequenceText": "影子老师使用语言提示。",
       "functionCode": null,
       "assistances": [
-        { "code": "VERBAL_PROMPT", "content": "提醒学生回到当前任务。" }
+        { "code": "VERBAL_ASSISTANCE", "content": "提醒学生回到当前任务。" }
       ],
       "assistanceResultText": "语言提示后能回到任务。"
     },
@@ -114,8 +114,8 @@
       "consequenceText": "资源教师进行视觉提示和语言提示。",
       "functionCode": null,
       "assistances": [
-        { "code": "VISUAL_PROMPT", "content": "指向题目步骤。" },
-        { "code": "VERBAL_PROMPT", "content": "提醒学生继续书写。" }
+        { "code": "VISUAL_ASSISTANCE", "content": "指向题目步骤。" },
+        { "code": "VERBAL_ASSISTANCE", "content": "提醒学生继续书写。" }
       ],
       "assistanceResultText": "视觉加语言提示后能完成下一步。"
     }

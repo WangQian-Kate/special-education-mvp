@@ -1,11 +1,11 @@
 {
   "metadata": {
     "purpose": "覆盖更多行为类型和辅助方式的测试场景",
-    "apiVersion": "0.6.0",
-    "source": "接口总文档 AI-001 + 数据字典 v2.2.0",
+    "apiVersion": "0.8.0",
+    "source": "接口总文档 AI-001 + 数据字典 v2.4.0",
     "coverageNote": "使用6种行为类型 + 6种辅助方式，验证 AI 对复杂场景的处理能力",
     "behaviorTypesUsed": ["AGGRESSION", "SELF_INJURY", "SCREAM", "TASK_REFUSAL", "FOLLOW_INSTRUCTION", "COOPERATION"],
-    "assistanceTypesUsed": ["VISUAL_PROMPT", "VERBAL_PROMPT", "ACTION_PROMPT", "DEMONSTRATION", "PHYSICAL_ASSISTANCE", "REINFORCEMENT"]
+    "assistanceTypesUsed": ["VISUAL_ASSISTANCE", "VERBAL_ASSISTANCE", "POSITION_ASSISTANCE", "DEMONSTRATION_ASSISTANCE", "FULL_BODY_ASSISTANCE", "ADD_EXTERNAL_OBJECT"]
   },
   "studentId": 3,
   "period": {
@@ -34,7 +34,7 @@
       "consequenceText": "教师使用视觉提示卡引导学生看排队示意图。",
       "functionCode": null,
       "assistances": [
-        { "code": "VISUAL_PROMPT", "content": "出示排队流程视觉卡片。" }
+        { "code": "VISUAL_ASSISTANCE", "content": "出示排队流程视觉卡片。" }
       ],
       "assistanceResultText": "看卡片后尖叫停止，但未排队。"
     },
@@ -51,7 +51,7 @@
       "consequenceText": "教师立即进行身体辅助制止，握住学生双手。",
       "functionCode": null,
       "assistances": [
-        { "code": "PHYSICAL_ASSISTANCE", "content": "立即制止并握住双手防止继续推搡。" }
+        { "code": "FULL_BODY_ASSISTANCE", "content": "立即制止并握住双手防止继续推搡。" }
       ],
       "assistanceResultText": "身体辅助后停止攻击，但仍拒绝排队。"
     },
@@ -68,7 +68,7 @@
       "consequenceText": "教师示范正确排队姿势，并让同伴在旁边示范。",
       "functionCode": null,
       "assistances": [
-        { "code": "DEMONSTRATION", "content": "教师和同伴示范排队站姿。" }
+        { "code": "DEMONSTRATION_ASSISTANCE", "content": "教师和同伴示范排队站姿。" }
       ],
       "assistanceResultText": "示范后学生缓慢站起，但未主动排队。"
     },
@@ -85,8 +85,8 @@
       "consequenceText": "教师立即制止，使用身体辅助握住双手，并语言安抚。",
       "functionCode": null,
       "assistances": [
-        { "code": "PHYSICAL_ASSISTANCE", "content": "立即制止自伤行为，握住双手。" },
-        { "code": "VERBAL_PROMPT", "content": "温和告知'没关系，我们慢慢写'。" }
+        { "code": "FULL_BODY_ASSISTANCE", "content": "立即制止自伤行为，握住双手。" },
+        { "code": "VERBAL_ASSISTANCE", "content": "温和告知'没关系，我们慢慢写'。" }
       ],
       "assistanceResultText": "制止后学生停止抓挠，但持续抽泣。"
     },
@@ -103,7 +103,7 @@
       "consequenceText": "教师给予强化肯定。",
       "functionCode": null,
       "assistances": [
-        { "code": "REINFORCEMENT", "content": "口头表扬'写得很好，进步很大'。" }
+        { "code": "VERBAL_ASSISTANCE", "content": "口头表扬'写得很好，进步很大'。" }
       ],
       "assistanceResultText": "表扬后学生继续安静书写。"
     },
@@ -120,7 +120,7 @@
       "consequenceText": "教师给予强化奖励贴纸。",
       "functionCode": null,
       "assistances": [
-        { "code": "REINFORCEMENT", "content": "奖励贴纸并口头表扬合作行为。" }
+        { "code": "ADD_EXTERNAL_OBJECT", "content": "奖励贴纸并口头表扬合作行为。" }
       ],
       "assistanceResultText": "获得贴纸后持续与同伴合作完成画作。"
     },
@@ -137,8 +137,8 @@
       "consequenceText": "教师使用动作提示引导学生深呼吸。",
       "functionCode": null,
       "assistances": [
-        { "code": "ACTION_PROMPT", "content": "手势引导学生做深呼吸放松。" },
-        { "code": "VERBAL_PROMPT", "content": "语言引导学生说'我不高兴'。" }
+        { "code": "POSITION_ASSISTANCE", "content": "手势引导学生做深呼吸放松。" },
+        { "code": "VERBAL_ASSISTANCE", "content": "语言引导学生说'我不高兴'。" }
       ],
       "assistanceResultText": "深呼吸后情绪有所缓解，未继续攻击。"
     },
@@ -155,7 +155,7 @@
       "consequenceText": "教师使用视觉提示展示任务分解步骤。",
       "functionCode": null,
       "assistances": [
-        { "code": "VISUAL_PROMPT", "content": "展示'先做第1题→举手检查→做第2题'的步骤卡。" }
+        { "code": "VISUAL_ASSISTANCE", "content": "展示'先做第1题→举手检查→做第2题'的步骤卡。" }
       ],
       "assistanceResultText": "看步骤卡后翻回试卷，开始做第1题。"
     }

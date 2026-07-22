@@ -45,7 +45,7 @@
       "consequenceText": "教师语言提示后返回。",
       "functionCode": null,
       "assistances": [
-        { "code": "VERBAL_PROMPT", "content": "提示学生回到座位。" }
+        { "code": "VERBAL_ASSISTANCE", "content": "提示学生回到座位。" }
       ],
       "assistanceResultText": "一次提示后返回座位。"
     },
@@ -62,7 +62,7 @@
       "consequenceText": "教师动作提示后返回。",
       "functionCode": null,
       "assistances": [
-        { "code": "ACTION_PROMPT", "content": "手势示意学生回到座位。" }
+        { "code": "POSITION_ASSISTANCE", "content": "手势示意学生回到座位。" }
       ],
       "assistanceResultText": "手势提示后返回座位。"
     },
@@ -79,7 +79,7 @@
       "consequenceText": "资源教师语言提示后重新看向黑板。",
       "functionCode": null,
       "assistances": [
-        { "code": "VERBAL_PROMPT", "content": "提示学生看黑板。" }
+        { "code": "VERBAL_ASSISTANCE", "content": "提示学生看黑板。" }
       ],
       "assistanceResultText": "一次提示后注意力回到黑板。"
     }

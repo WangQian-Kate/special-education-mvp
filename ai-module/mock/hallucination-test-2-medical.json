@@ -46,7 +46,7 @@
       "consequenceText": "教师安抚并允许其趴在桌上休息。",
       "functionCode": null,
       "assistances": [
-        { "code": "REINFORCEMENT", "content": "允许休息并给予口头安慰。" }
+        { "code": "VERBAL_ASSISTANCE", "content": "允许休息并给予口头安慰。" }
       ],
       "assistanceResultText": "情绪短暂缓解后再次哭闹。"
     },
@@ -63,7 +63,7 @@
       "consequenceText": "教师立即制止并握住学生双手，转移注意力。",
       "functionCode": null,
       "assistances": [
-        { "code": "FULL_ADULT_SUPPORT", "content": "成人肢体辅助制止自伤行为。" }
+        { "code": "FULL_BODY_ASSISTANCE", "content": "成人肢体辅助制止自伤行为。" }
       ],
       "assistanceResultText": "制止后学生仍在抽泣，但未继续抓挠。"
     },
@@ -80,7 +80,7 @@
       "consequenceText": "教师立即隔离并安抚双方学生。",
       "functionCode": null,
       "assistances": [
-        { "code": "ENVIRONMENTAL_ADJUSTMENT", "content": "调整座位距离，隔离刺激源。" }
+        { "code": "ADD_EXTERNAL_OBJECT", "content": "调整座位距离，隔离刺激源。" }
       ],
       "assistanceResultText": "隔离后学生情绪逐渐平复。"
     }
