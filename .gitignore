@@ -1,11 +1,19 @@
+.idea/
+*.iml
+target/
+*.log
+.env
+application-local.yml
+project.private.config.json
+work/
 node_modules/
 miniprogram_npm/
 .DS_Store
 Thumbs.db
-*.log
 dist/
-.idea/
 .vscode/
 
 # AI 模块测试脚本中包含 API Key，不提交
 ai-module/scripts/
+__pycache__/
+backend/backups/

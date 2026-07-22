@@ -1,0 +1,47 @@
+<view class="page">
+  <view class="heading">
+    <text class="title">后端连接测试</text>
+    <text class="subtitle">微信小程序与 Spring Boot 联调</text>
+  </view>
+
+  <view class="status-panel status-{{state}}">
+    <view class="status-row">
+      <view class="status-dot"></view>
+      <text class="status-title">{{stateText}}</text>
+    </view>
+    <text class="status-message">{{message}}</text>
+  </view>
+
+  <view class="detail-section">
+    <text class="section-title">后端 BASE_URL</text>
+    <input
+      class="url-input"
+      value="{{baseUrlInput}}"
+      placeholder="https://隧道域名/api"
+      bindinput="onBaseUrlInput"
+    />
+    <view class="url-actions">
+      <button class="secondary-button" bindtap="useLocalAddress">使用本地地址</button>
+      <button class="primary-button" bindtap="saveAndTest">保存并测试</button>
+    </view>
+  </view>
+
+  <view class="detail-section">
+    <text class="section-title">请求地址</text>
+    <text class="code-text">{{healthUrl}}</text>
+  </view>
+
+  <view class="detail-section" wx:if="{{responseText}}">
+    <text class="section-title">响应包体</text>
+    <text class="response-text" user-select>{{responseText}}</text>
+  </view>
+
+  <button
+    class="test-button"
+    loading="{{state === 'loading'}}"
+    disabled="{{state === 'loading'}}"
+    bindtap="testConnection"
+  >
+    {{state === 'loading' ? '正在测试' : '重新测试'}}
+  </button>
+</view>

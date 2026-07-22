@@ -1,0 +1,1951 @@
+openapi: 3.0.3
+info:
+  title: 特殊教育课堂助手 API
+  version: 0.11.0
+  description: |
+    根据 V2 软件原型重写的接口契约，按“随班记录、训练计划、学生评估、我的、系统”五个页面模块组织。
+    当前采用白名单伪登录，业务接口使用 X-Teacher-Id: t001/t002/t003 确定当前教师；不接收 X-User-Id。
+    所有响应统一使用 { code, message, data } 包体；code 为 0 表示成功。
+    AI 分析、学期报告、导出分享、学生管理、个人资料修改和退出登录暂不包含。
+servers:
+  - url: http://localhost:3000/api
+    description: 本地开发环境
+security: []
+tags:
+  - name: 系统
+    description: 服务状态
+  - name: 我的
+    description: 当前用户、绑定学生和当前学生选择
+  - name: 随班记录
+    description: 课堂信息、行为卡片、快速记录、补记和详细记录
+  - name: 学生评估
+    description: 基于随班记录的日报、周报和月报概况、行为频次及环比趋势
+  - name: 训练计划
+    description: 165 项标准目标库、学生目标分配、自定义目标和即时更新
+
+paths:
+  /health:
+    get:
+      tags: [系统]
+      operationId: health
+      summary: 服务健康检查
+      description: 正式替代 Day3 任务草案中的 GET /api/test，供前端“测试后端连接”和首次联合联调使用。
+      responses:
+        '200':
+          description: 服务正常
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthApiResponse'
+              example:
+                code: 0
+                message: ok
+                data:
+                  status: UP
+
+  /me:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+    get:
+      tags: [我的]
+      operationId: getMyProfile
+      summary: 查询当前用户和当前学生
+      description: |
+        返回个人中心顶部信息。绑定多个学生但尚未选择时，currentStudent 为 null，
+        requiresStudentSelection 为 true。只绑定一个学生时，后端可以自动设为当前学生。
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyProfileApiResponse'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /me/students:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+    get:
+      tags: [我的]
+      operationId: listMyStudents
+      summary: 查询当前用户绑定的学生
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentSummaryListApiResponse'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /me/current-student:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+    put:
+      tags: [我的]
+      operationId: updateCurrentStudent
+      summary: 切换并保存当前学生
+      description: 所选学生必须已经与当前用户绑定。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCurrentStudentRequest'
+            example:
+              studentId: 1
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 切换成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentSummaryApiResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /class-records:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+    get:
+      tags: [随班记录]
+      operationId: listClassRecords
+      summary: 查询指定日期的课堂记录
+      description: 相同日期、课程和环境允许返回多条独立课堂记录。
+      parameters:
+        - $ref: '#/components/parameters/RecordDate'
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassRecordSummaryListApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [随班记录]
+      operationId: createClassRecord
+      summary: 新建一次独立课堂记录
+      description: 当前学生由后端保存的用户上下文确定，不在请求体中发送 studentId 或 creatorId。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClassRecordRequest'
+            example:
+              recordDate: '2026-07-17'
+              courseCode: CHINESE
+              environmentCode: CLASSROOM
+              observationDurationMinutes: 15
+              overallRemark: 今天精神状态较差。
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassRecordDetailApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /class-records/behavior-options:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+    get:
+      tags: [随班记录]
+      operationId: listBehaviorOptions
+      summary: 查询课程和环境对应的标准行为目录
+      parameters:
+        - $ref: '#/components/parameters/CourseCode'
+        - $ref: '#/components/parameters/OptionalEnvironmentCode'
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BehaviorCatalogListApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /class-records/summary:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+    get:
+      tags: [随班记录]
+      operationId: getClassRecordSummary
+      summary: 查询周记录或月记录只读汇总
+      parameters:
+        - name: period
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/ClassRecordSummaryPeriod'
+        - $ref: '#/components/parameters/ReferenceDate'
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BehaviorCountStatisticsApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /class-records/{classRecordId}:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+      - $ref: '#/components/parameters/ClassRecordId'
+    get:
+      tags: [随班记录]
+      operationId: getClassRecord
+      summary: 查询课堂信息和行为卡片次数
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassRecordDetailApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      tags: [随班记录]
+      operationId: updateClassRecord
+      summary: 自动保存课堂信息和整体备注
+      description: 前端输入停止后防抖调用。未出现的字段保持原值，显式 null 清空允许为空的字段。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateClassRecordRequest'
+            example:
+              overallRemark: 下午注意力下降。
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 保存成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassRecordDetailApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /class-records/{classRecordId}/behavior-records/quick:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+      - $ref: '#/components/parameters/ClassRecordId'
+    post:
+      tags: [随班记录]
+      operationId: createQuickBehaviorRecord
+      summary: 快速新增一次行为
+      description: 发生时间由后端按上海时区生成，一次请求只新增一条记录。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQuickBehaviorRequest'
+            example:
+              behaviorCode: B006
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BehaviorCardMutationResultApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /class-records/{classRecordId}/behavior-records/supplement:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+      - $ref: '#/components/parameters/ClassRecordId'
+    post:
+      tags: [随班记录]
+      operationId: createSupplementBehaviorRecord
+      summary: 补记过去发生的一次行为
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSupplementBehaviorRequest'
+            example:
+              behaviorCode: B006
+              occurredAt: '2026-07-17T09:12:45+08:00'
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BehaviorCardMutationResultApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /class-records/{classRecordId}/behavior-records:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+      - $ref: '#/components/parameters/ClassRecordId'
+    get:
+      tags: [随班记录]
+      operationId: listBehaviorRecordTimes
+      summary: 查询某行为的发生时间列表
+      parameters:
+        - $ref: '#/components/parameters/BehaviorCode'
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 按发生时间升序返回
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BehaviorRecordListApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /behavior-records/{recordId}:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+      - $ref: '#/components/parameters/BehaviorRecordId'
+    get:
+      tags: [随班记录]
+      operationId: getBehaviorRecord
+      summary: 查询一条详细记录
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BehaviorRecordDetailApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [随班记录]
+      operationId: deleteBehaviorRecord
+      summary: 删除一条行为记录
+      description: 前端根据记录的 detailSaved 决定是否先显示确认框。
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptyApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /behavior-records/{recordId}/details:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+      - $ref: '#/components/parameters/BehaviorRecordId'
+    put:
+      tags: [随班记录]
+      operationId: saveBehaviorRecordDetails
+      summary: 保存完整详细记录
+      description: |
+        每次保存按请求整体覆盖详细字段。持续时间、行为环节、A/B/C、行为功能、
+        辅助方式或辅助结果至少填写一项；全部为空时返回 400。
+        保存成功后把 detailSaved 永久设为 true。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveBehaviorDetailsRequest'
+            example:
+              durationMinutes: 1
+              antecedentText: 教师开始点名。
+              behaviorDescription: 学生离开座位走向门口。
+              consequenceText: 教师口头提示后返回。
+              assistances:
+                - code: VERBAL_ASSISTANCE
+              assistanceResultText: 一次语言提示后返回座位。
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 保存成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BehaviorRecordDetailApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /student-evaluation/statistics:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+    get:
+      tags: [学生评估]
+      operationId: getStudentEvaluationStatistics
+      summary: 查询日报、周报或月报概况及行为趋势
+      parameters:
+        - name: period
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/EvaluationPeriod'
+        - $ref: '#/components/parameters/ReferenceDate'
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentEvaluationStatisticsApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /training-plan/categories:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+    get:
+      tags: [训练计划]
+      operationId: listTrainingGoalCategories
+      summary: 查询训练目标分类
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingGoalCategoryListApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /training-plan/library:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+    get:
+      tags: [训练计划]
+      operationId: listTrainingGoalLibrary
+      summary: 搜索和筛选标准目标库
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          description: 暂时只对训练目标名称进行模糊匹配
+          schema:
+            type: string
+            maxLength: 100
+        - name: categoryCode
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingGoalLibraryListApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /training-plan/items:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+    get:
+      tags: [训练计划]
+      operationId: listTrainingPlanItems
+      summary: 查询当前学生已分配目标
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 100
+        - name: categoryCode
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/TrainingStatus'
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingPlanItemListApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /training-plan/items/standard:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+    post:
+      tags: [训练计划]
+      operationId: assignStandardTrainingGoals
+      summary: 为当前学生激活标准目标
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignStandardGoalsRequest'
+            example:
+              assignments:
+                - goalId: 101
+                  initialLevel: C
+                - goalId: 102
+                  initialLevel: D
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '201':
+          description: 激活成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingPlanItemListApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '409':
+          $ref: '#/components/responses/ResourceConflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /training-plan/items/custom:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+    post:
+      tags: [训练计划]
+      operationId: createCustomTrainingGoal
+      summary: 创建并分配自定义目标
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomGoalRequest'
+            example:
+              goalText: 在集体课开始前独立准备好教材。
+              initialLevel: C
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingPlanItemApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /training-plan/items/{itemId}:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+      - $ref: '#/components/parameters/TrainingPlanItemId'
+    patch:
+      tags: [训练计划]
+      operationId: updateTrainingPlanItem
+      summary: 即时更新当前等级、阶段或状态
+      description: 学期初等级不允许修改。前端每次下拉变化后立即调用。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTrainingPlanItemRequest'
+            example:
+              currentLevel: D
+              phase: 2
+              status: IN_PROGRESS
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingPlanItemApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [训练计划]
+      operationId: deleteTrainingPlanItem
+      summary: 取消标准目标分配或删除自定义目标
+      parameters:
+        - name: confirmed
+          in: query
+          required: false
+          description: 已产生进度时，前端二次确认后传 true
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptyApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '409':
+          $ref: '#/components/responses/ProgressConfirmationRequired'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  parameters:
+    TeacherIdHeader:
+      name: X-Teacher-Id
+      in: header
+      required: true
+      description: 白名单教师 ID；当前仅允许 t001、t002、t003
+      schema:
+        type: string
+        enum: [t001, t002, t003]
+      example: t001
+    RecordDate:
+      name: recordDate
+      in: query
+      required: true
+      description: 查询的自然日
+      schema:
+        type: string
+        format: date
+    ReferenceDate:
+      name: referenceDate
+      in: query
+      required: true
+      description: 用于计算自然日、自然周或自然月的参考日期
+      schema:
+        type: string
+        format: date
+    ClassRecordId:
+      name: classRecordId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    BehaviorRecordId:
+      name: recordId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    TrainingPlanItemId:
+      name: itemId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    CourseCode:
+      name: courseCode
+      in: query
+      required: true
+      schema:
+        $ref: '#/components/schemas/CourseCodeValue'
+    OptionalEnvironmentCode:
+      name: environmentCode
+      in: query
+      required: false
+      description: 可选；提供后只返回同时推荐给该环境的行为。
+      schema:
+        $ref: '#/components/schemas/EnvironmentCodeValue'
+    BehaviorCode:
+      name: behaviorCode
+      in: query
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+
+  schemas:
+    CourseCodeValue:
+      type: string
+      enum:
+        - CHINESE
+        - MATHEMATICS
+        - ENGLISH
+        - PHYSICAL_EDUCATION
+        - MUSIC
+        - ART
+        - SCIENCE
+        - MORAL_EDUCATION
+        - PHYSICAL_TRAINING
+        - INDIVIDUAL_TRAINING
+        - BREAK
+        - LUNCH
+        - NOON_REST
+        - SELF_STUDY
+        - OTHER
+        - ALL_DAY_SUMMARY
+
+    EnvironmentCodeValue:
+      type: string
+      enum:
+        - CLASSROOM
+        - RESOURCE_CLASSROOM
+        - PLAYGROUND
+        - CORRIDOR
+        - RESTROOM
+        - OFF_CAMPUS
+        - OTHER
+
+    SuccessResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+          enum: [0]
+        message:
+          type: string
+          enum: [ok]
+
+    HealthApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/HealthResponse'
+
+    MyProfileApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/MyProfile'
+
+    StudentSummaryListApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/StudentSummary'
+
+    StudentSummaryApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StudentSummary'
+
+    ClassRecordSummaryListApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ClassRecordSummary'
+
+    ClassRecordDetailApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ClassRecordDetail'
+
+    BehaviorCatalogListApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/BehaviorCatalogItem'
+
+    BehaviorCountStatisticsApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BehaviorCountStatistics'
+
+    StudentEvaluationStatisticsApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/StudentEvaluationStatistics'
+
+    BehaviorCardMutationResultApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BehaviorCardMutationResult'
+
+    BehaviorRecordListApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/BehaviorRecordListItem'
+
+    BehaviorRecordDetailApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BehaviorRecordDetail'
+
+    TrainingGoalCategoryListApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/TrainingGoalCategory'
+
+    TrainingGoalLibraryListApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/TrainingGoalLibraryItem'
+
+    TrainingPlanItemListApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/TrainingPlanItem'
+
+    TrainingPlanItemApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/TrainingPlanItem'
+
+    EmptyApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              nullable: true
+              example: null
+
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [UP]
+
+    ErrorResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+          enum: [40001, 40002, 40101, 40401, 40901, 40902, 50000]
+        message:
+          type: string
+          minLength: 1
+        data:
+          type: object
+          nullable: true
+          example: null
+
+    UserRole:
+      type: string
+      enum: [RESOURCE_TEACHER, SHADOW_TEACHER, PARENT]
+
+    UserProfile:
+      type: object
+      required: [id, teacherId, name, role]
+      properties:
+        id:
+          type: integer
+          format: int64
+        teacherId:
+          type: string
+          enum: [t001, t002, t003]
+        avatar:
+          type: string
+          nullable: true
+          maxLength: 500
+        name:
+          type: string
+        school:
+          type: string
+          nullable: true
+        position:
+          type: string
+          nullable: true
+        role:
+          $ref: '#/components/schemas/UserRole'
+
+    StudentSummary:
+      type: object
+      required: [id, studentCode, name]
+      properties:
+        id:
+          type: integer
+          format: int64
+        studentCode:
+          type: string
+          pattern: '^s[0-9]{3}$'
+        name:
+          type: string
+        gender:
+          type: string
+          nullable: true
+          enum: [MALE, FEMALE]
+        age:
+          type: integer
+          nullable: true
+          minimum: 0
+        className:
+          type: string
+          nullable: true
+        disabilityType:
+          type: string
+          nullable: true
+        remark:
+          type: string
+          nullable: true
+
+    MyProfile:
+      type: object
+      required: [user, requiresStudentSelection]
+      properties:
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        currentStudent:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/StudentSummary'
+          nullable: true
+        requiresStudentSelection:
+          type: boolean
+
+    UpdateCurrentStudentRequest:
+      type: object
+      required: [studentId]
+      properties:
+        studentId:
+          type: integer
+          format: int64
+          minimum: 1
+
+    BehaviorGroupStatusSummary:
+      type: object
+      required: [code, label, displayOrder]
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        displayOrder:
+          type: integer
+
+    BehaviorGroupSummary:
+      type: object
+      required: [code, label, displayOrder, itemDisplayOrder, statusOptions]
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        displayOrder:
+          type: integer
+        itemDisplayOrder:
+          type: integer
+        statusOptions:
+          type: array
+          description: 分组状态栏；无状态栏的普通分组返回空数组。
+          items:
+            $ref: '#/components/schemas/BehaviorGroupStatusSummary'
+
+    PerformanceOptionSummary:
+      type: object
+      required: [code, label, requiresCustomText]
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        requiresCustomText:
+          type: boolean
+
+    SubBehaviorSummary:
+      type: object
+      required: [code, label, displayOrder, performanceOptions]
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        displayOrder:
+          type: integer
+        performanceOptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PerformanceOptionSummary'
+
+    TrainingGoalReference:
+      type: object
+      required: [standardNumber, goalText]
+      properties:
+        standardNumber:
+          type: integer
+          minimum: 11
+          maximum: 165
+        goalText:
+          type: string
+        subBehaviorCode:
+          type: string
+          nullable: true
+
+    BehaviorCatalogItem:
+      type: object
+      required:
+        - code
+        - label
+        - moduleCode
+        - moduleLabel
+        - moduleDisplayOrder
+        - displayOrder
+        - groups
+        - recommendedCourseCodes
+        - recommendedEnvironmentCodes
+        - trainingGoals
+        - subBehaviors
+        - performanceOptions
+      properties:
+        code:
+          type: string
+          pattern: '^B\d{3}$'
+        label:
+          type: string
+        moduleCode:
+          type: string
+        moduleLabel:
+          type: string
+        moduleDisplayOrder:
+          type: integer
+        displayOrder:
+          type: integer
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/BehaviorGroupSummary'
+        recommendedCourseCodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseCodeValue'
+        recommendedEnvironmentCodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnvironmentCodeValue'
+        trainingGoals:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrainingGoalReference'
+        subBehaviors:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubBehaviorSummary'
+        performanceOptions:
+          type: array
+          description: 不隶属于子行为的主行为表现选项。
+          items:
+            $ref: '#/components/schemas/PerformanceOptionSummary'
+
+    CreateClassRecordRequest:
+      type: object
+      required:
+        - recordDate
+        - courseCode
+        - environmentCode
+        - observationDurationMinutes
+      properties:
+        recordDate:
+          type: string
+          format: date
+        courseCode:
+          $ref: '#/components/schemas/CourseCodeValue'
+        courseOtherDescription:
+          type: string
+          nullable: true
+          maxLength: 255
+        environmentCode:
+          $ref: '#/components/schemas/EnvironmentCodeValue'
+        environmentOtherDescription:
+          type: string
+          nullable: true
+          maxLength: 255
+        observationDurationMinutes:
+          type: integer
+          minimum: 1
+          maximum: 1440
+        overallRemark:
+          type: string
+          nullable: true
+          maxLength: 1000
+
+    UpdateClassRecordRequest:
+      type: object
+      minProperties: 1
+      properties:
+        recordDate:
+          type: string
+          format: date
+        courseCode:
+          $ref: '#/components/schemas/CourseCodeValue'
+        courseOtherDescription:
+          type: string
+          nullable: true
+          maxLength: 255
+        environmentCode:
+          $ref: '#/components/schemas/EnvironmentCodeValue'
+        environmentOtherDescription:
+          type: string
+          nullable: true
+          maxLength: 255
+        observationDurationMinutes:
+          type: integer
+          minimum: 1
+          maximum: 1440
+        overallRemark:
+          type: string
+          nullable: true
+          maxLength: 1000
+
+    ClassRecordSummary:
+      type: object
+      required:
+        - id
+        - recordDate
+        - courseCode
+        - courseLabel
+        - environmentCode
+        - environmentLabel
+        - observationDurationMinutes
+      properties:
+        id:
+          type: integer
+          format: int64
+        recordDate:
+          type: string
+          format: date
+        courseCode:
+          $ref: '#/components/schemas/CourseCodeValue'
+        courseLabel:
+          type: string
+        courseOtherDescription:
+          type: string
+          nullable: true
+        environmentCode:
+          $ref: '#/components/schemas/EnvironmentCodeValue'
+        environmentLabel:
+          type: string
+        environmentOtherDescription:
+          type: string
+          nullable: true
+        observationDurationMinutes:
+          type: integer
+        overallRemark:
+          type: string
+          nullable: true
+
+    BehaviorCardSummary:
+      type: object
+      required: [behaviorCode, behaviorLabel, count]
+      properties:
+        behaviorCode:
+          type: string
+        behaviorLabel:
+          type: string
+        count:
+          type: integer
+          format: int64
+          minimum: 0
+        latestRecordId:
+          type: integer
+          format: int64
+          nullable: true
+        latestDetailSaved:
+          type: boolean
+          nullable: true
+
+    ClassRecordDetail:
+      allOf:
+        - $ref: '#/components/schemas/ClassRecordSummary'
+        - type: object
+          required: [behaviorCards]
+          properties:
+            behaviorCards:
+              type: array
+              items:
+                $ref: '#/components/schemas/BehaviorCardSummary'
+
+    CreateQuickBehaviorRequest:
+      type: object
+      required: [behaviorCode]
+      properties:
+        behaviorCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+
+    CreateSupplementBehaviorRequest:
+      type: object
+      required: [behaviorCode, occurredAt]
+      properties:
+        behaviorCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+        occurredAt:
+          type: string
+          format: date-time
+          description: 必须是过去或当前时间，后端统一转换为上海时区
+
+    BehaviorRecordListItem:
+      type: object
+      required: [id, occurredAt, detailSaved]
+      properties:
+        id:
+          type: integer
+          format: int64
+        occurredAt:
+          type: string
+          format: date-time
+        detailSaved:
+          type: boolean
+
+    BehaviorCardMutationResult:
+      type: object
+      required: [record, card]
+      properties:
+        record:
+          $ref: '#/components/schemas/BehaviorRecordListItem'
+        card:
+          $ref: '#/components/schemas/BehaviorCardSummary'
+
+    AssistanceInput:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 64
+          enum:
+            - ADD_EXTERNAL_OBJECT
+            - CHANGE_TARGET_SIZE
+            - FULL_BODY_ASSISTANCE
+            - HALF_BODY_ASSISTANCE
+            - POSTURE_ASSISTANCE
+            - POSITION_ASSISTANCE
+            - VERBAL_ASSISTANCE
+            - DEMONSTRATION_ASSISTANCE
+            - VISUAL_ASSISTANCE
+        content:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: 可选补充内容；缺省、null 或空白字符串均按 null 保存。
+
+    AssistanceDetail:
+      allOf:
+        - $ref: '#/components/schemas/AssistanceInput'
+        - type: object
+          required: [label, group]
+          properties:
+            label:
+              type: string
+            group:
+              type: string
+              enum: [INTERNAL_STIMULUS, EXTERNAL_STIMULUS]
+
+    PerformanceSelectionInput:
+      type: object
+      required: [optionCode]
+      properties:
+        optionCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+        customText:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: 仅 requiresCustomText=true 的“其它”选项允许且必须填写。
+
+    PerformanceSelectionDetail:
+      type: object
+      required: [optionCode, label]
+      properties:
+        optionCode:
+          type: string
+        label:
+          type: string
+        parentSubBehaviorCode:
+          type: string
+          nullable: true
+        customText:
+          type: string
+          nullable: true
+
+    SaveBehaviorDetailsRequest:
+      type: object
+      description: 所有详细字段至少填写一项；数组缺省或为 null 时按空数组处理。
+      properties:
+        durationMinutes:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 1440
+        stageCode:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 64
+        antecedentText:
+          type: string
+          nullable: true
+          maxLength: 1000
+        behaviorDescription:
+          type: string
+          nullable: true
+          maxLength: 1000
+        consequenceText:
+          type: string
+          nullable: true
+          maxLength: 1000
+        functionCode:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 64
+          description: 行为功能稳定编码
+          enum: [ATTENTION, TANGIBLE, ESCAPE, SENSORY]
+        assistances:
+          type: array
+          nullable: true
+          maxItems: 9
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/AssistanceInput'
+        assistanceResultText:
+          type: string
+          nullable: true
+          maxLength: 1000
+        subBehaviorCodes:
+          type: array
+          nullable: true
+          maxItems: 64
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+        performanceSelections:
+          type: array
+          nullable: true
+          maxItems: 64
+          items:
+            $ref: '#/components/schemas/PerformanceSelectionInput'
+
+    BehaviorRecordDetail:
+      type: object
+      required:
+        - id
+        - classRecordId
+        - behaviorCode
+        - behaviorLabel
+        - occurredAt
+        - detailSaved
+        - assistances
+        - subBehaviorCodes
+        - performanceSelections
+      properties:
+        id:
+          type: integer
+          format: int64
+        classRecordId:
+          type: integer
+          format: int64
+        behaviorCode:
+          type: string
+        behaviorLabel:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+        detailSaved:
+          type: boolean
+        durationMinutes:
+          type: integer
+          nullable: true
+        stageCode:
+          type: string
+          nullable: true
+        stageLabel:
+          type: string
+          nullable: true
+        antecedentText:
+          type: string
+          nullable: true
+        behaviorDescription:
+          type: string
+          nullable: true
+        consequenceText:
+          type: string
+          nullable: true
+        functionCode:
+          type: string
+          nullable: true
+          enum: [ATTENTION, TANGIBLE, ESCAPE, SENSORY]
+        functionLabel:
+          type: string
+          nullable: true
+        assistances:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssistanceDetail'
+        assistanceResultText:
+          type: string
+          nullable: true
+        subBehaviorCodes:
+          type: array
+          items:
+            type: string
+        performanceSelections:
+          type: array
+          items:
+            $ref: '#/components/schemas/PerformanceSelectionDetail'
+
+    BehaviorCountItem:
+      type: object
+      required: [behaviorCode, behaviorLabel, count]
+      properties:
+        behaviorCode:
+          type: string
+        behaviorLabel:
+          type: string
+        count:
+          type: integer
+          format: int64
+          minimum: 0
+
+    BehaviorCountStatistics:
+      type: object
+      required: [studentId, periodStart, periodEnd, totalCount, items]
+      properties:
+        studentId:
+          type: integer
+          format: int64
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        totalCount:
+          type: integer
+          format: int64
+          minimum: 0
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BehaviorCountItem'
+
+    EvaluationOverview:
+      type: object
+      required: [observationCourseCount, behaviorRecordCount, abcRecordCount, remarkCount]
+      properties:
+        observationCourseCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 当前周期创建的课堂记录数量
+        behaviorRecordCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 当前周期行为记录总数
+        abcRecordCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 当前周期 detailSaved 为 true 的行为记录数
+        remarkCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 当前周期填写了本周期行为备注的课堂记录数
+
+    BehaviorTrendItem:
+      type: object
+      required: [behaviorCode, behaviorLabel, count, previousCount, trendDirection]
+      properties:
+        behaviorCode:
+          type: string
+        behaviorLabel:
+          type: string
+        count:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 当前周期次数
+        previousCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 上一周期次数
+        changePercent:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: 变化幅度的绝对百分比；上期为 0 且本期大于 0 时返回 null
+        trendDirection:
+          $ref: '#/components/schemas/TrendDirection'
+
+    StudentEvaluationStatistics:
+      type: object
+      required:
+        - studentId
+        - period
+        - periodStart
+        - periodEnd
+        - comparisonStart
+        - comparisonEnd
+        - overview
+        - totalCount
+        - items
+      properties:
+        studentId:
+          type: integer
+          format: int64
+        period:
+          $ref: '#/components/schemas/EvaluationPeriod'
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        comparisonStart:
+          type: string
+          format: date
+          description: 上一统计周期开始日期
+        comparisonEnd:
+          type: string
+          format: date
+          description: 上一统计周期结束日期
+        overview:
+          $ref: '#/components/schemas/EvaluationOverview'
+        totalCount:
+          type: integer
+          format: int64
+          minimum: 0
+        items:
+          type: array
+          description: 当前周期或上一周期至少出现过一次的行为
+          items:
+            $ref: '#/components/schemas/BehaviorTrendItem'
+
+    ClassRecordSummaryPeriod:
+      type: string
+      enum: [WEEKLY, MONTHLY]
+
+    EvaluationPeriod:
+      type: string
+      enum: [DAILY, WEEKLY, MONTHLY]
+
+    TrendDirection:
+      type: string
+      enum: [UP, DOWN, STABLE]
+      description: UP 前端显示红色，DOWN 显示绿色，STABLE 显示灰色
+
+    TrainingStatus:
+      type: string
+      enum: [NOT_STARTED, IN_PROGRESS, COMPLETED, PAUSED]
+
+    TrainingGoalCategory:
+      type: object
+      required: [code, label, displayOrder, custom]
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        displayOrder:
+          type: integer
+          minimum: 0
+        custom:
+          type: boolean
+
+    TrainingGoalLibraryItem:
+      type: object
+      required: [id, standardNumber, categoryCode, categoryLabel, goalText, assigned]
+      properties:
+        id:
+          type: integer
+          format: int64
+        standardNumber:
+          type: integer
+          minimum: 1
+          maximum: 165
+          description: 标准目标业务编号
+        categoryCode:
+          type: string
+        categoryLabel:
+          type: string
+        goalText:
+          type: string
+        assigned:
+          type: boolean
+
+    StandardGoalAssignmentInput:
+      type: object
+      required: [goalId, initialLevel]
+      properties:
+        goalId:
+          type: integer
+          format: int64
+          minimum: 1
+        initialLevel:
+          type: string
+          minLength: 1
+          maxLength: 32
+          description: 具体等级全集待提供
+
+    AssignStandardGoalsRequest:
+      type: object
+      required: [assignments]
+      properties:
+        assignments:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/StandardGoalAssignmentInput'
+
+    CreateCustomGoalRequest:
+      type: object
+      required: [goalText, initialLevel]
+      properties:
+        goalText:
+          type: string
+          minLength: 1
+          maxLength: 500
+        initialLevel:
+          type: string
+          minLength: 1
+          maxLength: 32
+
+    UpdateTrainingPlanItemRequest:
+      type: object
+      minProperties: 1
+      properties:
+        currentLevel:
+          type: string
+          minLength: 1
+          maxLength: 32
+        phase:
+          type: integer
+          enum: [1, 2, 3]
+        status:
+          $ref: '#/components/schemas/TrainingStatus'
+
+    TrainingPlanItem:
+      type: object
+      required:
+        - id
+        - goalId
+        - standardNumber
+        - goalType
+        - categoryCode
+        - categoryLabel
+        - goalText
+        - initialLevel
+        - currentLevel
+        - phase
+        - status
+        - hasProgress
+      properties:
+        id:
+          type: integer
+          format: int64
+        goalId:
+          type: integer
+          format: int64
+        standardNumber:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 165
+          description: 标准目标业务编号；自定义目标为 null
+        goalType:
+          type: string
+          enum: [STANDARD, CUSTOM]
+        categoryCode:
+          type: string
+        categoryLabel:
+          type: string
+        goalText:
+          type: string
+        initialLevel:
+          type: string
+        currentLevel:
+          type: string
+        phase:
+          type: integer
+          enum: [1, 2, 3]
+        status:
+          $ref: '#/components/schemas/TrainingStatus'
+        hasProgress:
+          type: boolean
+
+  responses:
+    UnauthorizedTeacher:
+      description: 缺少或无法识别白名单教师身份
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 40101
+            message: 未识别的教师身份
+            data: null
+    ValidationError:
+      description: 请求参数不合法
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 40001
+            message: 请求参数不合法
+            data: null
+    BusinessValidationError:
+      description: 请求参数不合法，或当前用户尚未选择学生
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            validation:
+              value:
+                code: 40001
+                message: 请求参数不合法
+                data: null
+            currentStudentRequired:
+              value:
+                code: 40002
+                message: 请先选择当前学生
+                data: null
+    ResourceNotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 40401
+            message: 资源不存在
+            data: null
+    ResourceConflict:
+      description: 资源状态冲突
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 40901
+            message: 该训练目标已经分配给当前学生
+            data: null
+    ProgressConfirmationRequired:
+      description: 已产生进度，删除前需要二次确认
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 40902
+            message: 该目标已经产生进度，请确认后再删除
+            data: null
+    InternalError:
+      description: 服务内部错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 50000
+            message: 服务内部错误
+            data: null

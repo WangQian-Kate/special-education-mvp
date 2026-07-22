@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: assistant-backend
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+server:
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  port: ${SERVER_PORT:3000}
+  servlet:
+    context-path: /api
