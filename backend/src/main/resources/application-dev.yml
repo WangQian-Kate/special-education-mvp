@@ -9,3 +9,8 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
 
+# ===== AI 配置 =====
+anthropic:
+  api-key: ${ANTHROPIC_API_KEY:}
+  model: claude-sonnet-5
+  max-tokens: 2048
