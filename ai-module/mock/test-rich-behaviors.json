@@ -1,0 +1,179 @@
+{
+  "metadata": {
+    "purpose": "覆盖更多行为类型和辅助方式的测试场景",
+    "apiVersion": "0.8.0",
+    "source": "接口总文档 AI-001 + 数据字典 v2.4.0",
+    "coverageNote": "使用6种行为类型 + 6种辅助方式，验证 AI 对复杂场景的处理能力",
+    "behaviorTypesUsed": ["AGGRESSION", "SELF_INJURY", "SCREAM", "TASK_REFUSAL", "FOLLOW_INSTRUCTION", "COOPERATION"],
+    "assistanceTypesUsed": ["VISUAL_ASSISTANCE", "VERBAL_ASSISTANCE", "POSITION_ASSISTANCE", "DEMONSTRATION_ASSISTANCE", "FULL_BODY_ASSISTANCE", "ADD_EXTERNAL_OBJECT"]
+  },
+  "studentId": 3,
+  "period": {
+    "startDate": "2026-07-14",
+    "endDate": "2026-07-18"
+  },
+  "behaviorStatistics": [
+    { "behaviorCode": "SCREAM", "behaviorName": "尖叫", "count": 5 },
+    { "behaviorCode": "AGGRESSION", "behaviorName": "攻击行为", "count": 3 },
+    { "behaviorCode": "SELF_INJURY", "behaviorName": "自伤行为", "count": 2 },
+    { "behaviorCode": "TASK_REFUSAL", "behaviorName": "拒绝任务", "count": 4 },
+    { "behaviorCode": "FOLLOW_INSTRUCTION", "behaviorName": "配合指令", "count": 6 },
+    { "behaviorCode": "COOPERATION", "behaviorName": "合作", "count": 3 }
+  ],
+  "behaviorRecords": [
+    {
+      "recordId": 2001,
+      "classRecordId": 301,
+      "behaviorCode": "SCREAM",
+      "behaviorName": "尖叫",
+      "occurredAt": "2026-07-14T09:05:00+08:00",
+      "durationMinutes": 2,
+      "stageCode": null,
+      "antecedentText": "体育课集合时，教师要求排队。",
+      "behaviorDescription": "学生突然大声尖叫，双手捂耳。",
+      "consequenceText": "教师使用视觉提示卡引导学生看排队示意图。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "VISUAL_ASSISTANCE", "content": "出示排队流程视觉卡片。" }
+      ],
+      "assistanceResultText": "看卡片后尖叫停止，但未排队。"
+    },
+    {
+      "recordId": 2002,
+      "classRecordId": 301,
+      "behaviorCode": "AGGRESSION",
+      "behaviorName": "攻击行为",
+      "occurredAt": "2026-07-14T09:08:00+08:00",
+      "durationMinutes": 1,
+      "stageCode": null,
+      "antecedentText": "同伴试图拉学生排队，学生抗拒。",
+      "behaviorDescription": "学生推搡同伴，同伴后退撞到花坛。",
+      "consequenceText": "教师立即进行身体辅助制止，握住学生双手。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "FULL_BODY_ASSISTANCE", "content": "立即制止并握住双手防止继续推搡。" }
+      ],
+      "assistanceResultText": "身体辅助后停止攻击，但仍拒绝排队。"
+    },
+    {
+      "recordId": 2003,
+      "classRecordId": 301,
+      "behaviorCode": "TASK_REFUSAL",
+      "behaviorName": "拒绝任务",
+      "occurredAt": "2026-07-14T09:10:00+08:00",
+      "durationMinutes": 8,
+      "stageCode": null,
+      "antecedentText": "教师再次要求排队参加体育课。",
+      "behaviorDescription": "学生蹲在地上不动，双手抱头，拒绝任何指令。",
+      "consequenceText": "教师示范正确排队姿势，并让同伴在旁边示范。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "DEMONSTRATION_ASSISTANCE", "content": "教师和同伴示范排队站姿。" }
+      ],
+      "assistanceResultText": "示范后学生缓慢站起，但未主动排队。"
+    },
+    {
+      "recordId": 2004,
+      "classRecordId": 302,
+      "behaviorCode": "SELF_INJURY",
+      "behaviorName": "自伤行为",
+      "occurredAt": "2026-07-15T10:20:00+08:00",
+      "durationMinutes": 3,
+      "stageCode": null,
+      "antecedentText": "语文课要求抄写生字，学生写错后被要求重写。",
+      "behaviorDescription": "学生用力抓挠自己的前臂，出现红色抓痕。",
+      "consequenceText": "教师立即制止，使用身体辅助握住双手，并语言安抚。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "FULL_BODY_ASSISTANCE", "content": "立即制止自伤行为，握住双手。" },
+        { "code": "VERBAL_ASSISTANCE", "content": "温和告知'没关系，我们慢慢写'。" }
+      ],
+      "assistanceResultText": "制止后学生停止抓挠，但持续抽泣。"
+    },
+    {
+      "recordId": 2005,
+      "classRecordId": 302,
+      "behaviorCode": "FOLLOW_INSTRUCTION",
+      "behaviorName": "配合指令",
+      "occurredAt": "2026-07-15T10:35:00+08:00",
+      "durationMinutes": null,
+      "stageCode": null,
+      "antecedentText": "情绪平复后，教师降低要求，让学生只抄写两个生字。",
+      "behaviorDescription": "学生安静坐下，按要求抄写了两个生字。",
+      "consequenceText": "教师给予强化肯定。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "VERBAL_ASSISTANCE", "content": "口头表扬'写得很好，进步很大'。" }
+      ],
+      "assistanceResultText": "表扬后学生继续安静书写。"
+    },
+    {
+      "recordId": 2006,
+      "classRecordId": 303,
+      "behaviorCode": "COOPERATION",
+      "behaviorName": "合作",
+      "occurredAt": "2026-07-16T14:10:00+08:00",
+      "durationMinutes": null,
+      "stageCode": null,
+      "antecedentText": "美术课分组活动，教师安排学生与同伴合作画画。",
+      "behaviorDescription": "学生主动与同组分工具，轮流使用彩笔。",
+      "consequenceText": "教师给予强化奖励贴纸。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "ADD_EXTERNAL_OBJECT", "content": "奖励贴纸并口头表扬合作行为。" }
+      ],
+      "assistanceResultText": "获得贴纸后持续与同伴合作完成画作。"
+    },
+    {
+      "recordId": 2007,
+      "classRecordId": 303,
+      "behaviorCode": "SCREAM",
+      "behaviorName": "尖叫",
+      "occurredAt": "2026-07-16T14:25:00+08:00",
+      "durationMinutes": 1,
+      "stageCode": null,
+      "antecedentText": "同伴不小心碰到学生的美术作品。",
+      "behaviorDescription": "学生尖叫并推开同伴的画纸。",
+      "consequenceText": "教师使用动作提示引导学生深呼吸。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "POSITION_ASSISTANCE", "content": "手势引导学生做深呼吸放松。" },
+        { "code": "VERBAL_ASSISTANCE", "content": "语言引导学生说'我不高兴'。" }
+      ],
+      "assistanceResultText": "深呼吸后情绪有所缓解，未继续攻击。"
+    },
+    {
+      "recordId": 2008,
+      "classRecordId": 304,
+      "behaviorCode": "TASK_REFUSAL",
+      "behaviorName": "拒绝任务",
+      "occurredAt": "2026-07-17T09:00:00+08:00",
+      "durationMinutes": 15,
+      "stageCode": null,
+      "antecedentText": "数学课教师发放练习卷，要求独立完成。",
+      "behaviorDescription": "学生把练习卷翻面，趴在桌上不写。",
+      "consequenceText": "教师使用视觉提示展示任务分解步骤。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "VISUAL_ASSISTANCE", "content": "展示'先做第1题→举手检查→做第2题'的步骤卡。" }
+      ],
+      "assistanceResultText": "看步骤卡后翻回试卷，开始做第1题。"
+    }
+  ],
+  "trainingGoals": [
+    {
+      "goalId": 46,
+      "goalText": "主动与他人进行合作游戏",
+      "currentLevel": "D",
+      "phase": 1,
+      "status": "IN_PROGRESS"
+    },
+    {
+      "goalId": 51,
+      "goalText": "有情况知道报告老师（表达需求）",
+      "currentLevel": "D",
+      "phase": 1,
+      "status": "IN_PROGRESS"
+    }
+  ]
+}

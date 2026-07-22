@@ -1,0 +1,139 @@
+{
+  "metadata": {
+    "purpose": "严格按照接口总文档 AI-001 请求体结构构造的测试输入",
+    "apiVersion": "0.8.0",
+    "source": "接口总文档 AI-001 + 数据字典 v2.4.0",
+    "note": "辅助方式内嵌在 behaviorRecords 中，训练目标包含在内"
+  },
+  "studentId": 1,
+  "period": {
+    "startDate": "2026-07-09",
+    "endDate": "2026-07-15"
+  },
+  "behaviorStatistics": [
+    { "behaviorCode": "ATTENTION_DROP", "behaviorName": "注意力下降", "count": 4 },
+    { "behaviorCode": "LEAVE_SEAT", "behaviorName": "离开座位", "count": 1 },
+    { "behaviorCode": "CRY", "behaviorName": "哭闹", "count": 1 }
+  ],
+  "behaviorRecords": [
+    {
+      "recordId": 1001,
+      "classRecordId": 101,
+      "behaviorCode": "ATTENTION_DROP",
+      "behaviorName": "注意力下降",
+      "occurredAt": "2026-07-09T09:10:00+08:00",
+      "durationMinutes": 2,
+      "stageCode": null,
+      "antecedentText": "教师连续提问两道计算题后继续讲解新题。",
+      "behaviorDescription": "学生视线离开黑板，低头摆弄文具。",
+      "consequenceText": "资源教师语言提示后重新看向黑板。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "VERBAL_ASSISTANCE", "content": "提示学生看黑板。" }
+      ],
+      "assistanceResultText": "一次语言提示后注意力回到黑板。"
+    },
+    {
+      "recordId": 1002,
+      "classRecordId": 101,
+      "behaviorCode": "ATTENTION_DROP",
+      "behaviorName": "注意力下降",
+      "occurredAt": "2026-07-09T09:24:00+08:00",
+      "durationMinutes": 1,
+      "stageCode": null,
+      "antecedentText": "连续完成计算题后，教师继续讲解新题。",
+      "behaviorDescription": "学生低头摆弄文具，未继续看题。",
+      "consequenceText": "资源教师使用动作提示指向题目。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "POSITION_ASSISTANCE", "content": "指向当前题目。" }
+      ],
+      "assistanceResultText": "动作提示后能继续完成一道题。"
+    },
+    {
+      "recordId": 1003,
+      "classRecordId": 102,
+      "behaviorCode": "LEAVE_SEAT",
+      "behaviorName": "离开座位",
+      "occurredAt": "2026-07-10T10:15:00+08:00",
+      "durationMinutes": 1,
+      "stageCode": null,
+      "antecedentText": "语文课从朗读任务切换到书写任务。",
+      "behaviorDescription": "学生离开座位并走到教室后方。",
+      "consequenceText": "影子老师进行手势提示。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "POSITION_ASSISTANCE", "content": "示意学生返回座位。" }
+      ],
+      "assistanceResultText": "手势提示后返回座位。"
+    },
+    {
+      "recordId": 1004,
+      "classRecordId": 103,
+      "behaviorCode": "CRY",
+      "behaviorName": "哭闹",
+      "occurredAt": "2026-07-13T11:00:00+08:00",
+      "durationMinutes": 5,
+      "stageCode": null,
+      "antecedentText": "课间同伴声音较大，活动环境较吵。",
+      "behaviorDescription": "学生出现哭闹并捂住耳朵。",
+      "consequenceText": "成人陪同到安静区域进行情绪安抚。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "VERBAL_ASSISTANCE", "content": "情绪稳定后给予肯定。" }
+      ],
+      "assistanceResultText": "安静区域休息后情绪逐渐缓解。"
+    },
+    {
+      "recordId": 1005,
+      "classRecordId": 104,
+      "behaviorCode": "ATTENTION_DROP",
+      "behaviorName": "注意力下降",
+      "occurredAt": "2026-07-15T09:10:00+08:00",
+      "durationMinutes": 2,
+      "stageCode": null,
+      "antecedentText": "数学课教师提问后等待学生回答。",
+      "behaviorDescription": "学生视线转向窗外，未回应提问。",
+      "consequenceText": "影子老师使用语言提示。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "VERBAL_ASSISTANCE", "content": "提醒学生回到当前任务。" }
+      ],
+      "assistanceResultText": "语言提示后能回到任务。"
+    },
+    {
+      "recordId": 1006,
+      "classRecordId": 104,
+      "behaviorCode": "ATTENTION_DROP",
+      "behaviorName": "注意力下降",
+      "occurredAt": "2026-07-15T09:25:00+08:00",
+      "durationMinutes": 2,
+      "stageCode": null,
+      "antecedentText": "连续完成计算题后进入新题型讲解。",
+      "behaviorDescription": "学生停止书写，注意力转移到文具。",
+      "consequenceText": "资源教师进行视觉提示和语言提示。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "VISUAL_ASSISTANCE", "content": "指向题目步骤。" },
+        { "code": "VERBAL_ASSISTANCE", "content": "提醒学生继续书写。" }
+      ],
+      "assistanceResultText": "视觉加语言提示后能完成下一步。"
+    }
+  ],
+  "trainingGoals": [
+    {
+      "goalId": 135,
+      "goalText": "关注老师的讲解",
+      "currentLevel": "C",
+      "phase": 1,
+      "status": "IN_PROGRESS"
+    },
+    {
+      "goalId": 145,
+      "goalText": "主动用合适的方式举手",
+      "currentLevel": "D",
+      "phase": 1,
+      "status": "IN_PROGRESS"
+    }
+  ]
+}

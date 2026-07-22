@@ -1,0 +1,96 @@
+{
+  "teacher": {
+    "teacherId": 1,
+    "name": "张老师",
+    "school": "XX市特殊教育学校",
+    "role": "特教教师"
+  },
+  "currentStudent": {
+    "studentId": 1,
+    "name": "小明",
+    "gender": "M",
+    "grade": "二年级",
+    "supportGoals": ["提升课堂专注", "任务切换", "规则等待"]
+  },
+  "statistics": {
+    "period": "DAILY",
+    "referenceDate": "2026-07-17",
+    "items": [
+      { "behaviorCode": "LEAVE_SEAT", "behaviorName": "离开座位", "count": 50 },
+      { "behaviorCode": "ATTENTION_DROP", "behaviorName": "注意力下降", "count": 12 }
+    ]
+  },
+  "classRecords": [
+    {
+      "classRecordId": 3001,
+      "studentId": 1,
+      "recordDate": "2026-07-17",
+      "courseCode": "MATHEMATICS",
+      "environmentCode": "CLASSROOM",
+      "observationDurationMinutes": 40,
+      "overallRemark": "小明今天表现很棒，几乎没有出现问题行为，整节课都很配合。"
+    }
+  ],
+  "behaviorRecords": [
+    {
+      "recordId": 5001,
+      "classRecordId": 3001,
+      "behaviorCode": "LEAVE_SEAT",
+      "behaviorName": "离开座位",
+      "occurredAt": "2026-07-17T08:15:00+08:00",
+      "durationMinutes": 1,
+      "stageCode": null,
+      "antecedentText": "教师开始讲解新题。",
+      "behaviorDescription": "学生离开座位走向门口。",
+      "consequenceText": "教师语言提示后返回。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "VERBAL_ASSISTANCE", "content": "提示学生回到座位。" }
+      ],
+      "assistanceResultText": "一次提示后返回座位。"
+    },
+    {
+      "recordId": 5002,
+      "classRecordId": 3001,
+      "behaviorCode": "LEAVE_SEAT",
+      "behaviorName": "离开座位",
+      "occurredAt": "2026-07-17T08:20:00+08:00",
+      "durationMinutes": 2,
+      "stageCode": null,
+      "antecedentText": "教师提问后等待回答。",
+      "behaviorDescription": "学生再次离开座位在教室内走动。",
+      "consequenceText": "教师动作提示后返回。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "POSITION_ASSISTANCE", "content": "手势示意学生回到座位。" }
+      ],
+      "assistanceResultText": "手势提示后返回座位。"
+    },
+    {
+      "recordId": 5003,
+      "classRecordId": 3001,
+      "behaviorCode": "ATTENTION_DROP",
+      "behaviorName": "注意力下降",
+      "occurredAt": "2026-07-17T08:30:00+08:00",
+      "durationMinutes": 5,
+      "stageCode": null,
+      "antecedentText": "连续完成3道计算题后。",
+      "behaviorDescription": "学生视线离开黑板，低头摆弄文具。",
+      "consequenceText": "资源教师语言提示后重新看向黑板。",
+      "functionCode": null,
+      "assistances": [
+        { "code": "VERBAL_ASSISTANCE", "content": "提示学生看黑板。" }
+      ],
+      "assistanceResultText": "一次提示后注意力回到黑板。"
+    }
+  ],
+  "trainingGoals": [
+    {
+      "goalId": 101,
+      "goalText": "能在课堂上保持10分钟以上的专注",
+      "currentLevel": "C",
+      "phase": 1,
+      "status": "IN_PROGRESS"
+    }
+  ]
+}
