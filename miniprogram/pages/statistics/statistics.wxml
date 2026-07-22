@@ -1,63 +1,60 @@
 <view class="container">
-  <!-- 周期切换 tabs -->
   <view class="card view-tabs">
     <view class="view-tab {{view === 'daily' ? 'on' : ''}}" data-view="daily" bindtap="onSwitchView">日报</view>
     <view class="view-tab {{view === 'weekly' ? 'on' : ''}}" data-view="weekly" bindtap="onSwitchView">周报</view>
     <view class="view-tab {{view === 'monthly' ? 'on' : ''}}" data-view="monthly" bindtap="onSwitchView">月报</view>
-    <view class="view-tab {{view === 'semester' ? 'on' : ''}}" data-view="semester" bindtap="onSwitchView">学期报告</view>
+    <view class="view-tab {{view === 'semester' ? 'on' : ''}}" data-view="semester" bindtap="onSwitchView">学期</view>
   </view>
 
   <view wx:if="{{loading}}" class="card empty-tip">加载中…</view>
+  <view wx:elif="{{empty && view !== 'semester'}}" class="card empty-tip">暂无数据</view>
 
-  <view wx:elif="{{empty && view !== 'semester'}}" class="card empty-tip">当前周期暂无行为记录</view>
-
-  <!-- ========== 日报 ========== -->
+  <!-- ==================== 日报 ==================== -->
   <block wx:elif="{{view === 'daily' && !empty}}">
-    <view class="card section" wx:if="{{overview}}">
-      <view class="sec-title">今日概况</view>
-      <view class="overview-grid">
-        <view class="ov-item"><text class="ov-val">{{overview.behaviorRecordCount || totalCount}}</text><text class="ov-label">行为记录</text></view>
-        <view class="ov-item"><text class="ov-val">{{overview.abcRecordCount || 0}}</text><text class="ov-label">ABC详录</text></view>
-        <view class="ov-item"><text class="ov-val">{{overview.observationCourseCount || 0}}</text><text class="ov-label">观察课程</text></view>
-        <view class="ov-item"><text class="ov-val">{{overview.remarkCount || 0}}</text><text class="ov-label">备注</text></view>
-      </view>
+    <view class="card section"><view class="sec-title">今日概况</view>
+      <view class="ov-grid"><view class="ov-i"><text class="ov-v">{{overview.behaviorRecordCount || totalCount}}</text><text class="ov-l">行为记录</text></view>
+      <view class="ov-i"><text class="ov-v">{{overview.abcRecordCount || 0}}</text><text class="ov-l">ABC详录</text></view>
+      <view class="ov-i"><text class="ov-v">{{overview.observationCourseCount || 0}}</text><text class="ov-l">观察课程</text></view>
+      <view class="ov-i"><text class="ov-v">{{overview.remarkCount || 0}}</text><text class="ov-l">备注</text></view></view>
     </view>
 
     <view class="card section" wx:if="{{dailyBars.length}}">
-      <view class="block-title">行为频次统计</view>
-      <view class="chart-box">
-        <ec-canvas id="bar-chart" canvas-id="bar-chart" ec="{{ecDaily}}"></ec-canvas>
-      </view>
-      <!-- 百分比标签 -->
-      <view class="pct-row">
-        <view wx:for="{{dailyBars}}" wx:key="label" class="pct-item">
-          <view class="pct-dot {{item.positive ? 'positive' : ''}}"></view>
-          <text class="pct-name">{{item.label}}</text>
-          <text class="pct-val">{{item.count}}次 ({{item.pct}}%)</text>
+      <view class="block-title">行为频次</view>
+      <view class="chart-box"><ec-canvas id="bar-chart" canvas-id="bar-chart" ec="{{ecDaily}}"></ec-canvas></view>
+      <view class="pct-row"><view wx:for="{{dailyBars}}" wx:key="label" class="pct-i">
+        <view class="pct-dot {{item.trend === 'UP' ? 'up' : item.trend === 'DOWN' ? 'down' : ''}}"></view><text class="pct-n">{{item.label}}</text><text class="pct-v">{{item.count}}次</text>
+      </view></view>
+    </view>
+
+    <view class="card section" wx:if="{{aiCards.length}}"><view class="block-title">AI 分析</view>
+      <ai-card wx:for="{{aiCards}}" wx:key="title" type="{{item.type}}" title="{{item.title}}" content="{{item.content}}" /></view>
+  </block>
+
+  <!-- ==================== 周报 / 月报 ==================== -->
+  <block wx:elif="{{(view === 'weekly' || view === 'monthly') && !empty}}">
+    <!-- 1. 记录概览 -->
+    <view class="card section"><view class="sec-title">{{view === 'weekly' ? '本周' : '本月'}}记录概览</view>
+      <view class="ov-grid"><view class="ov-i"><text class="ov-v">{{overview.behaviorRecordCount || totalCount}}</text><text class="ov-l">记录总次数</text></view>
+      <view class="ov-i"><text class="ov-v">{{overview.observationCourseCount || 0}}</text><text class="ov-l">涉及课程</text></view>
+      <view class="ov-i"><text class="ov-v">{{items.length}}</text><text class="ov-l">涉及行为</text></view>
+      <view class="ov-i"><text class="ov-v">{{overview.abcRecordCount || 0}}</text><text class="ov-l">详录条数</text></view></view>
+    </view>
+
+    <!-- 2. 行为状态环形图 -->
+    <view class="card section"><view class="block-title">行为状态分布</view>
+      <view class="donut-wrap">
+        <view class="donut"><view class="donut-inner"><text class="donut-big">{{totalCount}}</text><text class="donut-sm">总次数</text></view></view>
+        <view class="donut-legends">
+          <view class="dl"><view class="dl-dot c-ind"></view><text>未完成 {{statusDist.incomplete}}次 {{statusPct('incomplete')}}%</text></view>
+          <view class="dl"><view class="dl-dot c-ass"></view><text>辅助完成 {{statusDist.assisted}}次 {{statusPct('assisted')}}%</text></view>
+          <view class="dl"><view class="dl-dot c-inde"></view><text>独立完成 {{statusDist.independent}}次 {{statusPct('independent')}}%</text></view>
         </view>
       </view>
     </view>
 
-    <view class="card section" wx:if="{{aiCards.length}}">
-      <view class="ai-header"><text class="ai-title">AI 智能分析</text></view>
-      <view class="ai-list"><ai-card wx:for="{{aiCards}}" wx:key="title" type="{{item.type}}" title="{{item.title}}" content="{{item.content}}" /></view>
-    </view>
-  </block>
-
-  <!-- ========== 周报 / 月报 ========== -->
-  <block wx:elif="{{(view === 'weekly' || view === 'monthly') && !empty}}">
-    <view class="card section" wx:if="{{overview}}">
-      <view class="sec-title">{{view === 'weekly' ? '本周' : '本月'}}概况</view>
-      <view class="overview-grid">
-        <view class="ov-item"><text class="ov-val">{{overview.behaviorRecordCount || totalCount}}</text><text class="ov-label">行为记录</text></view>
-        <view class="ov-item"><text class="ov-val">{{overview.abcRecordCount || 0}}</text><text class="ov-label">ABC详录</text></view>
-        <view class="ov-item"><text class="ov-val">{{overview.observationCourseCount || 0}}</text><text class="ov-label">观察课程</text></view>
-        <view class="ov-item"><text class="ov-val">{{overview.remarkCount || 0}}</text><text class="ov-label">备注</text></view>
-      </view>
-    </view>
-
+    <!-- 3. 行为频次柱状图 -->
     <view class="card section" wx:if="{{items.length}}">
-      <view class="block-title">行为频次{{view === 'weekly' ? '（红=上升 绿=下降 蓝=平稳）' : ''}}</view>
+      <view class="block-title">行为频次{{view === 'weekly' ? '（红↑升 绿↓降 蓝→稳）' : ''}}</view>
       <view class="chart-box" wx:if="{{view === 'weekly'}}">
         <ec-canvas id="weekly-chart" canvas-id="weekly-chart" ec="{{ecWeekly}}"></ec-canvas>
       </view>
@@ -66,32 +63,59 @@
           <text class="tr-name">{{item.behaviorLabel}}</text>
           <view class="tr-bar-bg"><view class="tr-bar" style="width:{{(item.count / totalCount) * 100 || 0}}%;background:{{item.trendDirection === 'UP' ? '#ef4444' : item.trendDirection === 'DOWN' ? '#22c55e' : '#9ca3af'}}"></view></view>
           <text class="tr-count">{{item.count}}次</text>
-          <text class="tr-change {{item.trendDirection === 'UP' ? 'up' : item.trendDirection === 'DOWN' ? 'down' : ''}}">
-            {{item.trendDirection === 'UP' ? '↑' : item.trendDirection === 'DOWN' ? '↓' : '→'}}
-            {{item.changePercent != null ? (item.changePercent >= 0 ? '+' : '') + item.changePercent + '%' : '新增'}}
-          </text>
+          <text class="tr-ch {{item.trendDirection === 'UP' ? 'up' : item.trendDirection === 'DOWN' ? 'down' : ''}}">{{item.trendDirection === 'UP' ? '↑' : item.trendDirection === 'DOWN' ? '↓' : '→'}} {{item.changePercent != null ? (item.changePercent >= 0 ? '+' : '') + item.changePercent + '%' : '新增'}}</text>
         </view>
       </view>
     </view>
 
-    <view class="card section" wx:if="{{aiCards.length}}">
-      <view class="ai-header"><text class="ai-title">AI {{view === 'weekly' ? '周报' : '月报'}}分析</text></view>
-      <view class="ai-list"><ai-card wx:for="{{aiCards}}" wx:key="title" type="{{item.type}}" title="{{item.title}}" content="{{item.content}}" /></view>
-    </view>
-  </block>
-
-  <!-- ========== 学期报告 ========== -->
-  <block wx:elif="{{view === 'semester'}}">
-    <view class="card section"><view class="sec-title">学期概览</view>
-      <view class="overview-grid">
-        <view class="ov-item"><text class="ov-val">{{overview.behaviorRecordCount}}</text><text class="ov-label">行为记录</text></view>
-        <view class="ov-item"><text class="ov-val">{{overview.abcRecordCount}}</text><text class="ov-label">ABC详录</text></view>
-        <view class="ov-item"><text class="ov-val">{{overview.remarkCount}}</text><text class="ov-label">备注</text></view>
+    <!-- 4. 课程维度统计 -->
+    <view class="card section" wx:if="{{courseStats.length}}"><view class="block-title">课程维度统计</view>
+      <view class="tbl"><view class="tbl-h"><text class="tbl-c1">课程</text><text class="tbl-c2">记录数</text><text class="tbl-c3">详录</text></view>
+        <view wx:for="{{courseStats}}" wx:key="name" class="tbl-r"><text class="tbl-c1">{{item.name}}</text><text class="tbl-c2">{{item.records}}</text><text class="tbl-c3">{{item.details}}</text></view>
       </view>
     </view>
-    <view class="card section" wx:if="{{aiCards.length}}">
-      <view class="ai-header"><text class="ai-title">AI 学期总结</text></view>
-      <view class="ai-list"><ai-card wx:for="{{aiCards}}" wx:key="title" type="{{item.type}}" title="{{item.title}}" content="{{item.content}}" /></view>
+
+    <!-- 5. 环境维度统计 -->
+    <view class="card section" wx:if="{{envStats.length}}"><view class="block-title">环境维度统计</view>
+      <view class="tbl"><view class="tbl-h"><text class="tbl-c1">环境</text><text class="tbl-c2">记录数</text></view>
+        <view wx:for="{{envStats}}" wx:key="name" class="tbl-r"><text class="tbl-c1">{{item.name}}</text><text class="tbl-c2">{{item.records}}</text></view>
+      </view>
     </view>
+
+    <!-- 6. 高频行为表现 -->
+    <view class="card section" wx:if="{{topBehaviors.length}}"><view class="block-title">高频行为</view>
+      <view class="trend-list">
+        <view wx:for="{{topBehaviors}}" wx:key="behaviorCode" class="tr-row">
+          <text class="tr-name">{{item.behaviorLabel}}</text>
+          <view class="tr-bar-bg"><view class="tr-bar" style="width:{{(item.count / totalCount) * 100 || 0}}%"></view></view>
+          <text class="tr-count">{{item.count}}次</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="card section" wx:if="{{aiCards.length}}"><view class="block-title">AI 分析</view>
+      <ai-card wx:for="{{aiCards}}" wx:key="title" type="{{item.type}}" title="{{item.title}}" content="{{item.content}}" /></view>
+  </block>
+
+  <!-- ==================== 学期 ==================== -->
+  <block wx:elif="{{view === 'semester'}}">
+    <view class="card section"><view class="sec-title">学期概览</view>
+      <view class="ov-grid"><view class="ov-i"><text class="ov-v">{{overview.behaviorRecordCount}}</text><text class="ov-l">行为记录</text></view>
+      <view class="ov-i"><text class="ov-v">{{overview.abcRecordCount}}</text><text class="ov-l">ABC详录</text></view>
+      <view class="ov-i"><text class="ov-v">{{overview.remarkCount}}</text><text class="ov-l">备注</text></view></view>
+    </view>
+    <!-- 环形图 -->
+    <view class="card section"><view class="block-title">行为状态分布</view>
+      <view class="donut-wrap">
+        <view class="donut"><view class="donut-inner"><text class="donut-big">{{totalCount}}</text><text class="donut-sm">总次数</text></view></view>
+        <view class="donut-legends">
+          <view class="dl"><view class="dl-dot c-ind"></view><text>未完成 {{statusDist.incomplete}}次</text></view>
+          <view class="dl"><view class="dl-dot c-ass"></view><text>辅助完成 {{statusDist.assisted}}次</text></view>
+          <view class="dl"><view class="dl-dot c-inde"></view><text>独立完成 {{statusDist.independent}}次</text></view>
+        </view>
+      </view>
+    </view>
+    <view class="card section" wx:if="{{aiCards.length}}"><view class="block-title">AI 学期总结</view>
+      <ai-card wx:for="{{aiCards}}" wx:key="title" type="{{item.type}}" title="{{item.title}}" content="{{item.content}}" /></view>
   </block>
 </view>
