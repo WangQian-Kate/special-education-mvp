@@ -521,107 +521,66 @@ Page({
   async _loadPeriod(period) {
     this.setData({ wkLoading: true, wkEmpty: true });
     try {
-      // 计算实际查询日期
       var refDate = new Date(); refDate.setDate(refDate.getDate() + this.data.wkOffset * 7);
       var ds = refDate.getFullYear() + '-' + String(refDate.getMonth() + 1).padStart(2, '0') + '-' + String(refDate.getDate()).padStart(2, '0');
       var stats = await recordApi.getEvaluationStats(period, ds);
       var items = (stats && stats.items) || [];
       var total = stats ? stats.totalCount : 0;
       var ov = stats ? stats.overview : null;
-      var incomplete = 0, assisted = 0, independent = 0;
-      items.forEach(function (i) { incomplete += Math.round(i.count * 0.15); assisted += Math.round(i.count * 0.25); independent += Math.round(i.count * 0.6); });
-      var dt = incomplete + assisted + independent || 1;
-      // 每日趋势：周一到周五逐日查询
-      var crs = [], envs = [], dailyTrend = [], abcDist = [];
-      try {
-        var refDate = new Date(ds);
-        var dayOfWeek = refDate.getDay(); // 0=Sun
-        var monday = new Date(refDate); monday.setDate(refDate.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-        var labels = ['周一','周二','周三','周四','周五'];
-        var dayQueries = [];
-        for (var d = 0; d < 5; d++) {
-          var dt = new Date(monday); dt.setDate(monday.getDate() + d);
-          var key = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
-          dayQueries.push({ label: labels[d], date: key });
-        }
-        var dailyResults = await Promise.all(dayQueries.map(function (dq) {
-          return recordApi.getDayRecords(dq.date).then(function (recs) {
-            var cnt = 0;
-            (recs || []).forEach(function () { cnt += 1; });
-            // TODO 后端就绪：dailyTrends 直接返回 recordCount / independentCount / incompleteCount
-            return { label: dq.label, date: dq.date, count: cnt, independentCount: 0, incompleteCount: 0 };
-          }).catch(function () { return { label: dq.label, date: dq.date, count: 0, independentCount: 0, incompleteCount: 0 }; });
-        }));
-        dailyTrend = dailyResults;
-        // 更新周折线图（3条线：总次数 / 独立 / 未完成）
-        // TODO 后端就绪后：dailyResults[].independentCount / incompleteCount 由 dailyTrends 接口直接返回
-        if (wkLineChart) {
-          var lineTotal = dailyResults.map(function (d) { return d.count; });
-          var lineInd = dailyResults.map(function (d) { return d.independentCount || 0; });
-          var lineInc = dailyResults.map(function (d) { return d.incompleteCount || 0; });
-          try { wkLineChart.setOption({ series: [{ data: lineTotal }, { data: lineInd }, { data: lineInc }] }); } catch (_) {}
-        }
-        // 课程/环境统计
-        var allRecs = [];
-        for (var k = 0; k < 5; k++) {
-          try { var rd = await recordApi.getDayRecords(dayQueries[k].date); allRecs = allRecs.concat(rd || []); } catch (e) {}
-        }
-        var allDetails = await Promise.all(allRecs.map(function (r) { return recordApi.getClassRecordDetail(r.id).catch(function () { return null; }); }));
-        var cm = {}, em = {};
-        allDetails.forEach(function (d) {
-          if (!d) return;
-          var ck = d.courseLabel || d.courseCode; if (!cm[ck]) cm[ck] = { name: ck, count: 0, indCount: 0 };
-          var ek = d.environmentLabel || d.environmentCode; if (!em[ek]) em[ek] = { name: ek, count: 0 };
-          (d.behaviorCards || []).forEach(function (c) { cm[ck].count += c.count; em[ek].count += c.count; });
-        });
-        crs = Object.values(cm).map(function (c) {
-          c.independentRate = c.count > 0 ? Math.round(((c.indCount || c.count * 0.6) / c.count) * 100) : 0;
-          return c;
-        }).sort(function (a, b) { return b.count - a.count; });
-        envs = Object.values(em).sort(function (a, b) { return b.count - a.count; });
-      } catch (e) { /* skip */ }
-      // ABC功能分布：从EVAL items近似
-      var abcTotal = items.reduce(function (s, i) { return s + i.count; }, 0);
-      if (abcTotal > 0) {
-        abcDist = [
-          { label: '获取关注', pct: Math.round(abcTotal * 0.3 / abcTotal * 100) },
-          { label: '逃避/回避', pct: Math.round(abcTotal * 0.25 / abcTotal * 100) },
-          { label: '感觉刺激', pct: Math.round(abcTotal * 0.2 / abcTotal * 100) },
-          { label: '获取实物', pct: Math.round(abcTotal * 0.15 / abcTotal * 100) },
-          { label: '其它', pct: Math.round(abcTotal * 0.1 / abcTotal * 100) }
-        ];
-      }
-      var maxDay = Math.max.apply(null, dailyTrend.map(function (d) { return d.count; }).concat([1]));
-      var top6base = items.slice().sort(function (a, b) { return b.count - a.count; }).slice(0, 6);
 
-      // 月视图：计算 per-week 拆分（TODO 后端就绪后改用 data.weeklyBreakdown）
-      var weeklyBreakdown = [];
-      if (period === 'MONTHLY') {
-        // 用每日数据按周聚合
-        var weekBuckets = [{ week: 1, total: 0, ind: 0, ass: 0, inc: 0 },
-                           { week: 2, total: 0, ind: 0, ass: 0, inc: 0 },
-                           { week: 3, total: 0, ind: 0, ass: 0, inc: 0 },
-                           { week: 4, total: 0, ind: 0, ass: 0, inc: 0 }];
-        (dailyTrend || []).forEach(function (d, i) {
-          // 按日期算出属于第几周（粗略：第1~7天=W1，8~14=W2，15~21=W3，22~31=W4）
-          var dayOfMonth = parseInt((d.date || '').split('-')[2], 10) || (i * 7 + 1);
-          var wi = dayOfMonth <= 7 ? 0 : dayOfMonth <= 14 ? 1 : dayOfMonth <= 21 ? 2 : 3;
-          weekBuckets[wi].total += (d.count || 0);
-          weekBuckets[wi].ind += (d.independentCount || 0);
-          weekBuckets[wi].ass += (d.assistedCount || 0);
-          weekBuckets[wi].inc += (d.incompleteCount || 0);
-        });
-        weeklyBreakdown = weekBuckets.map(function (b) {
-          return { week: b.week, totalCount: b.total, independentCount: b.ind,
-                   assistedCount: b.ass, incompleteCount: b.inc,
-                   independentRate: b.total ? Math.round(b.ind / b.total * 100) : 0 };
-        });
-        // 更新月折线图（延迟一帧确保DOM就绪）
-        if (moLineChart) {
-          var moLineData = weeklyBreakdown.map(function (w) { return w.independentRate; });
-          try { moLineChart.setOption({ series: [{ data: moLineData }] }); } catch (_) {}
-        }
+      // 真实状态计数（后端已提供）
+      var incomplete = ov ? (ov.incompleteCount || 0) : 0;
+      var assisted = ov ? (ov.assistedCount || 0) : 0;
+      var independent = ov ? (ov.independentCount || 0) : 0;
+      var dt = incomplete + assisted + independent || 1;
+
+      // 每日趋势（后端已提供）
+      var dailyTrend = (stats && stats.dailyTrends) ? stats.dailyTrends : [];
+      if (wkLineChart && dailyTrend.length) {
+        var lineTotal = dailyTrend.map(function (d) { return d.recordCount || 0; });
+        var lineInd = dailyTrend.map(function (d) { return d.independentCount || 0; });
+        var lineInc = dailyTrend.map(function (d) { return d.incompleteCount || 0; });
+        try { wkLineChart.setOption({ series: [{ data: lineTotal }, { data: lineInd }, { data: lineInc }] }); } catch (_) {}
       }
+
+      // 课程/环境统计（后端已提供）
+      var crs = (stats && stats.courseStats) ? stats.courseStats.map(function (c) {
+        return { name: c.courseLabel, count: c.totalCount, independentRate: c.independentRate };
+      }) : [];
+      var envs = (stats && stats.environmentStats) ? stats.environmentStats.map(function (e) {
+        return { name: e.environmentLabel, count: e.count };
+      }) : [];
+
+      // 高频行为 TOP6（带三色状态拆分）
+      var top6base = items.slice().sort(function (a, b) { return b.count - a.count; }).slice(0, 6);
+      var top6 = top6base.map(function (i) {
+        var t = (i.incompleteCount||0) + (i.assistedCount||0) + (i.independentCount||0) || 1;
+        return {
+          behaviorCode: i.behaviorCode, behaviorLabel: i.behaviorLabel, count: i.count,
+          _indPct: Math.round((i.independentCount||0) / t * 100),
+          _assPct: Math.round((i.assistedCount||0) / t * 100),
+          _inePct: Math.round((i.incompleteCount||0) / t * 100)
+        };
+      });
+
+      // 月度 per-week 拆分（后端已提供）
+      var weeklyBreakdown = (stats && stats.weeklyBreakdown) ? stats.weeklyBreakdown : [];
+      if (moLineChart && weeklyBreakdown.length) {
+        var moLineData = weeklyBreakdown.map(function (w) { return w.independentRate; });
+        try { moLineChart.setOption({ series: [{ data: moLineData }] }); } catch (_) {}
+      }
+
+      // ABC 分布（异步拉取）
+      var abcDist = [];
+      try {
+        var abcRes = await recordApi.getAbcDistribution(period, ds);
+        abcDist = (abcRes && abcRes.items) ? abcRes.items.map(function (i) {
+          return { label: i.functionLabel || i.label, pct: i.percentage || 0 };
+        }) : [];
+      } catch (e) { /* 静默 */ }
+
+      var maxDay = Math.max.apply(null, dailyTrend.map(function (d) { return d.recordCount || 0; }).concat([1]));
+      var maxTop = top6.length ? top6[0].count : 1;
 
       this.setData({
         wkLoading: false, wkEmpty: !items.length,
@@ -630,16 +589,15 @@ Page({
         wkPctIncomplete: Math.round(incomplete / dt * 100),
         wkPctAssisted: Math.round(assisted / dt * 100),
         wkPctIndependent: Math.round(independent / dt * 100),
-        wkTop6: [],
+        wkTop6: top6,
         wkCourses: crs, wkEnvs: envs,
-        wkGoalCount: ov ? (ov.trainingGoalCount || ov.observationCourseCount || 0) : 0,
+        wkGoalCount: ov ? (ov.trainingGoalCount || 0) : 0,
         wkGoalModules: [], wkDailyTrend: dailyTrend, wkMaxDay: maxDay,
         wkAbcDist: abcDist,
+        wkMaxTop: maxTop,
         wkWeeklyBreakdown: weeklyBreakdown,
-        wkBehDescTrends: []   // TODO 后端就绪后：GET /student-evaluation/behavior-description-trend
+        wkBehDescTrends: [], wkBehDescMax: 1
       });
-      // 异步拉取逐行为状态计数（用当前 class records）
-      this._loadPerBehaviorStatus(top6base);
     } catch (err) {
       this.setData({ wkLoading: false, wkEmpty: true });
     }
