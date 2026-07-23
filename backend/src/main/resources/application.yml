@@ -3,8 +3,20 @@ spring:
     name: assistant-backend
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
+  http:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
 server:
   address: ${SERVER_ADDRESS:127.0.0.1}
   port: ${SERVER_PORT:3000}
   servlet:
     context-path: /api
+
+# ===== AI 配置 =====
+ai:
+  base-url: ${AI_BASE_URL:https://api.anthropic.com/v1/messages}
+  api-key: ${AI_API_KEY:}
+  model: ${AI_MODEL:claude-sonnet-5}
+  max-tokens: ${AI_MAX_TOKENS:2048}

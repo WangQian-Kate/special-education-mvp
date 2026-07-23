@@ -11,7 +11,7 @@ const store = require('./store');
  */
 const ENV = 'local';
 const BASE_URLS = {
-  local: 'http://localhost:3001/api',
+  local: 'http://localhost:3000/api',
   tunnel: 'https://TODO-你的穿透域名.example.com/api'
 };
 const BASE_URL = BASE_URLS[ENV];

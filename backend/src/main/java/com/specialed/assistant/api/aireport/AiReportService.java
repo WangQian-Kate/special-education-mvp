@@ -24,28 +24,28 @@ import static com.specialed.assistant.api.aireport.AiReportModels.*;
 public class AiReportService {
 
     private static final Logger log = LoggerFactory.getLogger(AiReportService.class);
-    private static final String ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-    private static final String ANTHROPIC_VERSION = "2023-06-01";
     private static final ObjectMapper JSON = new ObjectMapper();
 
     private final ProfileService profileService;
     private final AiReportMapper mapper;
     private final RestClient restClient;
+    private final String baseUrl;
     private final String apiKey;
     private final String model;
     private final int maxTokens;
 
     public AiReportService(ProfileService profileService, AiReportMapper mapper,
-                           @Value("${anthropic.api-key:}") String apiKey,
-                           @Value("${anthropic.model:claude-sonnet-5}") String model,
-                           @Value("${anthropic.max-tokens:2048}") int maxTokens) {
+                           @Value("${ai.base-url:https://api.anthropic.com/v1/messages}") String baseUrl,
+                           @Value("${ai.api-key:}") String apiKey,
+                           @Value("${ai.model:claude-sonnet-5}") String model,
+                           @Value("${ai.max-tokens:2048}") int maxTokens) {
         this.profileService = profileService;
         this.mapper = mapper;
+        this.baseUrl = baseUrl;
         this.apiKey = apiKey;
         this.model = model;
         this.maxTokens = maxTokens;
         this.restClient = RestClient.builder()
-                .defaultHeader("anthropic-version", ANTHROPIC_VERSION)
                 .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
@@ -102,8 +102,8 @@ public class AiReportService {
         );
 
         String response = restClient.post()
-                .uri(ANTHROPIC_URL)
-                .header("x-api-key", apiKey)
+                .uri(baseUrl)
+                .header("Authorization", "Bearer " + apiKey)
                 .body(requestBody)
                 .retrieve()
                 .body(String.class);
@@ -114,7 +114,12 @@ public class AiReportService {
     private AiReportResponse parseResponse(String responseBody) {
         try {
             JsonNode root = JSON.readTree(responseBody);
-            String text = root.path("content").get(0).path("text").asText("");
+            // 支持 OpenAI 格式：choices[0].message.content
+            String text = root.path("choices").get(0).path("message").path("content").asText("");
+            if (text.isEmpty()) {
+                // 兜底：尝试 Anthropic 格式：content[0].text
+                text = root.path("content").get(0).path("text").asText("");
+            }
             String json = text;
             int start = json.indexOf('{');
             int end = json.lastIndexOf('}');
@@ -148,12 +153,24 @@ public class AiReportService {
         if (node.isArray()) {
             for (JsonNode item : node) {
                 items.add(new AiCardItem(
-                        item.path("title").asText(""),
-                        item.path("content").asText("")
+                        cleanText(item.path("title").asText("")),
+                        cleanText(item.path("content").asText(""))
                 ));
             }
         }
         return items;
+    }
+
+    /** 清理 AI 返回文本：字面 \n → 真正换行，去除 markdown 标记 */
+    private static String cleanText(String text) {
+        if (text == null || text.isEmpty()) return text;
+        // 字面 \n（两个字符）→ 真正换行符
+        text = text.replace("\\n", "\n");
+        // 去除 markdown 粗体/斜体标记
+        text = text.replaceAll("\\*{1,3}([^*]+)\\*{1,3}", "$1");
+        // 去除 markdown 标题标记（行首 #）
+        text = text.replaceAll("(?m)^#+\\s+", "");
+        return text.trim();
     }
 
     private List<AiCardItem> fallbackCards(String dimension) {

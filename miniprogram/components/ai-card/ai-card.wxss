@@ -23,3 +23,8 @@
 .title {
   font-weight: 700;
 }
+
+.ai-card .content-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
