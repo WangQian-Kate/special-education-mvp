@@ -25,6 +25,10 @@
         <result property="occurredAt" column="occurred_at"/>
         <result property="behaviorCode" column="behavior_code"/>
         <result property="behaviorLabel" column="behavior_label"/>
+        <result property="subBehaviorCode" column="sub_behavior_code"/>
+        <result property="subBehaviorLabel" column="sub_behavior_label"/>
+        <result property="statusCode" column="status_code"/>
+        <result property="statusLabel" column="status_label"/>
         <result property="durationMinutes" column="duration_minutes"/>
         <result property="stageCode" column="stage_code"/>
         <result property="stageLabel" column="stage_label"/>
@@ -269,14 +273,15 @@
     <insert id="insertBehaviorRecord" parameterType="com.specialed.assistant.api.classrecord.BehaviorRecordEntity"
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO behavior_record
-            (class_record_id, creator_id, occurred_at, behavior_code)
+            (class_record_id, creator_id, occurred_at, behavior_code, sub_behavior_code, status_code)
         VALUES
-            (#{classRecordId}, #{creatorId}, #{occurredAt}, #{behaviorCode})
+            (#{classRecordId}, #{creatorId}, #{occurredAt}, #{behaviorCode}, #{subBehaviorCode}, #{statusCode})
     </insert>
 
     <select id="findBehaviorRecords" resultMap="BehaviorRecordMap">
         SELECT br.id, br.class_record_id, br.creator_id, br.occurred_at,
-               br.behavior_code, bt.label AS behavior_label, br.detail_saved
+               br.behavior_code, bt.label AS behavior_label, br.detail_saved,
+               br.sub_behavior_code, br.status_code
         FROM behavior_record br
         JOIN behavior_type bt ON bt.code = br.behavior_code
         WHERE br.class_record_id = #{classRecordId} AND br.behavior_code = #{behaviorCode}

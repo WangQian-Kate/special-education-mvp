@@ -52,14 +52,16 @@ public class GlobalExceptionHandler {
         if (exception instanceof IllegalArgumentException) {
             return safeMessage(exception);
         }
-        if (exception instanceof MethodArgumentNotValidException validationException) {
-            return validationException.getBindingResult().getFieldErrors().stream()
+        if (exception instanceof MethodArgumentNotValidException) {
+            MethodArgumentNotValidException ex = (MethodArgumentNotValidException) exception;
+            return ex.getBindingResult().getFieldErrors().stream()
                     .findFirst()
                     .map(error -> "字段 " + error.getField() + " 校验失败")
                     .orElse(DEFAULT_VALIDATION_MESSAGE);
         }
-        if (exception instanceof MethodArgumentTypeMismatchException mismatchException) {
-            return "参数 " + mismatchException.getName() + " 格式不正确";
+        if (exception instanceof MethodArgumentTypeMismatchException) {
+            MethodArgumentTypeMismatchException ex = (MethodArgumentTypeMismatchException) exception;
+            return "参数 " + ex.getName() + " 格式不正确";
         }
         if (exception instanceof HttpMessageNotReadableException) {
             return "请求体格式不正确";

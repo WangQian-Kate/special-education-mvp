@@ -189,19 +189,21 @@ public class ClassRecordService {
     }
 
     @Transactional
-    public BehaviorCardMutationResult createQuick(Long userId, Long classRecordId, String behaviorCode) {
+    public BehaviorCardMutationResult createQuick(Long userId, Long classRecordId,
+                                                   String behaviorCode, String subBehaviorCode, String statusCode) {
         LocalDateTime occurredAt = LocalDateTime.now(SHANGHAI);
-        return createBehavior(userId, classRecordId, behaviorCode, occurredAt);
+        return createBehavior(userId, classRecordId, behaviorCode, subBehaviorCode, statusCode, occurredAt);
     }
 
     @Transactional
     public BehaviorCardMutationResult createSupplement(Long userId, Long classRecordId,
-                                                       String behaviorCode, OffsetDateTime occurredAt) {
+                                                       String behaviorCode, String subBehaviorCode, String statusCode,
+                                                       OffsetDateTime occurredAt) {
         if (occurredAt.toInstant().isAfter(Instant.now())) {
             throw validation("补记时间不能晚于当前时间");
         }
         LocalDateTime localTime = occurredAt.atZoneSameInstant(SHANGHAI).toLocalDateTime();
-        return createBehavior(userId, classRecordId, behaviorCode, localTime);
+        return createBehavior(userId, classRecordId, behaviorCode, subBehaviorCode, statusCode, localTime);
     }
 
     public List<BehaviorRecordListItem> listBehaviorRecords(Long userId, Long classRecordId,
@@ -309,9 +311,12 @@ public class ClassRecordService {
         entity.setConsequenceText(normalizeOptionalText(request.consequenceText()));
         entity.setFunctionCode(functionCode);
         entity.setFunctionOtherText(functionOtherText);
-        entity.setStatusCode(explicitStatusCode != null
-                ? explicitStatusCode
-                : assistances.isEmpty() ? null : "ASSISTED");
+        if (explicitStatusCode != null) {
+            entity.setStatusCode(explicitStatusCode);
+        } else if (!assistances.isEmpty()) {
+            entity.setStatusCode("ASSISTED");
+        }
+        // 否则保持原有状态不变
         entity.setAssistanceResultText(normalizeOptionalText(request.assistanceResultText()));
         mapper.updateBehaviorDetails(entity);
         mapper.deleteAssistances(recordId);
@@ -384,18 +389,17 @@ public class ClassRecordService {
     }
 
     private BehaviorCardMutationResult createBehavior(Long userId, Long classRecordId,
-                                                      String behaviorCode, LocalDateTime occurredAt) {
+                                                      String behaviorCode, String subBehaviorCode, String statusCode,
+                                                      LocalDateTime occurredAt) {
         Long studentId = profileService.requireCurrentStudentId(userId);
         ClassRecordEntity classRecord = requireClassRecord(classRecordId, studentId);
-        if (!mapper.existsBehaviorOption(classRecord.getCourseCode(), classRecord.getEnvironmentCode(),
-                behaviorCode)) {
-            throw validation("该课程和环境未配置此行为卡片");
-        }
         BehaviorRecordEntity entity = new BehaviorRecordEntity();
         entity.setClassRecordId(classRecordId);
         entity.setCreatorId(userId);
         entity.setOccurredAt(occurredAt);
         entity.setBehaviorCode(behaviorCode);
+        entity.setSubBehaviorCode(subBehaviorCode);
+        entity.setStatusCode(statusCode);
         mapper.insertBehaviorRecord(entity);
         entity.setDetailSaved(false);
         BehaviorCardSummary card = mapper.findBehaviorCards(classRecordId, classRecord.getCourseCode(),
@@ -526,7 +530,9 @@ public class ClassRecordService {
     }
 
     private BehaviorRecordListItem toListItem(BehaviorRecordEntity value) {
-        return new BehaviorRecordListItem(value.getId(), toOffset(value.getOccurredAt()), value.isDetailSaved());
+        return new BehaviorRecordListItem(value.getId(), toOffset(value.getOccurredAt()), value.isDetailSaved(),
+                value.getSubBehaviorCode(), value.getSubBehaviorLabel(),
+                value.getStatusCode(), value.getStatusLabel());
     }
 
     private OffsetDateTime toOffset(LocalDateTime value) {

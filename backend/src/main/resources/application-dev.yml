@@ -2,16 +2,16 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/special_ed_assistant?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_general_ci&serverTimezone=Asia/Shanghai}
     username: ${DB_USERNAME:special_ed_app}
-    password: ${DB_PASSWORD}
+    password: ${DB_PASSWORD:special_ed_2024}
     driver-class-name: com.mysql.cj.jdbc.Driver
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true
 
-# ===== AI 配置 =====
+# ===== AI 配置（智谱清言 GLM-4） =====
 ai:
-  base-url: ${AI_BASE_URL:https://api.anthropic.com/v1/messages}
+  base-url: ${AI_BASE_URL:https://open.bigmodel.cn/api/paas/v4/chat/completions}
   api-key: ${AI_API_KEY:}
-  model: ${AI_MODEL:claude-sonnet-5}
+  model: ${AI_MODEL:glm-4-flash}
   max-tokens: ${AI_MAX_TOKENS:2048}

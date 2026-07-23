@@ -41,4 +41,8 @@ public interface StudentEvaluationMapper {
     LocalDate findLastBehaviorDescriptionDate(@Param("studentId") Long studentId,
                                                @Param("start") LocalDate start,
                                                @Param("end") LocalDate end);
+
+    DailyEvaluationEntity findDailyEvaluation(@Param("studentId") Long studentId,
+                                               @Param("recordDate") LocalDate recordDate);
+    int upsertDailyEvaluation(DailyEvaluationEntity entity);
 }

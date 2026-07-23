@@ -287,4 +287,17 @@ public class StudentEvaluationService {
     private record WeekBucket(int number, LocalDate start, LocalDate end) { }
     private record StatusTotals(long total, long incomplete, long assisted,
                                 long independent, long unclassified) { }
+
+    // ==================== 每日评价 ====================
+    public DailyEvaluationEntity getDailyEvaluation(Long userId, LocalDate date) {
+        Long studentId = profileService.requireCurrentStudentId(userId);
+        DailyEvaluationEntity entity = mapper.findDailyEvaluation(studentId, date);
+        return entity != null ? entity : new DailyEvaluationEntity();
+    }
+
+    public void saveDailyEvaluation(Long userId, DailyEvaluationEntity body) {
+        Long studentId = profileService.requireCurrentStudentId(userId);
+        body.setStudentId(studentId);
+        mapper.upsertDailyEvaluation(body);
+    }
 }

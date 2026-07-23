@@ -121,12 +121,16 @@ public final class ClassRecordModels {
     }
 
     public record CreateQuickBehaviorRequest(
-            @NotBlank @Size(max = 64) String behaviorCode
+            @NotBlank @Size(max = 64) String behaviorCode,
+            @Size(max = 64) String subBehaviorCode,
+            @Size(max = 64) String statusCode
     ) {
     }
 
     public record CreateSupplementBehaviorRequest(
             @NotBlank @Size(max = 64) String behaviorCode,
+            @Size(max = 64) String subBehaviorCode,
+            @Size(max = 64) String statusCode,
             @NotNull OffsetDateTime occurredAt
     ) {
     }
@@ -134,7 +138,11 @@ public final class ClassRecordModels {
     public record BehaviorRecordListItem(
             Long id,
             OffsetDateTime occurredAt,
-            boolean detailSaved
+            boolean detailSaved,
+            String subBehaviorCode,
+            String subBehaviorLabel,
+            String statusCode,
+            String statusLabel
     ) {
     }
 
