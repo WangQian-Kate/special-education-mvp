@@ -33,6 +33,9 @@
         <result property="consequenceText" column="consequence_text"/>
         <result property="functionCode" column="function_code"/>
         <result property="functionLabel" column="function_label"/>
+        <result property="functionOtherText" column="function_other_text"/>
+        <result property="statusCode" column="status_code"/>
+        <result property="statusLabel" column="status_label"/>
         <result property="assistanceResultText" column="assistance_result_text"/>
         <result property="detailSaved" column="detail_saved"/>
     </resultMap>
@@ -108,6 +111,9 @@
     </select>
     <select id="existsFunction" resultType="boolean">
         SELECT COUNT(*) &gt; 0 FROM behavior_function_type WHERE code = #{code}
+    </select>
+    <select id="existsStatus" resultType="boolean">
+        SELECT COUNT(*) &gt; 0 FROM behavior_status_type WHERE code = #{code}
     </select>
     <select id="existsAssistance" resultType="boolean">
         SELECT COUNT(*) &gt; 0 FROM assistance_type WHERE code = #{code}
@@ -280,12 +286,14 @@
     <select id="findBehaviorRecordForStudent" resultMap="BehaviorRecordMap">
         SELECT br.*, bt.label AS behavior_label,
                stage_type.label AS stage_label,
-               function_type.label AS function_label
+               function_type.label AS function_label,
+               status_type.label AS status_label
         FROM behavior_record br
         JOIN class_record cr ON cr.id = br.class_record_id
         JOIN behavior_type bt ON bt.code = br.behavior_code
         LEFT JOIN behavior_stage_type stage_type ON stage_type.code = br.stage_code
         LEFT JOIN behavior_function_type function_type ON function_type.code = br.function_code
+        LEFT JOIN behavior_status_type status_type ON status_type.code = br.status_code
         WHERE br.id = #{id} AND cr.student_id = #{studentId}
     </select>
 
@@ -304,6 +312,8 @@
             behavior_description = #{behaviorDescription},
             consequence_text = #{consequenceText},
             function_code = #{functionCode},
+            function_other_text = #{functionOtherText},
+            status_code = #{statusCode},
             assistance_result_text = #{assistanceResultText},
             detail_saved = TRUE
         WHERE id = #{id}

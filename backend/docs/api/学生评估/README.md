@@ -2,33 +2,37 @@
 
 ## 页面范围
 
-当前实现周期概况、行为频次和上一周期趋势对比。AI 智能分析等待成员 C，学期报告等待固定日期，导出和分享等待后续页面设计。
-
-统计对象始终是 `X-Teacher-Id` 对应教师的当前学生，数据来源为随班记录。
-
-## 接口
+统计对象始终是 `X-Teacher-Id` 对应教师的当前学生，数据全部来自随班记录，不使用前端静态估算。
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| GET | `/student-evaluation/statistics` | 查询日报、周报或月报概况和行为趋势 |
+| GET | `/student-evaluation/statistics` | 日、周、月概览，行为环比、三态、每日/自然周、课程和环境统计 |
+| GET | `/student-evaluation/abc-distribution` | ABC 行为功能分布 |
+| GET | `/student-evaluation/behavior-description-trend` | B 字段自由文本 TOP N 与月度趋势 |
 
 ## 周期规则
 
-- `DAILY`：`referenceDate` 当天。
-- `WEEKLY`：`referenceDate` 所在周的周一至周日。
-- `MONTHLY`：`referenceDate` 所在自然月。
-- 对比周期分别为前一天、上一自然周、上一自然月。
-- 学期报告：固定日期待确认，当前不开放虚假接口。
+- `DAILY`：参考日期当天。
+- `WEEKLY`：参考日期所在周周一至周日；`dailyTrends` 固定返回 7 项，无记录日期为 0。
+- `MONTHLY`：参考日期所在自然月；`weeklyBreakdown` 按周一至周日切分为 4–6 段，尚未到来的周不返回。
+- 行为环比的上一周期分别为前一天、上一自然周、上一自然月。
 
-## 统计规则
+## 三态与百分比
 
-- 每条快速记录计 1 次。
-- 每条补记计 1 次。
-- 保存详细记录不增加次数。
-- 删除行为记录后次数同步减少。
-- 直接使用记录条数，不读取或返回旧 `frequency` 字段。
-- “观察课程”统计课堂记录数量。
-- “ABC 记录”统计 `detailSaved = true` 的行为记录数量。
-- “备注”统计填写了本周期行为备注的课堂记录数量。
-- `UP` 表示次数上升，前端显示红色；`DOWN` 表示次数下降，前端显示绿色；`STABLE` 显示灰色。
-- 上一周期为 0、本周期大于 0 时，变化百分比返回 `null`，趋势为 `UP`。
+- `INCOMPLETE`：未完成；`ASSISTED`：辅助完成；`INDEPENDENT`：独立完成。
+- 快速记录的 `statusCode` 初始为 `null`，通过 `unclassifiedCount` 返回。
+- 独立完成率只以三态已分类记录为分母，未分类记录不进入分母。
+- `items`、`courseStats`、`environmentStats` 均直接由后端聚合，前端不再逐条请求或估算。
+
+## 训练目标覆盖
+
+`overview.trainingGoalCount` 统计周期内实际发生记录关联的全部标准目标去重数，不限于当前学生是否激活。每条行为记录计入其主行为关联的全部目标。
+
+## ABC 与行为表现
+
+- ABC 功能固定返回 `ATTENTION`、`ESCAPE`、`SENSORY`、`TANGIBLE`、`OTHER` 5 项，无记录项为 0。
+- ABC 分母仅包含已保存详细记录且已选择行为功能的记录。
+- 行为表现趋势仅统计 `detailSaved=true` 且 B 字段非空的记录，按 trim 后完全一致文本分组。
+- 月度趋势将第 1 个自然周与最后一个实际有数据的自然周比较，返回 `UP`、`DOWN`、`STABLE`。
+
+AI 智能分析、学期报告、导出和分享仍等待后续需求。

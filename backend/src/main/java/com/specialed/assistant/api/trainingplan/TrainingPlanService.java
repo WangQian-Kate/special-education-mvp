@@ -9,15 +9,23 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.specialed.assistant.api.trainingplan.TrainingPlanModels.*;
 
 @Service
 public class TrainingPlanService {
     private static final Set<String> PATCH_FIELDS = Set.of("currentLevel", "phase", "status");
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     private final TrainingPlanMapper mapper;
     private final ProfileService profileService;
@@ -50,6 +58,70 @@ public class TrainingPlanService {
                         status == null ? null : status.name()).stream()
                 .map(this::toItem)
                 .toList();
+    }
+
+    public GoalsProgressResponse goalsProgress(Long userId, ProgressPeriod period, LocalDate referenceDate) {
+        Long studentId = profileService.requireCurrentStudentId(userId);
+        PeriodRange range = progressRange(period, referenceDate);
+        List<GoalProgressEntity> rows = mapper.findGoalProgress(studentId, range.start(), range.end());
+        Map<Long, List<GoalProgressEntity>> byGoal = rows.stream().collect(Collectors.groupingBy(
+                GoalProgressEntity::getGoalId, LinkedHashMap::new, Collectors.toList()));
+        Map<String, List<GoalProgressItem>> goalsByModule = new LinkedHashMap<>();
+        Map<String, String> moduleLabels = new LinkedHashMap<>();
+        for (List<GoalProgressEntity> goalRows : byGoal.values()) {
+            GoalProgressEntity first = goalRows.getFirst();
+            moduleLabels.putIfAbsent(first.getModuleCode(), first.getModuleLabel());
+            long total = goalRows.stream().mapToLong(GoalProgressEntity::getTotalCount).sum();
+            long incomplete = goalRows.stream().mapToLong(GoalProgressEntity::getIncompleteCount).sum();
+            long assisted = goalRows.stream().mapToLong(GoalProgressEntity::getAssistedCount).sum();
+            long independent = goalRows.stream().mapToLong(GoalProgressEntity::getIndependentCount).sum();
+            long unclassified = goalRows.stream().mapToLong(GoalProgressEntity::getUnclassifiedCount).sum();
+            List<GoalProgressWeek> weeks = period == ProgressPeriod.MONTHLY
+                    ? goalWeeks(range, goalRows) : List.of();
+            GoalProgressItem item = new GoalProgressItem(first.getGoalId(), first.getStandardNumber(),
+                    GoalType.valueOf(first.getGoalType()), first.getGoalText(), total, incomplete, assisted,
+                    independent, unclassified, weeks);
+            goalsByModule.computeIfAbsent(first.getModuleCode(), ignored -> new ArrayList<>()).add(item);
+        }
+        List<GoalProgressModule> modules = goalsByModule.entrySet().stream()
+                .map(entry -> new GoalProgressModule(entry.getKey(), moduleLabels.get(entry.getKey()),
+                        List.copyOf(entry.getValue())))
+                .toList();
+        return new GoalsProgressResponse(studentId, period, range.start(), range.end(), modules);
+    }
+
+    public GoalRecordsResponse goalRecords(Long userId, Integer standardNumber, int limit) {
+        Long studentId = profileService.requireCurrentStudentId(userId);
+        TrainingGoalEntity goal = mapper.findGoalByStandardNumber(standardNumber);
+        if (goal == null) {
+            throw notFound("标准训练目标不存在：" + standardNumber);
+        }
+        long totalCount = mapper.countGoalRecords(studentId, standardNumber);
+        List<GoalRecordEntity> rows = mapper.findGoalRecords(studentId, standardNumber, limit);
+        Map<Long, List<GoalRecordSelectionEntity>> selections = rows.isEmpty()
+                ? Map.of()
+                : mapper.findGoalRecordSelections(rows.stream().map(GoalRecordEntity::getId).toList()).stream()
+                        .collect(Collectors.groupingBy(GoalRecordSelectionEntity::getRecordId,
+                                LinkedHashMap::new, Collectors.toList()));
+        List<GoalRecordItem> records = rows.stream().map(row -> {
+            List<GoalRecordSelectionEntity> selected = selections.getOrDefault(row.getId(), List.of());
+            List<GoalRecordOption> subBehaviors = selected.stream()
+                    .filter(item -> "SUB_BEHAVIOR".equals(item.getOptionType()))
+                    .map(this::toGoalRecordOption).toList();
+            List<GoalRecordOption> performanceOptions = selected.stream()
+                    .filter(item -> "PERFORMANCE".equals(item.getOptionType()))
+                    .map(this::toGoalRecordOption).toList();
+            String performanceText = performanceOptions.isEmpty() ? "未填写"
+                    : performanceOptions.stream()
+                            .map(item -> item.customText() == null ? item.label() : item.customText())
+                            .collect(Collectors.joining("，"));
+            return new GoalRecordItem(row.getId(), row.getRecordDate(),
+                    row.getOccurredAt().format(TIME_FORMATTER), row.getCourseCode(), row.getCourseLabel(),
+                    row.getEnvironmentCode(), row.getEnvironmentLabel(), row.getBehaviorCode(),
+                    row.getBehaviorLabel(), subBehaviors, row.getStatusCode(), row.getStatusLabel(),
+                    performanceOptions, performanceText);
+        }).toList();
+        return new GoalRecordsResponse(standardNumber, goal.getGoalText(), totalCount, records);
     }
 
     @Transactional
@@ -147,6 +219,50 @@ public class TrainingPlanService {
         return entity;
     }
 
+    private GoalRecordOption toGoalRecordOption(GoalRecordSelectionEntity value) {
+        return new GoalRecordOption(value.getOptionCode(), value.getLabel(), value.getCustomText());
+    }
+
+    private List<GoalProgressWeek> goalWeeks(PeriodRange range, List<GoalProgressEntity> rows) {
+        return monthBuckets(range).stream().map(week -> {
+            long total = 0, incomplete = 0, assisted = 0, independent = 0, unclassified = 0;
+            for (GoalProgressEntity row : rows) {
+                if (row.getDate() != null && !row.getDate().isBefore(week.start())
+                        && !row.getDate().isAfter(week.end())) {
+                    total += row.getTotalCount();
+                    incomplete += row.getIncompleteCount();
+                    assisted += row.getAssistedCount();
+                    independent += row.getIndependentCount();
+                    unclassified += row.getUnclassifiedCount();
+                }
+            }
+            return new GoalProgressWeek(week.number(), week.start(), week.end(), total,
+                    incomplete, assisted, independent, unclassified);
+        }).toList();
+    }
+
+    private List<WeekBucket> monthBuckets(PeriodRange range) {
+        List<WeekBucket> result = new ArrayList<>();
+        LocalDate cursor = range.start();
+        int number = 1;
+        while (!cursor.isAfter(range.end())) {
+            LocalDate naturalEnd = cursor.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+            LocalDate end = naturalEnd.isAfter(range.end()) ? range.end() : naturalEnd;
+            result.add(new WeekBucket(number++, cursor, end));
+            cursor = end.plusDays(1);
+        }
+        return result;
+    }
+
+    private PeriodRange progressRange(ProgressPeriod period, LocalDate referenceDate) {
+        if (period == ProgressPeriod.WEEKLY) {
+            LocalDate start = referenceDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            return new PeriodRange(start, start.plusDays(6));
+        }
+        return new PeriodRange(referenceDate.withDayOfMonth(1),
+                referenceDate.with(TemporalAdjusters.lastDayOfMonth()));
+    }
+
     private TrainingPlanItemEntity requireItem(Long id, Long studentId) {
         TrainingPlanItemEntity item = mapper.findItemForStudent(id, studentId);
         if (item == null) {
@@ -199,4 +315,7 @@ public class TrainingPlanService {
     private BusinessException notFound(String message) {
         return new BusinessException(HttpStatus.NOT_FOUND, ErrorCode.RESOURCE_NOT_FOUND, message);
     }
+
+    private record PeriodRange(LocalDate start, LocalDate end) { }
+    private record WeekBucket(int number, LocalDate start, LocalDate end) { }
 }

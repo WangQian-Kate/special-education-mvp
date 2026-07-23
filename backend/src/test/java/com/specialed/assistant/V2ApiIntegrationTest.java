@@ -56,7 +56,7 @@ class V2ApiIntegrationTest {
     void profileAndReferenceEndpointsFollowContract() throws Exception {
         Integer functionCount = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM behavior_function_type", Integer.class);
-        org.assertj.core.api.Assertions.assertThat(functionCount).isEqualTo(4);
+        org.assertj.core.api.Assertions.assertThat(functionCount).isEqualTo(5);
 
         var courseDictionary = jdbc.queryForList(
                 "SELECT CONCAT(code, ':', label) FROM course_type ORDER BY code", String.class);
@@ -246,6 +246,8 @@ class V2ApiIntegrationTest {
                 .andExpect(jsonPath("$.data.detailSaved").value(true))
                 .andExpect(jsonPath("$.data.assistances[0].code").value("VERBAL_ASSISTANCE"))
                 .andExpect(jsonPath("$.data.assistances[0].content").value(nullValue()))
+                .andExpect(jsonPath("$.data.statusCode").value("ASSISTED"))
+                .andExpect(jsonPath("$.data.statusLabel").value("辅助完成"))
                 .andExpect(jsonPath("$.data.performanceSelections[0].optionCode").value("B006_P03"));
 
         mockMvc.perform(put("/behavior-records/{id}/details", recordId).header(TEACHER_HEADER, "t001")
@@ -373,6 +375,130 @@ class V2ApiIntegrationTest {
                 .andExpect(jsonPath("$.data.items[1].changePercent").value(nullValue()))
                 .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'B094')].trendDirection")
                         .value("UP"));
+    }
+
+    @Test
+    void reportingStatusGoalProgressAndGoalRecordsFollowV27Contract() throws Exception {
+        long classRecordId = createClassRecord("2026-07-20", "统计测试");
+        long independentRecord = createQuickBehavior(classRecordId, "B006");
+        long assistedRecord = createQuickBehavior(classRecordId, "B006");
+        long incompleteRecord = createQuickBehavior(classRecordId, "B094");
+        createQuickBehavior(classRecordId, "B006");
+
+        mockMvc.perform(put("/behavior-records/{id}/details", independentRecord)
+                        .header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"statusCode":"INDEPENDENT","behaviorDescription":" 东张西望 ",
+                                 "functionCode":"ATTENTION",
+                                 "assistances":[{"code":"VERBAL_ASSISTANCE"}],
+                                 "performanceSelections":[{"optionCode":"B006_P03"}]}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.statusCode").value("INDEPENDENT"));
+
+        mockMvc.perform(put("/behavior-records/{id}/details", assistedRecord)
+                        .header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"behaviorDescription":"东张西望","functionCode":"OTHER",
+                                 "functionOtherText":"获得活动机会",
+                                 "assistances":[{"code":"VISUAL_ASSISTANCE"}]}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.functionOtherText").value("获得活动机会"))
+                .andExpect(jsonPath("$.data.statusCode").value("ASSISTED"));
+
+        mockMvc.perform(put("/behavior-records/{id}/details", incompleteRecord)
+                        .header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"statusCode":"INCOMPLETE","behaviorDescription":"无回应",
+                                 "functionCode":"ESCAPE"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.statusLabel").value("未完成"));
+
+        mockMvc.perform(put("/behavior-records/{id}/details", assistedRecord)
+                        .header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"functionCode\":\"OTHER\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("行为功能选择“其他”时必须填写自定义内容"));
+
+        Long goal19 = jdbc.queryForObject(
+                "SELECT id FROM training_goal WHERE standard_number = 19", Long.class);
+        jdbc.update("""
+                INSERT INTO student_training_goal
+                    (student_id, goal_id, initial_level, current_level, phase, status)
+                VALUES (1, ?, 'C', 'C', 1, 'IN_PROGRESS')
+                """, goal19);
+
+        mockMvc.perform(get("/student-evaluation/statistics").header(TEACHER_HEADER, "t001")
+                        .queryParam("period", "WEEKLY").queryParam("referenceDate", "2026-07-22"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.overview.behaviorRecordCount").value(4))
+                .andExpect(jsonPath("$.data.overview.trainingGoalCount").value(3))
+                .andExpect(jsonPath("$.data.overview.incompleteCount").value(1))
+                .andExpect(jsonPath("$.data.overview.assistedCount").value(1))
+                .andExpect(jsonPath("$.data.overview.independentCount").value(1))
+                .andExpect(jsonPath("$.data.overview.unclassifiedCount").value(1))
+                .andExpect(jsonPath("$.data.dailyTrends.length()").value(7))
+                .andExpect(jsonPath("$.data.dailyTrends[0].date").value("2026-07-20"))
+                .andExpect(jsonPath("$.data.dailyTrends[0].recordCount").value(4))
+                .andExpect(jsonPath("$.data.courseStats[0].independentRate").value(33))
+                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'B006')].unclassifiedCount").value(1));
+
+        mockMvc.perform(get("/student-evaluation/statistics").header(TEACHER_HEADER, "t001")
+                        .queryParam("period", "MONTHLY").queryParam("referenceDate", "2026-07-22"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.weeklyBreakdown.length()").value(4))
+                .andExpect(jsonPath("$.data.weeklyBreakdown[3].week").value(4))
+                .andExpect(jsonPath("$.data.weeklyBreakdown[3].totalCount").value(4));
+
+        mockMvc.perform(get("/student-evaluation/abc-distribution").header(TEACHER_HEADER, "t001")
+                        .queryParam("period", "WEEKLY").queryParam("referenceDate", "2026-07-22"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalCount").value(3))
+                .andExpect(jsonPath("$.data.items.length()").value(5))
+                .andExpect(jsonPath("$.data.items[?(@.functionCode == 'OTHER')].count").value(1));
+
+        mockMvc.perform(get("/student-evaluation/behavior-description-trend")
+                        .header(TEACHER_HEADER, "t001")
+                        .queryParam("period", "WEEKLY").queryParam("referenceDate", "2026-07-22"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.topDescriptions[0].description").value("东张西望"))
+                .andExpect(jsonPath("$.data.topDescriptions[0].count").value(2));
+
+        mockMvc.perform(get("/student-evaluation/behavior-description-trend")
+                        .header(TEACHER_HEADER, "t001")
+                        .queryParam("period", "MONTHLY").queryParam("referenceDate", "2026-07-22"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.topDescriptions[0].weeklyCounts.length()").value(5))
+                .andExpect(jsonPath("$.data.topDescriptions[0].trend").value("UP"));
+
+        mockMvc.perform(get("/training-plan/goals-progress").header(TEACHER_HEADER, "t001")
+                        .queryParam("period", "WEEKLY").queryParam("referenceDate", "2026-07-22"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.modules[0].moduleCode").value("SCHOOL_ENTRY"))
+                .andExpect(jsonPath("$.data.modules[0].goals[0].standardNumber").value(19))
+                .andExpect(jsonPath("$.data.modules[0].goals[0].totalCount").value(3))
+                .andExpect(jsonPath("$.data.modules[0].goals[0].independentCount").value(1))
+                .andExpect(jsonPath("$.data.modules[0].goals[0].assistedCount").value(1))
+                .andExpect(jsonPath("$.data.modules[0].goals[0].unclassifiedCount").value(1));
+
+        mockMvc.perform(get("/training-plan/goals/{standardNumber}/records", 19)
+                        .header(TEACHER_HEADER, "t001").queryParam("limit", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.standardNumber").value(19))
+                .andExpect(jsonPath("$.data.totalCount").value(3))
+                .andExpect(jsonPath("$.data.records.length()").value(3))
+                .andExpect(jsonPath("$.data.records[?(@.statusCode == 'INDEPENDENT')].performanceText")
+                        .value("调整位置正确"));
+
+        mockMvc.perform(get("/training-plan/goals/{standardNumber}/records", 999)
+                        .header(TEACHER_HEADER, "t001"))
+                .andExpect(status().isNotFound());
     }
 
     private long createClassRecord(String recordDate, String remark) throws Exception {

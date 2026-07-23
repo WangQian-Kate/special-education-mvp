@@ -4,6 +4,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.time.LocalDate;
 
 @Mapper
 public interface TrainingPlanMapper {
@@ -23,4 +24,14 @@ public interface TrainingPlanMapper {
     int updateItem(TrainingPlanItemEntity entity);
     int deleteItem(@Param("id") Long id, @Param("studentId") Long studentId);
     int deleteGoal(@Param("goalId") Long goalId, @Param("studentId") Long studentId);
+    List<GoalProgressEntity> findGoalProgress(@Param("studentId") Long studentId,
+                                              @Param("start") LocalDate start,
+                                              @Param("end") LocalDate end);
+    TrainingGoalEntity findGoalByStandardNumber(Integer standardNumber);
+    long countGoalRecords(@Param("studentId") Long studentId,
+                          @Param("standardNumber") Integer standardNumber);
+    List<GoalRecordEntity> findGoalRecords(@Param("studentId") Long studentId,
+                                           @Param("standardNumber") Integer standardNumber,
+                                           @Param("limit") int limit);
+    List<GoalRecordSelectionEntity> findGoalRecordSelections(@Param("recordIds") List<Long> recordIds);
 }

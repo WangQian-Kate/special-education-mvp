@@ -20,6 +20,7 @@ public interface ClassRecordMapper {
                                  @Param("behaviorCode") String behaviorCode);
     boolean existsStage(String code);
     boolean existsFunction(String code);
+    boolean existsStatus(String code);
     boolean existsAssistance(String code);
     List<BehaviorCatalogEntity> findBehaviorCatalog(@Param("courseCode") String courseCode,
                                                      @Param("environmentCode") String environmentCode);

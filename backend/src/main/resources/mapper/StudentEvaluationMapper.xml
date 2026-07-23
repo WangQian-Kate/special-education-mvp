@@ -1,20 +1,130 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE mapper
-        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.specialed.assistant.api.studentevaluation.StudentEvaluationMapper">
-    <select id="countOverview"
-            resultType="com.specialed.assistant.api.studentevaluation.StudentEvaluationOverviewEntity">
+    <sql id="statusCounts">
+        COUNT(br.id) AS total_count,
+        COALESCE(SUM(br.status_code = 'INCOMPLETE'), 0) AS incomplete_count,
+        COALESCE(SUM(br.status_code = 'ASSISTED'), 0) AS assisted_count,
+        COALESCE(SUM(br.status_code = 'INDEPENDENT'), 0) AS independent_count,
+        COALESCE(SUM(br.status_code IS NULL), 0) AS unclassified_count
+    </sql>
+
+    <select id="countOverview" resultType="com.specialed.assistant.api.studentevaluation.StudentEvaluationOverviewEntity">
         SELECT COUNT(DISTINCT cr.id) AS observation_course_count,
                COUNT(br.id) AS behavior_record_count,
-               COALESCE(SUM(CASE WHEN br.detail_saved = TRUE THEN 1 ELSE 0 END), 0) AS abc_record_count,
-               COUNT(DISTINCT CASE
-                   WHEN NULLIF(TRIM(cr.overall_remark), '') IS NOT NULL THEN cr.id
-                   ELSE NULL
-               END) AS remark_count
+               COALESCE(SUM(br.detail_saved = TRUE), 0) AS abc_record_count,
+               COUNT(DISTINCT CASE WHEN NULLIF(TRIM(cr.overall_remark), '') IS NOT NULL THEN cr.id END) AS remark_count,
+               (SELECT COUNT(DISTINCT relation.standard_number)
+                FROM behavior_record goal_record
+                JOIN class_record goal_class ON goal_class.id = goal_record.class_record_id
+                JOIN behavior_training_goal relation ON relation.behavior_code = goal_record.behavior_code
+                WHERE goal_class.student_id = #{studentId}
+                  AND goal_class.record_date BETWEEN #{start} AND #{end}) AS training_goal_count,
+               COALESCE(SUM(br.status_code = 'INCOMPLETE'), 0) AS incomplete_count,
+               COALESCE(SUM(br.status_code = 'ASSISTED'), 0) AS assisted_count,
+               COALESCE(SUM(br.status_code = 'INDEPENDENT'), 0) AS independent_count,
+               COALESCE(SUM(br.id IS NOT NULL AND br.status_code IS NULL), 0) AS unclassified_count
         FROM class_record cr
         LEFT JOIN behavior_record br ON br.class_record_id = cr.id
         WHERE cr.student_id = #{studentId}
           AND cr.record_date BETWEEN #{start} AND #{end}
+    </select>
+
+    <select id="countBehaviors" resultType="com.specialed.assistant.api.studentevaluation.EvaluationAggregationEntity">
+        SELECT bt.code, bt.label, <include refid="statusCounts"/>
+        FROM behavior_record br
+        JOIN class_record cr ON cr.id = br.class_record_id
+        JOIN behavior_type bt ON bt.code = br.behavior_code
+        WHERE cr.student_id = #{studentId} AND cr.record_date BETWEEN #{start} AND #{end}
+        GROUP BY bt.code, bt.label
+        ORDER BY total_count DESC, bt.code
+    </select>
+
+    <select id="countDaily" resultType="com.specialed.assistant.api.studentevaluation.EvaluationAggregationEntity">
+        SELECT cr.record_date AS date, <include refid="statusCounts"/>
+        FROM behavior_record br
+        JOIN class_record cr ON cr.id = br.class_record_id
+        WHERE cr.student_id = #{studentId} AND cr.record_date BETWEEN #{start} AND #{end}
+        GROUP BY cr.record_date
+        ORDER BY cr.record_date
+    </select>
+
+    <select id="countCourses" resultType="com.specialed.assistant.api.studentevaluation.EvaluationAggregationEntity">
+        SELECT ct.code, ct.label, <include refid="statusCounts"/>
+        FROM behavior_record br
+        JOIN class_record cr ON cr.id = br.class_record_id
+        JOIN course_type ct ON ct.code = cr.course_code
+        WHERE cr.student_id = #{studentId} AND cr.record_date BETWEEN #{start} AND #{end}
+        GROUP BY ct.code, ct.label
+        ORDER BY total_count DESC, ct.code
+    </select>
+
+    <select id="countEnvironments" resultType="com.specialed.assistant.api.studentevaluation.EvaluationAggregationEntity">
+        SELECT et.code, et.label, <include refid="statusCounts"/>
+        FROM behavior_record br
+        JOIN class_record cr ON cr.id = br.class_record_id
+        JOIN environment_type et ON et.code = cr.environment_code
+        WHERE cr.student_id = #{studentId} AND cr.record_date BETWEEN #{start} AND #{end}
+        GROUP BY et.code, et.label
+        ORDER BY total_count DESC, et.code
+    </select>
+
+    <select id="countFunctions" resultType="com.specialed.assistant.api.studentevaluation.FunctionDistributionEntity">
+        SELECT function_type.code, function_type.label,
+               CASE function_type.code
+                 WHEN 'ATTENTION' THEN 1 WHEN 'ESCAPE' THEN 2 WHEN 'SENSORY' THEN 3
+                 WHEN 'TANGIBLE' THEN 4 ELSE 5 END AS display_order,
+               COUNT(br.id) AS count
+        FROM behavior_function_type function_type
+        LEFT JOIN (
+            SELECT behavior.function_code, behavior.id
+            FROM behavior_record behavior
+            JOIN class_record class_row ON class_row.id = behavior.class_record_id
+            WHERE class_row.student_id = #{studentId}
+              AND class_row.record_date BETWEEN #{start} AND #{end}
+              AND behavior.detail_saved = TRUE
+              AND behavior.function_code IS NOT NULL
+        ) br ON br.function_code = function_type.code
+        GROUP BY function_type.code, function_type.label
+        ORDER BY display_order, function_type.code
+    </select>
+
+    <select id="countBehaviorDescriptions" resultType="com.specialed.assistant.api.studentevaluation.BehaviorDescriptionCountEntity">
+        SELECT TRIM(br.behavior_description) AS description, COUNT(*) AS count
+        FROM behavior_record br
+        JOIN class_record cr ON cr.id = br.class_record_id
+        WHERE cr.student_id = #{studentId}
+          AND cr.record_date BETWEEN #{start} AND #{end}
+          AND br.detail_saved = TRUE
+          AND NULLIF(TRIM(br.behavior_description), '') IS NOT NULL
+        GROUP BY TRIM(br.behavior_description)
+        ORDER BY count DESC, description
+        LIMIT #{limit}
+    </select>
+
+    <select id="countBehaviorDescriptionsByDate" resultType="com.specialed.assistant.api.studentevaluation.BehaviorDescriptionCountEntity">
+        SELECT TRIM(br.behavior_description) AS description, cr.record_date AS date, COUNT(*) AS count
+        FROM behavior_record br
+        JOIN class_record cr ON cr.id = br.class_record_id
+        WHERE cr.student_id = #{studentId}
+          AND cr.record_date BETWEEN #{start} AND #{end}
+          AND br.detail_saved = TRUE
+          AND TRIM(br.behavior_description) IN
+          <foreach collection="descriptions" item="description" open="(" separator="," close=")">
+            #{description}
+          </foreach>
+        GROUP BY TRIM(br.behavior_description), cr.record_date
+        ORDER BY description, cr.record_date
+    </select>
+
+    <select id="findLastBehaviorDescriptionDate" resultType="java.time.LocalDate">
+        SELECT MAX(cr.record_date)
+        FROM behavior_record br
+        JOIN class_record cr ON cr.id = br.class_record_id
+        WHERE cr.student_id = #{studentId}
+          AND cr.record_date BETWEEN #{start} AND #{end}
+          AND br.detail_saved = TRUE
+          AND NULLIF(TRIM(br.behavior_description), '') IS NOT NULL
     </select>
 </mapper>
