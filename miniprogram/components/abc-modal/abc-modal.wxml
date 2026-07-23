@@ -1,19 +1,22 @@
 <view wx:if="{{visible}}" class="abc-mask" bindtap="onClose" catchtouchmove="noop">
-  <view class="abc-panel" catchtap="noop">
+  <view class="abc-panel {{records.length ? 'has-records' : 'no-records'}}" catchtap="noop" catchtouchmove="noop">
     <!-- 头部 -->
     <view class="abc-header">
       <view class="abc-title">{{behavior.behaviorLabel}} · 详细记录</view>
       <view class="abc-close" bindtap="onClose">✕</view>
     </view>
 
-    <scroll-view scroll-y class="abc-body">
-      <!-- ========== 时间列表（上方固定区域） ========== -->
+    <!-- 顶部固定：补记 + 时间条 -->
+    <view class="abc-top">
       <view class="supp-row" bindtap="onSupplementToggle">+ 补记一次</view>
       <view wx:if="{{supplementOpen}}" class="supp-form">
         <picker mode="time" value="{{supplementTime}}" bindchange="onSupplementTimeChange">
           <view class="supp-time">{{supplementTime}} ▾</view>
         </picker>
-        <view class="supp-confirm" bindtap="onSupplementConfirm">确认补记</view>
+        <picker mode="selector" range="{{suppStatusRange}}" value="{{suppStatusIdx}}" bindchange="onSuppStatusChange">
+          <view class="supp-status {{suppStatusIdx > 0 ? 'st-'+suppStatusCode : ''}}">{{suppStatusLabel}}</view>
+        </picker>
+        <view class="supp-confirm {{suppStatusIdx === 0 ? 'supp-disabled' : ''}}" bindtap="onSupplementConfirm">确认补记</view>
       </view>
 
       <scroll-view scroll-x class="recs-scroll" wx:if="{{records.length}}">
@@ -25,14 +28,10 @@
         </view>
       </scroll-view>
       <view wx:if="{{!records.length && !loadingList}}" class="abc-empty">暂无记录，可点击上方补记</view>
+    </view>
 
-      <!-- ========== 详情表单（下方，有选中记录时渲染） ========== -->
-      <block wx:if="{{currentRecordId}}">
-        <view class="form-item">
-          <view class="form-label">发生时间</view>
-          <view class="form-static">{{formTimeText}}</view>
-        </view>
-
+    <!-- 下方可滚动：详情表单 -->
+    <scroll-view scroll-y class="abc-body" wx:if="{{currentRecordId}}">
         <view class="form-item">
           <view class="form-label">持续时间（分钟）</view>
           <input class="form-input" type="number" value="{{form.durationMinutes}}" data-field="durationMinutes" bindinput="onFormInput" placeholder="选填" />
@@ -76,7 +75,7 @@
           <view class="fold-body" wx:if="{{foldOpen}}">
             <!-- 行为功能 -->
             <view class="form-item">
-              <view class="form-label">行为功能</view>
+              <view class="form-label">推测的行为功能</view>
               <picker mode="selector" range="{{functionRange}}" value="{{functionIndex + 1}}" bindchange="onFunctionChange">
                 <view class="form-picker">{{functionLabel}} ▾</view>
               </picker>
@@ -102,7 +101,6 @@
         </view>
 
         <button class="abc-save" bindtap="onSave" disabled="{{saving}}">{{saving ? '保存中…' : '保存更新'}}</button>
-      </block>
     </scroll-view>
   </view>
 </view>

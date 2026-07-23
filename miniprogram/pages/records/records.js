@@ -47,6 +47,31 @@ const NOTE_DEBOUNCE_MS = 800;
 
 function idxByCode(list, code) { const i = list.findIndex(function (it) { return it.code === code; }); return i >= 0 ? i : 0; }
 
+// 子行为缩句映射（去掉亲代行为已有表意，控制在 ≤7 字）
+var SUB_SHORTEN = {
+  '主动创作，内容与要求一致': '内容与要求一致',
+  '安静聆听同伴介绍作品想法': '听同伴介绍作品',
+  '听完介绍后给予恰当评价': '给予恰当评价',
+  '关注课堂提问简单问题': '关注简单提问',
+  '主动合适方式回应提问': '合适方式回应提问',
+  '关注课堂提问复杂问题': '关注复杂提问',
+  '安静聆听同伴展示作品': '聆听同伴展示',
+  '主动配合老师整理用具': '配合老师整理',
+  '主动配合组长整理用具': '配合组长整理',
+  '向老师提问简单问题': '提问简单问题',
+  '坚持等待下一步指令': '等待下一步指令',
+  '按要求排队离开教室': '排队离开教室',
+  '向老师提问复杂问题': '提问复杂问题',
+  '不与同伴大声聊天': '不大声聊天',
+  '不与同伴嬉戏打闹': '不嬉戏打闹',
+  '在规定时间内吃完': '按时吃完',
+  '回应他人合作邀请': '回应合作邀请',
+  '理解集体游戏规则': '理解游戏规则',
+  '主动合适方式举手': '合适方式举手',
+  '不会进入其它班级': '不进入其它班级',
+  '较灵活地双手协调': '双手协调'
+};
+
 function groupByModule(items) {
   var map = {};
   var order = [];
@@ -64,7 +89,7 @@ function groupByModule(items) {
       subBehaviors: (it.subBehaviors || []).map(function (s) {
         return {
           code: s.code,
-          name: s.label,
+          name: SUB_SHORTEN[s.label] || s.label,
           displayOrder: s.displayOrder,
           performanceOptions: s.performanceOptions || []
         };
@@ -115,14 +140,19 @@ Page({
       { key: 'focus', label: '自身/共同专注力' }
     ],
     evaluation: { emotion: '', adaptation: '', social: '', selfMgmt: '', language: '', focus: '' },
+    evalSaveState: '',
     dayStats: [],
-    abcVisible: false, abcBehavior: null, abcPerfOptions: []
+    abcVisible: false, abcBehavior: null, abcPerfOptions: [], abcSubBehaviorCode: ''
   },
 
   onLoad() {
     var t = today();
     this.dayRecords = []; this._epoch = 0; this._noteTimer = null; this._noteSaving = false; this._createPromise = null;
     this.setData({ date: t, todayStr: t });
+    // 恢复今日教师评价
+    recordApi.getDailyEvaluation(t).then(function (data) {
+      if (data) this.setData({ evaluation: data });
+    }.bind(this)).catch(function () {});
     this.loadDay(t);
   },
 
@@ -151,7 +181,10 @@ Page({
       if (epoch !== this._epoch) return;
       this.dayRecords = list || [];
       await this.loadCatalog();
-      if (this.dayRecords.length) await this.bindRecord(this.dayRecords[this.dayRecords.length - 1].id, epoch);
+      // 初始加载：只在当前课程有记录时才绑定
+      var curCode = COURSES[this.data.courseIndex].code;
+      var myRec = (list || []).filter(function (r) { return r.courseCode === curCode; }).pop();
+      if (myRec) await this.bindRecord(myRec.id, epoch);
     } catch (err) {
       if (epoch !== this._epoch) return;
       this.dayRecords = [];
@@ -161,12 +194,15 @@ Page({
 
   /** 加载行为目录（按课程+环境筛选） */
   async loadCatalog() {
-    if (this.isAllDay()) return;
-    var courseCode = COURSES[this.data.courseIndex].code;
-    var envCode = ENVIRONMENTS[this.data.envIndex].code;
+    var courseCode = this.isAllDay() ? 'ALL_DAY_SUMMARY' : COURSES[this.data.courseIndex].code;
+    var envCode = this.isAllDay() ? null : (ENVIRONMENTS[this.data.envIndex] || {code: null}).code;
     try {
       var catalog = await recordApi.getBehaviorCatalog(courseCode, envCode);
       var modules = groupByModule(catalog);
+      if (this.isAllDay()) {
+        // 全天汇总：聚合当日所有 class_record 的计数
+        modules = await this._aggregateAllDayCounts(modules);
+      }
       this.setData({ modules: modules });
     } catch (err) {
       wx.showToast({ title: '目录加载失败: ' + (err && (err.message || err.code) || '未知'), icon: 'none', duration: 3000 });
@@ -174,11 +210,78 @@ Page({
     }
   },
 
+  /** 全天汇总：直接用 DAILY 评估接口获取完整状态拆分 */
+  async _aggregateAllDayCounts(modules) {
+    try {
+      // 每次都重新拉当日全部课堂记录，确保增量更新同步
+      this.dayRecords = await recordApi.getDayRecords(this.data.date);
+      var countMap = {};
+      var dayRecords = this.dayRecords || [];
+      for (var i = 0; i < dayRecords.length; i++) {
+        try {
+          var detail = await recordApi.getClassRecordDetail(dayRecords[i].id);
+          var cards = detail.behaviorCards || [];
+          for (var j = 0; j < cards.length; j++) {
+            var c = cards[j];
+            if (!countMap[c.behaviorCode]) countMap[c.behaviorCode] = { incomplete: 0, assisted: 0, independent: 0 };
+            try {
+              var recs = await recordApi.listBehaviorRecords(dayRecords[i].id, c.behaviorCode);
+              (recs || []).forEach(function (r) {
+                var st = (r.statusCode || 'incomplete').toLowerCase();
+                var subKey = r.subBehaviorCode || '';
+                // 子行为计数：countMap[parentCode][subName] = { incomplete, assisted, independent }
+                if (subKey) {
+                  if (!countMap[c.behaviorCode][subKey]) countMap[c.behaviorCode][subKey] = { incomplete: 0, assisted: 0, independent: 0 };
+                  if (st === 'independent') countMap[c.behaviorCode][subKey].independent++;
+                  else if (st === 'assisted') countMap[c.behaviorCode][subKey].assisted++;
+                  else countMap[c.behaviorCode][subKey].incomplete++;
+                } else {
+                  if (st === 'independent') countMap[c.behaviorCode].independent++;
+                  else if (st === 'assisted') countMap[c.behaviorCode].assisted++;
+                  else countMap[c.behaviorCode].incomplete++;
+                }
+              });
+            } catch (e2) {
+              countMap[c.behaviorCode].independent += c.count;
+            }
+          }
+        } catch (e) { /* skip */ }
+      }
+      modules.forEach(function (mod) {
+        mod.behaviors.forEach(function (beh) {
+          var mapData = countMap[beh.code] || { incomplete: 0, assisted: 0, independent: 0 };
+          var counts = { incomplete: mapData.incomplete || 0, assisted: mapData.assisted || 0, independent: mapData.independent || 0 };
+          // 复制子行为计数
+          if (beh.subBehaviors) {
+            beh.subBehaviors.forEach(function (sub) {
+              var subData = mapData[sub.name] || { incomplete: 0, assisted: 0, independent: 0 };
+              counts[sub.name] = { incomplete: subData.incomplete || 0, assisted: subData.assisted || 0, independent: subData.independent || 0 };
+            });
+          }
+          beh.counts = counts;
+        });
+      });
+    } catch (e) { /* skip */ }
+    return modules;
+  },
+
   async bindRecord(id, epoch) {
     var detail = await recordApi.getClassRecordDetail(id);
     if (epoch !== this._epoch) return;
+    // 课程默认环境优先（用户可手动切环境），再加载目录
+    var defaultEnv = COURSE_DEFAULT_ENV[detail.courseCode] || 'CLASSROOM';
+    this.setData({
+      courseIndex: idxByCode(COURSES, detail.courseCode),
+      envIndex: idxByCode(ENVIRONMENTS, defaultEnv),
+      durationMinutes: detail.observationDurationMinutes
+    });
+    if (defaultEnv !== detail.environmentCode) {
+      recordApi.patchClassRecord(id, { environmentCode: defaultEnv }).catch(function () {});
+    }
+    await this.loadCatalog();
+    if (epoch !== this._epoch) return;
+
     var that = this;
-    // 并行拉取每个有记录的行为的实际计数
     var cards = detail.behaviorCards || [];
     var countPromises = cards.map(function (c) {
       if (!c.count) return Promise.resolve({ code: c.behaviorCode, counts: {} });
@@ -214,9 +317,6 @@ Page({
     });
     this.setData({
       classRecordId: detail.id,
-      courseIndex: idxByCode(COURSES, detail.courseCode),
-      envIndex: idxByCode(ENVIRONMENTS, detail.environmentCode),
-      durationMinutes: detail.observationDurationMinutes,
       note: detail.overallRemark || '', noteSaveState: '',
       modules: modules
     });
@@ -274,7 +374,7 @@ Page({
       durationMinutes: allDay ? 480 : (DEFAULT_DURATION[courseCode] || DEFAULT_DURATION._default),
       note: '', noteSaveState: '', modules: []
     });
-    if (!allDay) await this.loadCatalog();
+    await this.loadCatalog();
   },
 
   // ==================== 模块折叠 ====================
@@ -291,20 +391,45 @@ Page({
   onStatusChange(e) {
     var d = e.detail;
     var that = this;
-    // 惰性创建课堂记录 + 调后端 API
+    var behCode = '';
+    this.data.modules.some(function (mod) {
+      return mod.behaviors.some(function (beh) {
+        if (beh.name === d.behaviorName) { behCode = beh.code; return true; }
+        return false;
+      });
+    });
+
     if (d.delta > 0) {
       this.ensureClassRecord().then(function (cid) {
-        // 找到 behavior code（从 modules 中查找）
-        var behCode = '';
-        that.data.modules.some(function (mod) {
-          return mod.behaviors.some(function (beh) {
-            if (beh.name === d.behaviorName) { behCode = beh.code; return true; }
-            return false;
-          });
-        });
         recordApi.quickAddBehavior(cid, behCode, d.subBehavior || null, d.status).catch(function (err) {
           wx.showToast({ title: '记录失败: ' + ((err && err.message) || '网络异常'), icon: 'none' });
         });
+      }).catch(function () {});
+    } else if (d.delta < 0 && this.data.classRecordId) {
+      // 减号：删最近一条匹配记录
+      var cid = this.data.classRecordId;
+      recordApi.listBehaviorRecords(cid, behCode).then(function (recs) {
+        var target = null;
+        (recs || []).forEach(function (r) {
+          var st = (r.statusCode || 'incomplete').toLowerCase();
+          var sub = r.subBehaviorCode || '';
+          var matchSub = !d.subBehavior || sub === d.subBehavior;
+          if (st === d.status && matchSub && (!target || r.id > target.id)) target = r;
+        });
+        if (!target) return;
+        var doDelete = function () {
+          recordApi.deleteBehaviorRecord(target.id).catch(function () {});
+        };
+        if (target.detailSaved) {
+          wx.showModal({
+            title: '确认删除',
+            content: '该次已填写 ABC 详情，删除后不可恢复，确定删除吗？',
+            confirmColor: '#f87171',
+            success: function (res) { if (res.confirm) doDelete(); }
+          });
+        } else {
+          doDelete();
+        }
       }).catch(function () {});
     }
     // 乐观更新本地计数
@@ -435,60 +560,144 @@ Page({
     return this._createPromise;
   },
 
-  /** 点行为名 → 自动创建课堂记录后打开详细记录弹窗 */
+  /** 点行为名 → 自动创建课堂记录后打开详细记录弹窗（全天汇总跳过） */
   async onBehaviorNameTap(e) {
     var d = e.detail;
-    try {
-      await this.ensureClassRecord();
-      // 从 modules 中查找该行为的 performanceOptions
-      var perfOpts = [];
-      this.data.modules.some(function (mod) {
-        return mod.behaviors.some(function (beh) {
-          if (beh.code === d.behaviorCode) { perfOpts = beh.performanceOptions || []; return true; }
-          return false;
-        });
+    if (!this.isAllDay()) {
+      try { await this.ensureClassRecord(); } catch (err) { return; }
+    }
+    var perfOpts = [];
+    this.data.modules.some(function (mod) {
+      return mod.behaviors.some(function (beh) {
+        if (beh.code === d.behaviorCode) { perfOpts = beh.performanceOptions || []; return true; }
+        return false;
       });
-      this.setData({
-        abcVisible: true, abcPerfOptions: perfOpts,
-        abcBehavior: { behaviorCode: d.behaviorCode || '', behaviorLabel: d.behaviorName }
-      });
-    } catch (err) { /* 创建失败 */ }
+    });
+    this.setData({
+      abcVisible: true, abcPerfOptions: perfOpts, abcSubBehaviorCode: '',
+      abcBehavior: { behaviorCode: d.behaviorCode || '', behaviorLabel: d.behaviorName }
+    });
   },
 
   async onSubNameTap(e) {
     var d = e.detail;
-    try {
-      await this.ensureClassRecord();
-      var perfOpts = [];
-      this.data.modules.some(function (mod) {
-        return mod.behaviors.some(function (beh) {
-          if (beh.code === d.behaviorCode) {
-            (beh.subBehaviors || []).some(function (sub) {
-              if (sub.name === d.subBehavior) { perfOpts = sub.performanceOptions || []; return true; }
-              return false;
-            });
-            return true;
-          }
-          return false;
-        });
+    if (!this.isAllDay()) {
+      try { await this.ensureClassRecord(); } catch (err) { return; }
+    }
+    var perfOpts = [];
+    this.data.modules.some(function (mod) {
+      return mod.behaviors.some(function (beh) {
+        if (beh.code === d.behaviorCode) {
+          (beh.subBehaviors || []).some(function (sub) {
+            if (sub.code === d.subBehaviorCode) {
+              perfOpts = (sub.performanceOptions && sub.performanceOptions.length) ? sub.performanceOptions : (beh.performanceOptions || []);
+              return true;
+            }
+            return false;
+          });
+          return true;
+        }
+        return false;
       });
-      this.setData({
-        abcVisible: true, abcPerfOptions: perfOpts,
-        abcBehavior: { behaviorCode: d.behaviorCode || '', behaviorLabel: d.subBehavior + '（' + d.behaviorName + '）' }
-      });
-    } catch (err) { /* 创建失败 */ }
+    });
+    this.setData({
+      abcVisible: true, abcPerfOptions: perfOpts, abcSubBehaviorCode: d.subBehavior || '',
+      abcBehavior: { behaviorCode: d.behaviorCode || '', behaviorLabel: d.subBehavior + '（' + d.behaviorName + '）' }
+    });
   },
 
   // ==================== 全天汇总 ====================
   onDayStatTap(e) {
     var code = e.currentTarget.dataset.code;
     var label = e.currentTarget.dataset.label;
-    this.setData({ abcVisible: true, abcBehavior: { behaviorCode: code, behaviorLabel: label } });
+    this.setData({ abcVisible: true, abcBehavior: { behaviorCode: code, behaviorLabel: label }, abcSubBehaviorCode: '' });
   },
   onAbcClose() { this.setData({ abcVisible: false }); },
-  onAbcChanged() { if (this.isAllDay()) this.loadDayStats(); else this.refreshCards(); },
-  async refreshCards() { /* 保留 */ },
-  onEvalInput(e) { var f = e.currentTarget.dataset.field; this.setData({ ['evaluation.' + f]: e.detail.value }); },
+  onAbcChanged(e) {
+    var d = (e && e.detail) || {};
+    if (d.delta && d.behaviorCode) { this._applyDelta(d); return; }
+    var that = this;
+    if (this.isAllDay()) {
+      this._aggregateAllDayCounts(this.data.modules).then(function (modules) {
+        that.setData({ modules: modules });
+      });
+    } else if (this.data.classRecordId) {
+      // 直接重新绑定课堂记录，完整刷新计数
+      var d = (e && e.detail) || {};
+	    if (d.delta && d.behaviorCode) { this._applyDelta(d); return; }
+	    this.bindRecord(this.data.classRecordId, this._epoch);
+    }
+  },
+  _applyDelta(d) {
+    var modules = this.data.modules.map(function (mod) {
+      var behaviors = mod.behaviors.map(function (beh) {
+        if (beh.code !== d.behaviorCode) return beh;
+        var counts = {};
+        Object.keys(beh.counts).forEach(function (k) { counts[k] = Object.assign({}, beh.counts[k]); });
+        var key = d.subBehavior || '';
+        if (key && counts[key]) counts[key][d.status] = (counts[key][d.status] || 0) + d.delta;
+        else counts[d.status] = (counts[d.status] || 0) + d.delta;
+        return Object.assign({}, beh, { counts: counts });
+      });
+      return Object.assign({}, mod, { behaviors: behaviors });
+    });
+    this.setData({ modules: modules });
+  },
+  async refreshCards() {
+    if (!this.data.classRecordId) return;
+    var id = this.data.classRecordId;
+    var that = this;
+    var detail;
+    try { detail = await recordApi.getClassRecordDetail(id); } catch (e) { return; }
+    if (!detail) return;
+    var cards = detail.behaviorCards || [];
+    var countPromises = cards.map(function (c) {
+      if (!c.count) return Promise.resolve({ code: c.behaviorCode, counts: {} });
+      var beh = that._findBehaviorByCode(c.behaviorCode);
+      return recordApi.listBehaviorRecords(id, c.behaviorCode).then(function (recs) {
+        return { code: c.behaviorCode, counts: that._countByStatus(recs || [], beh) };
+      }).catch(function () { return { code: c.behaviorCode, counts: {} }; });
+    });
+    var results = await Promise.all(countPromises);
+    var countMap = {};
+    results.forEach(function (r) { countMap[r.code] = r.counts; });
+    var modules = this.data.modules.map(function (mod) {
+      var behaviors = mod.behaviors.map(function (beh) {
+        var serverCounts = countMap[beh.code] || {};
+        var merged = {};
+        Object.keys(serverCounts).forEach(function (k) {
+          if (typeof serverCounts[k] === 'object') merged[k] = serverCounts[k];
+          else merged[k] = Math.max((beh.counts && beh.counts[k]) || 0, serverCounts[k] || 0);
+        });
+        if (beh.subBehaviors && beh.subBehaviors.length) {
+          beh.subBehaviors.forEach(function (sub) {
+            if (!merged[sub.name]) merged[sub.name] = { incomplete: 0, assisted: 0, independent: 0 };
+          });
+        } else if (!merged.incomplete && !merged.assisted && !merged.independent) {
+          merged = beh.counts || { incomplete: 0, assisted: 0, independent: 0 };
+        }
+        return { ...beh, counts: merged };
+      });
+      return { ...mod, behaviors: behaviors };
+    });
+    this.setData({ modules: modules });
+  },
+  onEvalInput(e) {
+    var f = e.currentTarget.dataset.field;
+    this.setData({ ['evaluation.' + f]: e.detail.value, evalSaveState: '' });
+    // 自动保存到后端
+    clearTimeout(this._evalTimer);
+    var that = this;
+    this._evalTimer = setTimeout(function () {
+      that.setData({ evalSaveState: 'saving' });
+      var data = Object.assign({}, that.data.evaluation, { recordDate: that.data.date });
+      recordApi.saveDailyEvaluation(data).then(function () {
+        that.setData({ evalSaveState: 'saved' });
+      }).catch(function () {
+        that.setData({ evalSaveState: 'error' });
+      });
+    }, 800);
+  },
   async loadDayStats() {
     try { var stats = await recordApi.getEvaluationStats('DAILY', this.data.date); this.setData({ dayStats: (stats && stats.items) ? stats.items : [] }); } catch (err) { this.setData({ dayStats: [] }); }
   },
@@ -536,16 +745,18 @@ Page({
 
       // 每日趋势（后端已提供）
       var dailyTrend = (stats && stats.dailyTrends) ? stats.dailyTrends : [];
+      var that = this;
       var updateWkChart = function () {
-        if (!wkLineChart || !dailyTrend.length) return;
+        if (!dailyTrend.length) return;
+        var comp = that.selectComponent('#wk-line-chart');
+        var chart = comp && comp.chart;
+        if (!chart) { setTimeout(updateWkChart, 300); return; }
         var lineTotal = dailyTrend.map(function (d) { return d.recordCount || 0; });
         var lineInd = dailyTrend.map(function (d) { return d.independentCount || 0; });
         var lineInc = dailyTrend.map(function (d) { return d.incompleteCount || 0; });
-        try { wkLineChart.setOption({ series: [{ data: lineTotal }, { data: lineInd }, { data: lineInc }] }); } catch (_) {}
+        try { chart.setOption({ series: [{ data: lineTotal }, { data: lineInd }, { data: lineInc }] }); } catch (_) {}
       };
       updateWkChart();
-      // ec-canvas 异步初始化，延迟再试一次
-      if (!wkLineChart) setTimeout(updateWkChart, 500);
 
       // 课程/环境统计（后端已提供）
       var crs = (stats && stats.courseStats) ? stats.courseStats.map(function (c) {
@@ -570,12 +781,14 @@ Page({
       // 月度 per-week 拆分（后端已提供）
       var weeklyBreakdown = (stats && stats.weeklyBreakdown) ? stats.weeklyBreakdown : [];
       var updateMoChart = function () {
-        if (!moLineChart || !weeklyBreakdown.length) return;
+        if (!weeklyBreakdown.length) return;
+        var comp = that.selectComponent('#mo-line-chart');
+        var chart = comp && comp.chart;
+        if (!chart) { setTimeout(updateMoChart, 300); return; }
         var moLineData = weeklyBreakdown.map(function (w) { return w.independentRate; });
-        try { moLineChart.setOption({ series: [{ data: moLineData }] }); } catch (_) {}
+        try { chart.setOption({ series: [{ data: moLineData }] }); } catch (_) {}
       };
       updateMoChart();
-      if (!moLineChart) setTimeout(updateMoChart, 500);
 
       // ABC 分布（异步拉取）
       var abcDist = [];

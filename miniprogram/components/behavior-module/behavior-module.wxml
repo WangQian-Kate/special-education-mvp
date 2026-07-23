@@ -10,6 +10,7 @@
     <view wx:for="{{module.behaviors}}" wx:key="code" class="bmod-item">
       <behavior-row
         behavior="{{item}}"
+        readonly="{{readonly}}"
         bind:statuschange="onStatusChange"
         bind:statustap="onStatusTap"
         bind:nametap="onNameTap"

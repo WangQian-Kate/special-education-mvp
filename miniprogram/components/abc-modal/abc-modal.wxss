@@ -11,7 +11,12 @@
   background: #fff;
   border-radius: var(--radius-modal, 56rpx) var(--radius-modal, 56rpx) 0 0;
   padding: 32rpx 32rpx 24rpx; box-sizing: border-box;
-  max-height: 85vh; display: flex; flex-direction: column;
+  max-height: 85vh; min-height: 260rpx;
+  display: flex; flex-direction: column;
+}
+
+.abc-body {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
 }
 
 .abc-header {
@@ -27,7 +32,9 @@
   font-size: 32rpx; color: var(--color-text-sub, #999); padding: 0 8rpx; flex-shrink: 0;
 }
 
-.abc-body { max-height: 70vh; }
+.abc-top { flex-shrink: 0; overflow: visible; }
+
+.abc-body { flex: 1; overflow-y: auto; }
 
 /* ===== 补记 ===== */
 .supp-row {
@@ -50,6 +57,18 @@
   font-size: 24rpx; color: #fff; background: var(--color-primary);
   border-radius: 12rpx; padding: 12rpx 28rpx;
 }
+
+.supp-confirm.supp-disabled { background: #c0c0c0; }
+
+.supp-status {
+  font-size: 24rpx; color: var(--color-text); background: #fff;
+  border: 1rpx solid var(--color-border, #e5e7eb);
+  border-radius: 12rpx; padding: 10rpx 24rpx; min-width: 160rpx; text-align: center;
+}
+
+.supp-status.st-incomplete { background: #EBF3FB; color: #5B9BD5; border-color: #5B9BD5; }
+.supp-status.st-assisted { background: #FFF7ED; color: #f59e0b; border-color: #f59e0b; }
+.supp-status.st-independent { background: #F0FDF4; color: #22c55e; border-color: #22c55e; }
 
 /* ===== 时间横滚列表 ===== */
 .recs-scroll { white-space: nowrap; padding: 8rpx 0 16rpx; }

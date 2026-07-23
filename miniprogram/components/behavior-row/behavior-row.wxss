@@ -9,6 +9,8 @@
 
 .br-row { display: flex; align-items: center; padding: 4rpx 0; }
 
+.br-row-tap:active { background: #f3f4f6; border-radius: 8rpx; }
+
 .sub-row { padding-left: 24rpx; border-bottom: 1rpx solid #f3f4f6; }
 
 .br-sub-name {

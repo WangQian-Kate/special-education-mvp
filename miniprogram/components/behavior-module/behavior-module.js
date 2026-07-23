@@ -3,8 +3,8 @@
 Component({
   properties: {
     module: { type: Object, value: {} },
-    // 是否展开
-    expanded: { type: Boolean, value: true }
+    expanded: { type: Boolean, value: true },
+    readonly: { type: Boolean, value: false }
   },
 
   methods: {

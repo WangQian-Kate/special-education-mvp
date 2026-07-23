@@ -16,6 +16,7 @@ START_MARKER = "-- BEGIN GENERATED BEHAVIOR CATALOG"
 END_MARKER = "-- END GENERATED BEHAVIOR CATALOG"
 
 MODULE_CODES = [
+    "SCHOOL_CLASS_AWARENESS",
     "SCHOOL_ENTRY",
     "SCHOOL_LEAVING",
     "SPORTS",
@@ -26,7 +27,7 @@ MODULE_CODES = [
     "BREAK_TIME",
     "GROUP_CLASS",
 ]
-EXPECTED_BEHAVIOR_COUNTS = [9, 8, 15, 9, 11, 9, 12, 15, 12]
+EXPECTED_BEHAVIOR_COUNTS = [10, 9, 8, 15, 9, 11, 9, 12, 15, 12]
 
 COURSE_CODES = {
     "语文": "CHINESE",
@@ -183,8 +184,10 @@ def resolve_group_behavior(module_number: int, label: str, behaviors: list[dict]
 
 def parse_groups(module_number: int, module_code: str, tail: str, behaviors: list[dict]) -> list[dict]:
     if module_number == 1:
+        return []  # 学校/班级意识没有分组
+    if module_number == 2:
         if not re.search(r"未完成\s+辅助\s+独立", tail):
-            raise ValueError("模块 1 状态栏无法识别")
+            raise ValueError("模块 2 状态栏无法识别")
         status_labels = ["未完成", "辅助", "独立"]
         return [{
             "code": f"{module_code}_G01",
@@ -330,13 +333,13 @@ def validate_catalog(modules: list[dict], behaviors: list[dict]) -> None:
     counts = [len(module["behaviors"]) for module in modules]
     if counts != EXPECTED_BEHAVIOR_COUNTS:
         raise ValueError(f"行为数量不符合文件：{counts}")
-    if len(modules) != 9 or len(behaviors) != 100:
-        raise ValueError("必须生成 9 个模块和 100 个主行为")
+    if len(modules) != len(MODULE_CODES) or len(behaviors) != sum(EXPECTED_BEHAVIOR_COUNTS):
+        raise ValueError(f"必须生成 {len(MODULE_CODES)} 个模块和 {sum(EXPECTED_BEHAVIOR_COUNTS)} 个主行为，实际 {len(modules)} 模块 {len(behaviors)} 行为")
     targets = [link["standardNumber"] for behavior in behaviors for link in behavior["trainingGoals"]]
-    if sorted(targets) != list(range(11, 166)):
-        raise ValueError("训练目标必须精确覆盖 11-165 且不重复")
-    if [item["code"] for item in behaviors] != [f"B{index:03d}" for index in range(1, 101)]:
-        raise ValueError("行为编码必须连续为 B001-B100")
+    if sorted(targets) != list(range(1, 166)):
+        raise ValueError("训练目标必须精确覆盖 1-165 且不重复")
+    if [item["code"] for item in behaviors] != [f"B{index:03d}" for index in range(1, 111)]:
+        raise ValueError("行为编码必须连续为 B001-B110")
 
 
 def sql_value(value) -> str:

@@ -18,8 +18,11 @@ const createClassRecord = (payload) => post('/class-records', payload);
 const getBehaviorOptions = (courseCode) => get('/class-records/behavior-options', { courseCode });
 
 /** 查询行为目录（v2.6：按课程+环境返回结构化模块/行为/子行为/状态） */
-const getBehaviorCatalog = (courseCode, environmentCode) =>
-  get('/class-records/behavior-options', { courseCode, environmentCode });
+const getBehaviorCatalog = (courseCode, environmentCode) => {
+  var params = { courseCode: courseCode };
+  if (environmentCode != null && environmentCode !== undefined) params.environmentCode = environmentCode;
+  return get('/class-records/behavior-options', params);
+};
 
 /** CLASS-005 查询课堂详情和行为卡片次数 → ClassRecordDetail */
 const getClassRecordDetail = (id) => get(`/class-records/${id}`);
@@ -36,8 +39,8 @@ const quickAddBehavior = (id, behaviorCode, subBehaviorCode, statusCode) =>
   post(`/class-records/${id}/behavior-records/quick`, { behaviorCode, subBehaviorCode, statusCode });
 
 /** CLASS-008 补记过去发生的一次行为 → { record, card } */
-const supplementBehavior = (id, behaviorCode, occurredAt) =>
-  post(`/class-records/${id}/behavior-records/supplement`, { behaviorCode, occurredAt });
+const supplementBehavior = (id, behaviorCode, occurredAt, statusCode, subBehaviorCode) =>
+  post(`/class-records/${id}/behavior-records/supplement`, { behaviorCode, occurredAt, statusCode: statusCode || null, subBehaviorCode: subBehaviorCode || null });
 
 /** CLASS-009 查询某行为发生时间列表 → [{ id, occurredAt, detailSaved }] */
 const listBehaviorRecords = (id, behaviorCode) =>
@@ -72,6 +75,12 @@ const getAbcDistribution = (period, referenceDate) => get('/student-evaluation/a
 /** EVAL-003 行为表现（behavior_description）频次趋势 */
 const getBehaviorDescTrend = (period, referenceDate, limit) => get('/student-evaluation/behavior-description-trend', { period, referenceDate, limit: limit || 10 });
 
+/** EVAL-004 获取每日评价 */
+const getDailyEvaluation = (date) => get('/student-evaluation/daily-evaluation', { date });
+
+/** EVAL-005 保存每日评价 */
+const saveDailyEvaluation = (data) => request.request({ url: '/student-evaluation/daily-evaluation', method: 'PUT', data: data, hideError: true });
+
 module.exports = {
   getDayRecords,
   createClassRecord,
@@ -88,5 +97,7 @@ module.exports = {
   getSummary,
   getEvaluationStats,
   getAbcDistribution,
-  getBehaviorDescTrend
+  getBehaviorDescTrend,
+  getDailyEvaluation,
+  saveDailyEvaluation
 };

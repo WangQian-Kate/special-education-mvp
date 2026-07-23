@@ -1,7 +1,8 @@
 // components/behavior-row/behavior-row.js
 Component({
   properties: {
-    behavior: { type: Object, value: {} }
+    behavior: { type: Object, value: {} },
+    readonly: { type: Boolean, value: false }
   },
 
   data: {
@@ -49,7 +50,8 @@ Component({
       this.triggerEvent('subnametap', {
         behaviorCode: this.properties.behavior.code,
         behaviorName: this.properties.behavior.name,
-        subBehavior: e.currentTarget.dataset.sub
+        subBehavior: e.currentTarget.dataset.sub,
+        subBehaviorCode: e.currentTarget.dataset.subCode || ''
       });
     }
   }
