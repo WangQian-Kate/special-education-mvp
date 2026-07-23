@@ -536,12 +536,16 @@ Page({
 
       // 每日趋势（后端已提供）
       var dailyTrend = (stats && stats.dailyTrends) ? stats.dailyTrends : [];
-      if (wkLineChart && dailyTrend.length) {
+      var updateWkChart = function () {
+        if (!wkLineChart || !dailyTrend.length) return;
         var lineTotal = dailyTrend.map(function (d) { return d.recordCount || 0; });
         var lineInd = dailyTrend.map(function (d) { return d.independentCount || 0; });
         var lineInc = dailyTrend.map(function (d) { return d.incompleteCount || 0; });
         try { wkLineChart.setOption({ series: [{ data: lineTotal }, { data: lineInd }, { data: lineInc }] }); } catch (_) {}
-      }
+      };
+      updateWkChart();
+      // ec-canvas 异步初始化，延迟再试一次
+      if (!wkLineChart) setTimeout(updateWkChart, 500);
 
       // 课程/环境统计（后端已提供）
       var crs = (stats && stats.courseStats) ? stats.courseStats.map(function (c) {
@@ -565,10 +569,13 @@ Page({
 
       // 月度 per-week 拆分（后端已提供）
       var weeklyBreakdown = (stats && stats.weeklyBreakdown) ? stats.weeklyBreakdown : [];
-      if (moLineChart && weeklyBreakdown.length) {
+      var updateMoChart = function () {
+        if (!moLineChart || !weeklyBreakdown.length) return;
         var moLineData = weeklyBreakdown.map(function (w) { return w.independentRate; });
         try { moLineChart.setOption({ series: [{ data: moLineData }] }); } catch (_) {}
-      }
+      };
+      updateMoChart();
+      if (!moLineChart) setTimeout(updateMoChart, 500);
 
       // ABC 分布（异步拉取）
       var abcDist = [];
