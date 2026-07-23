@@ -237,11 +237,22 @@ public class ClassRecordService {
 
         String stageCode = normalizeOptionalText(request.stageCode());
         String functionCode = normalizeOptionalText(request.functionCode());
+        String functionOtherText = normalizeOptionalText(request.functionOtherText());
+        String explicitStatusCode = normalizeOptionalText(request.statusCode());
         if (stageCode != null && !mapper.existsStage(stageCode)) {
             throw notFound("行为环节不存在");
         }
         if (functionCode != null && !mapper.existsFunction(functionCode)) {
             throw notFound("行为功能不存在");
+        }
+        if ("OTHER".equals(functionCode) && functionOtherText == null) {
+            throw validation("行为功能选择“其他”时必须填写自定义内容");
+        }
+        if (!"OTHER".equals(functionCode) && functionOtherText != null) {
+            throw validation("仅行为功能选择“其他”时可以填写自定义内容");
+        }
+        if (explicitStatusCode != null && !mapper.existsStatus(explicitStatusCode)) {
+            throw notFound("行为状态不存在");
         }
         Set<String> assistanceCodes = new HashSet<>();
         for (AssistanceInput assistance : assistances) {
@@ -297,6 +308,10 @@ public class ClassRecordService {
         entity.setBehaviorDescription(normalizeOptionalText(request.behaviorDescription()));
         entity.setConsequenceText(normalizeOptionalText(request.consequenceText()));
         entity.setFunctionCode(functionCode);
+        entity.setFunctionOtherText(functionOtherText);
+        entity.setStatusCode(explicitStatusCode != null
+                ? explicitStatusCode
+                : assistances.isEmpty() ? null : "ASSISTED");
         entity.setAssistanceResultText(normalizeOptionalText(request.assistanceResultText()));
         mapper.updateBehaviorDetails(entity);
         mapper.deleteAssistances(recordId);
@@ -323,6 +338,8 @@ public class ClassRecordService {
                 || hasText(request.behaviorDescription())
                 || hasText(request.consequenceText())
                 || hasText(request.functionCode())
+                || hasText(request.functionOtherText())
+                || hasText(request.statusCode())
                 || !assistances.isEmpty()
                 || hasText(request.assistanceResultText())
                 || !subBehaviorCodes.isEmpty()
@@ -421,7 +438,8 @@ public class ClassRecordService {
                 entity.getBehaviorLabel(), toOffset(entity.getOccurredAt()), entity.isDetailSaved(),
                 entity.getDurationMinutes(), entity.getStageCode(), entity.getStageLabel(),
                 entity.getAntecedentText(), entity.getBehaviorDescription(), entity.getConsequenceText(),
-                entity.getFunctionCode(), entity.getFunctionLabel(), assistances, entity.getAssistanceResultText(),
+                entity.getFunctionCode(), entity.getFunctionLabel(), entity.getFunctionOtherText(),
+                entity.getStatusCode(), entity.getStatusLabel(), assistances, entity.getAssistanceResultText(),
                 subBehaviorCodes, performanceSelections);
     }
 

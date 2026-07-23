@@ -17,6 +17,9 @@ public class BehaviorRecordEntity {
     private String consequenceText;
     private String functionCode;
     private String functionLabel;
+    private String functionOtherText;
+    private String statusCode;
+    private String statusLabel;
     private String assistanceResultText;
     private boolean detailSaved;
 
@@ -48,6 +51,12 @@ public class BehaviorRecordEntity {
     public void setFunctionCode(String functionCode) { this.functionCode = functionCode; }
     public String getFunctionLabel() { return functionLabel; }
     public void setFunctionLabel(String functionLabel) { this.functionLabel = functionLabel; }
+    public String getFunctionOtherText() { return functionOtherText; }
+    public void setFunctionOtherText(String functionOtherText) { this.functionOtherText = functionOtherText; }
+    public String getStatusCode() { return statusCode; }
+    public void setStatusCode(String statusCode) { this.statusCode = statusCode; }
+    public String getStatusLabel() { return statusLabel; }
+    public void setStatusLabel(String statusLabel) { this.statusLabel = statusLabel; }
     public String getAssistanceResultText() { return assistanceResultText; }
     public void setAssistanceResultText(String value) { this.assistanceResultText = value; }
     public boolean isDetailSaved() { return detailSaved; }

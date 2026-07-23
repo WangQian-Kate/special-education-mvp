@@ -4,6 +4,7 @@ import com.specialed.assistant.auth.CurrentUserId;
 import com.specialed.assistant.dto.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
@@ -20,6 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 
 import java.util.List;
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import static com.specialed.assistant.api.trainingplan.TrainingPlanModels.*;
 
@@ -55,6 +58,24 @@ public class TrainingPlanController {
             @RequestParam(required = false) TrainingStatus status
     ) {
         return service.items(userId, keyword, categoryCode, status);
+    }
+
+    @GetMapping("/goals-progress")
+    public GoalsProgressResponse goalsProgress(
+            @CurrentUserId Long userId,
+            @RequestParam ProgressPeriod period,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate referenceDate
+    ) {
+        return service.goalsProgress(userId, period, referenceDate);
+    }
+
+    @GetMapping("/goals/{standardNumber}/records")
+    public GoalRecordsResponse goalRecords(
+            @CurrentUserId Long userId,
+            @PathVariable @Positive Integer standardNumber,
+            @RequestParam(defaultValue = "10") @Positive @Max(50) int limit
+    ) {
+        return service.goalRecords(userId, standardNumber, limit);
     }
 
     @PostMapping("/items/standard")

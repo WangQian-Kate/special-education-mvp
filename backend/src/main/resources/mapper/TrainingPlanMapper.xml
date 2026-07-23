@@ -119,4 +119,105 @@
         DELETE FROM training_goal
         WHERE id = #{goalId} AND goal_type = 'CUSTOM' AND owner_student_id = #{studentId}
     </delete>
+
+    <select id="findGoalProgress" resultType="com.specialed.assistant.api.trainingplan.GoalProgressEntity">
+        SELECT goal.id AS goal_id,
+               goal.standard_number,
+               goal.goal_type,
+               goal.goal_text,
+               COALESCE(MIN(module.code), category.code) AS module_code,
+               COALESCE(MIN(module.label), category.label) AS module_label,
+               COALESCE(MIN(module.display_order), category.display_order) AS module_order,
+               activity.record_date AS date,
+               COALESCE(SUM(activity.total_count), 0) AS total_count,
+               COALESCE(SUM(activity.incomplete_count), 0) AS incomplete_count,
+               COALESCE(SUM(activity.assisted_count), 0) AS assisted_count,
+               COALESCE(SUM(activity.independent_count), 0) AS independent_count,
+               COALESCE(SUM(activity.unclassified_count), 0) AS unclassified_count
+        FROM student_training_goal assigned
+        JOIN training_goal goal ON goal.id = assigned.goal_id
+        JOIN training_goal_category category ON category.code = goal.category_code
+        LEFT JOIN behavior_training_goal relation ON relation.standard_number = goal.standard_number
+        LEFT JOIN behavior_catalog_metadata metadata ON metadata.behavior_code = relation.behavior_code
+        LEFT JOIN behavior_module module ON module.code = metadata.module_code
+        LEFT JOIN (
+            SELECT behavior.behavior_code,
+                   class_row.record_date,
+                   COUNT(*) AS total_count,
+                   SUM(behavior.status_code = 'INCOMPLETE') AS incomplete_count,
+                   SUM(behavior.status_code = 'ASSISTED') AS assisted_count,
+                   SUM(behavior.status_code = 'INDEPENDENT') AS independent_count,
+                   SUM(behavior.status_code IS NULL) AS unclassified_count
+            FROM behavior_record behavior
+            JOIN class_record class_row ON class_row.id = behavior.class_record_id
+            WHERE class_row.student_id = #{studentId}
+              AND class_row.record_date BETWEEN #{start} AND #{end}
+            GROUP BY behavior.behavior_code, class_row.record_date
+        ) activity ON activity.behavior_code = relation.behavior_code
+        WHERE assigned.student_id = #{studentId}
+        GROUP BY goal.id, goal.standard_number, goal.goal_type, goal.goal_text,
+                 category.code, category.label, category.display_order, activity.record_date
+        ORDER BY module_order, goal.standard_number, goal.id, activity.record_date
+    </select>
+
+    <select id="findGoalByStandardNumber" resultType="com.specialed.assistant.api.trainingplan.TrainingGoalEntity">
+        SELECT id, standard_number, category_code, goal_text, goal_type, owner_student_id
+        FROM training_goal
+        WHERE standard_number = #{standardNumber} AND goal_type = 'STANDARD'
+    </select>
+
+    <select id="countGoalRecords" resultType="long">
+        SELECT COUNT(*)
+        FROM behavior_record behavior
+        JOIN class_record class_row ON class_row.id = behavior.class_record_id
+        WHERE class_row.student_id = #{studentId}
+          AND EXISTS (
+            SELECT 1 FROM behavior_training_goal relation
+            WHERE relation.standard_number = #{standardNumber}
+              AND relation.behavior_code = behavior.behavior_code
+          )
+    </select>
+
+    <select id="findGoalRecords" resultType="com.specialed.assistant.api.trainingplan.GoalRecordEntity">
+        SELECT behavior.id,
+               class_row.record_date,
+               behavior.occurred_at,
+               course.code AS course_code,
+               course.label AS course_label,
+               environment.code AS environment_code,
+               environment.label AS environment_label,
+               behavior_type.code AS behavior_code,
+               behavior_type.label AS behavior_label,
+               behavior.status_code,
+               status_type.label AS status_label
+        FROM behavior_record behavior
+        JOIN class_record class_row ON class_row.id = behavior.class_record_id
+        JOIN course_type course ON course.code = class_row.course_code
+        JOIN environment_type environment ON environment.code = class_row.environment_code
+        JOIN behavior_type behavior_type ON behavior_type.code = behavior.behavior_code
+        LEFT JOIN behavior_status_type status_type ON status_type.code = behavior.status_code
+        WHERE class_row.student_id = #{studentId}
+          AND EXISTS (
+            SELECT 1 FROM behavior_training_goal relation
+            WHERE relation.standard_number = #{standardNumber}
+              AND relation.behavior_code = behavior.behavior_code
+          )
+        ORDER BY behavior.occurred_at DESC, behavior.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="findGoalRecordSelections" resultType="com.specialed.assistant.api.trainingplan.GoalRecordSelectionEntity">
+        SELECT selection.behavior_record_id AS record_id,
+               option_row.code AS option_code,
+               option_row.option_type,
+               option_row.label,
+               selection.custom_text
+        FROM behavior_record_catalog_selection selection
+        JOIN behavior_catalog_option option_row ON option_row.code = selection.option_code
+        WHERE selection.behavior_record_id IN
+        <foreach collection="recordIds" item="recordId" open="(" separator="," close=")">
+          #{recordId}
+        </foreach>
+        ORDER BY selection.behavior_record_id, option_row.option_type, option_row.display_order
+    </select>
 </mapper>

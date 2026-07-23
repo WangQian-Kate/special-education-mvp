@@ -136,15 +136,25 @@ WHERE code NOT IN (
 );
 
 DELETE FROM behavior_function_type
-WHERE code NOT IN ('ATTENTION', 'TANGIBLE', 'ESCAPE', 'SENSORY');
+WHERE code NOT IN ('ATTENTION', 'TANGIBLE', 'ESCAPE', 'SENSORY', 'OTHER');
 
 INSERT INTO behavior_function_type (code, label) VALUES
   ('ATTENTION', '获取关注'),
   ('TANGIBLE', '获取实物'),
-  ('ESCAPE', '逃避'),
-  ('SENSORY', '感官刺激')
+  ('ESCAPE', '逃避/回避'),
+  ('SENSORY', '感觉刺激'),
+  ('OTHER', '其他')
 AS new
 ON DUPLICATE KEY UPDATE label = new.label;
+
+INSERT INTO behavior_status_type (code, label, display_order) VALUES
+  ('INCOMPLETE', '未完成', 1),
+  ('ASSISTED', '辅助完成', 2),
+  ('INDEPENDENT', '独立完成', 3)
+AS new
+ON DUPLICATE KEY UPDATE
+  label = new.label,
+  display_order = new.display_order;
 
 INSERT INTO assistance_type (code, label, group_code, display_order) VALUES
   ('ADD_EXTERNAL_OBJECT', '增加外在物品', 'INTERNAL_STIMULUS', 1),
@@ -2122,5 +2132,6 @@ INSERT IGNORE INTO schema_migration (version) VALUES ('2.3.0');
 INSERT IGNORE INTO schema_migration (version) VALUES ('2.4.0');
 INSERT IGNORE INTO schema_migration (version) VALUES ('2.5.0');
 INSERT IGNORE INTO schema_migration (version) VALUES ('2.6.0');
+INSERT IGNORE INTO schema_migration (version) VALUES ('2.7.0');
 
 -- 行为环节和训练等级数据尚未提供，暂不写入虚假数据。

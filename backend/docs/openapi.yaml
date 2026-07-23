@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 特殊教育课堂助手 API
-  version: 0.11.0
+  version: 0.12.0
   description: |
     根据 V2 软件原型重写的接口契约，按“随班记录、训练计划、学生评估、我的、系统”五个页面模块组织。
     当前采用白名单伪登录，业务接口使用 X-Teacher-Id: t001/t002/t003 确定当前教师；不接收 X-User-Id。
@@ -492,6 +492,77 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /student-evaluation/abc-distribution:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+    get:
+      tags: [学生评估]
+      operationId: getAbcFunctionDistribution
+      summary: 查询 ABC 行为功能分布
+      description: 仅统计详细记录中已选择行为功能的记录；返回全部 5 项字典，无记录项次数为 0。
+      parameters:
+        - name: period
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/EvaluationPeriod'
+        - $ref: '#/components/parameters/ReferenceDate'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AbcDistributionApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /student-evaluation/behavior-description-trend:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+    get:
+      tags: [学生评估]
+      operationId: getBehaviorDescriptionTrend
+      summary: 查询行为表现自由文本频次和月度趋势
+      description: 按 trim 后完全一致的 behaviorDescription 分组，仅支持 WEEKLY、MONTHLY。
+      parameters:
+        - name: period
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [WEEKLY, MONTHLY]
+        - $ref: '#/components/parameters/ReferenceDate'
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BehaviorDescriptionTrendApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /training-plan/categories:
     parameters:
       - $ref: '#/components/parameters/TeacherIdHeader'
@@ -546,6 +617,77 @@ paths:
                 $ref: '#/components/schemas/TrainingGoalLibraryListApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /training-plan/goals-progress:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+    get:
+      tags: [训练计划]
+      operationId: getTrainingGoalsProgress
+      summary: 查询当前学生全部已激活目标的周期进度
+      description: 无记录的已激活目标仍返回且次数为 0；自定义目标因无标准行为映射，当前次数为 0。
+      parameters:
+        - name: period
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/ProgressPeriod'
+        - $ref: '#/components/parameters/ReferenceDate'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoalsProgressApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /training-plan/goals/{standardNumber}/records:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+      - name: standardNumber
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 165
+    get:
+      tags: [训练计划]
+      operationId: getTrainingGoalRecords
+      summary: 查询标准目标关联的最新行为记录
+      description: 一条行为记录计入其主行为关联的全部训练目标，不按子行为二次过滤。
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoalRecordsApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '404':
           $ref: '#/components/responses/ResourceNotFound'
         '500':
@@ -920,6 +1062,22 @@ components:
             data:
               $ref: '#/components/schemas/StudentEvaluationStatistics'
 
+    AbcDistributionApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AbcDistribution'
+
+    BehaviorDescriptionTrendApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BehaviorDescriptionTrend'
+
     BehaviorCardMutationResultApiResponse:
       allOf:
         - $ref: '#/components/schemas/SuccessResponse'
@@ -983,6 +1141,22 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/TrainingPlanItem'
+
+    GoalsProgressApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/GoalsProgressResponse'
+
+    GoalRecordsApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/GoalRecordsResponse'
 
     EmptyApiResponse:
       allOf:
@@ -1492,7 +1666,17 @@ components:
           minLength: 1
           maxLength: 64
           description: 行为功能稳定编码
-          enum: [ATTENTION, TANGIBLE, ESCAPE, SENSORY]
+          enum: [ATTENTION, TANGIBLE, ESCAPE, SENSORY, OTHER]
+        functionOtherText:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: functionCode=OTHER 时必填，其他情况必须为空。
+        statusCode:
+          type: string
+          enum: [INCOMPLETE, ASSISTED, INDEPENDENT]
+          nullable: true
+          description: 显式选择优先；未传且勾选了辅助方式时后端自动保存为 ASSISTED。
         assistances:
           type: array
           nullable: true
@@ -1569,8 +1753,18 @@ components:
         functionCode:
           type: string
           nullable: true
-          enum: [ATTENTION, TANGIBLE, ESCAPE, SENSORY]
+          enum: [ATTENTION, TANGIBLE, ESCAPE, SENSORY, OTHER]
         functionLabel:
+          type: string
+          nullable: true
+        functionOtherText:
+          type: string
+          nullable: true
+        statusCode:
+          type: string
+          enum: [INCOMPLETE, ASSISTED, INDEPENDENT]
+          nullable: true
+        statusLabel:
           type: string
           nullable: true
         assistances:
@@ -1626,7 +1820,8 @@ components:
 
     EvaluationOverview:
       type: object
-      required: [observationCourseCount, behaviorRecordCount, abcRecordCount, remarkCount]
+      required: [observationCourseCount, behaviorRecordCount, abcRecordCount, remarkCount,
+                 trainingGoalCount, incompleteCount, assistedCount, independentCount, unclassifiedCount]
       properties:
         observationCourseCount:
           type: integer
@@ -1648,10 +1843,33 @@ components:
           format: int64
           minimum: 0
           description: 当前周期填写了本周期行为备注的课堂记录数
+        trainingGoalCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 当前周期实际发生记录所关联的标准目标去重数量，不限于已激活目标。
+        incompleteCount:
+          type: integer
+          format: int64
+          minimum: 0
+        assistedCount:
+          type: integer
+          format: int64
+          minimum: 0
+        independentCount:
+          type: integer
+          format: int64
+          minimum: 0
+        unclassifiedCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 未选择三态的快速记录数量，不进入独立率分母。
 
     BehaviorTrendItem:
       type: object
-      required: [behaviorCode, behaviorLabel, count, previousCount, trendDirection]
+      required: [behaviorCode, behaviorLabel, count, incompleteCount, assistedCount,
+                 independentCount, unclassifiedCount, previousCount, trendDirection]
       properties:
         behaviorCode:
           type: string
@@ -1662,6 +1880,22 @@ components:
           format: int64
           minimum: 0
           description: 当前周期次数
+        incompleteCount:
+          type: integer
+          format: int64
+          minimum: 0
+        assistedCount:
+          type: integer
+          format: int64
+          minimum: 0
+        independentCount:
+          type: integer
+          format: int64
+          minimum: 0
+        unclassifiedCount:
+          type: integer
+          format: int64
+          minimum: 0
         previousCount:
           type: integer
           format: int64
@@ -1687,6 +1921,10 @@ components:
         - overview
         - totalCount
         - items
+        - dailyTrends
+        - weeklyBreakdown
+        - courseStats
+        - environmentStats
       properties:
         studentId:
           type: integer
@@ -1718,6 +1956,141 @@ components:
           description: 当前周期或上一周期至少出现过一次的行为
           items:
             $ref: '#/components/schemas/BehaviorTrendItem'
+        dailyTrends:
+          type: array
+          description: WEEKLY 固定返回周一至周日 7 项；其他周期返回空数组。
+          items:
+            $ref: '#/components/schemas/DailyTrend'
+        weeklyBreakdown:
+          type: array
+          description: MONTHLY 按自然周拆分，尚未到来的周不返回；其他周期返回空数组。
+          items:
+            $ref: '#/components/schemas/WeeklyBreakdown'
+        courseStats:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseStatistics'
+        environmentStats:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnvironmentStatistics'
+
+    DailyTrend:
+      type: object
+      required: [date, dayOfWeek, recordCount, incompleteCount, assistedCount,
+                 independentCount, unclassifiedCount]
+      properties:
+        date: { type: string, format: date }
+        dayOfWeek: { type: string, enum: [周一, 周二, 周三, 周四, 周五, 周六, 周日] }
+        recordCount: { type: integer, format: int64, minimum: 0 }
+        incompleteCount: { type: integer, format: int64, minimum: 0 }
+        assistedCount: { type: integer, format: int64, minimum: 0 }
+        independentCount: { type: integer, format: int64, minimum: 0 }
+        unclassifiedCount: { type: integer, format: int64, minimum: 0 }
+
+    WeeklyBreakdown:
+      type: object
+      required: [week, weekStart, weekEnd, totalCount, incompleteCount, assistedCount,
+                 independentCount, unclassifiedCount, independentRate]
+      properties:
+        week: { type: integer, minimum: 1, maximum: 6 }
+        weekStart: { type: string, format: date }
+        weekEnd: { type: string, format: date }
+        totalCount: { type: integer, format: int64, minimum: 0 }
+        incompleteCount: { type: integer, format: int64, minimum: 0 }
+        assistedCount: { type: integer, format: int64, minimum: 0 }
+        independentCount: { type: integer, format: int64, minimum: 0 }
+        unclassifiedCount: { type: integer, format: int64, minimum: 0 }
+        independentRate:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: 独立完成数除以三态已分类记录数，四舍五入取整数。
+
+    CourseStatistics:
+      type: object
+      required: [courseCode, courseLabel, totalCount, incompleteCount, assistedCount,
+                 independentCount, unclassifiedCount, independentRate]
+      properties:
+        courseCode: { type: string }
+        courseLabel: { type: string }
+        totalCount: { type: integer, format: int64, minimum: 0 }
+        incompleteCount: { type: integer, format: int64, minimum: 0 }
+        assistedCount: { type: integer, format: int64, minimum: 0 }
+        independentCount: { type: integer, format: int64, minimum: 0 }
+        unclassifiedCount: { type: integer, format: int64, minimum: 0 }
+        independentRate: { type: integer, minimum: 0, maximum: 100 }
+
+    EnvironmentStatistics:
+      type: object
+      required: [environmentCode, environmentLabel, count, incompleteCount, assistedCount,
+                 independentCount, unclassifiedCount]
+      properties:
+        environmentCode: { type: string }
+        environmentLabel: { type: string }
+        count: { type: integer, format: int64, minimum: 0 }
+        incompleteCount: { type: integer, format: int64, minimum: 0 }
+        assistedCount: { type: integer, format: int64, minimum: 0 }
+        independentCount: { type: integer, format: int64, minimum: 0 }
+        unclassifiedCount: { type: integer, format: int64, minimum: 0 }
+
+    FunctionDistributionItem:
+      type: object
+      required: [functionCode, functionLabel, count, percentage]
+      properties:
+        functionCode: { type: string, enum: [ATTENTION, ESCAPE, SENSORY, TANGIBLE, OTHER] }
+        functionLabel: { type: string }
+        count: { type: integer, format: int64, minimum: 0 }
+        percentage: { type: integer, minimum: 0, maximum: 100 }
+
+    AbcDistribution:
+      type: object
+      required: [studentId, period, periodStart, periodEnd, totalCount, items]
+      properties:
+        studentId: { type: integer, format: int64 }
+        period: { $ref: '#/components/schemas/EvaluationPeriod' }
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+        totalCount: { type: integer, format: int64, minimum: 0 }
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/FunctionDistributionItem'
+
+    DescriptionWeeklyCount:
+      type: object
+      required: [week, weekStart, weekEnd, count]
+      properties:
+        week: { type: integer, minimum: 1, maximum: 6 }
+        weekStart: { type: string, format: date }
+        weekEnd: { type: string, format: date }
+        count: { type: integer, format: int64, minimum: 0 }
+
+    BehaviorDescriptionTrendItem:
+      type: object
+      required: [description, count, totalCount, weeklyCounts, trend]
+      properties:
+        description: { type: string }
+        count: { type: integer, format: int64, minimum: 0 }
+        totalCount: { type: integer, format: int64, minimum: 0 }
+        weeklyCounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/DescriptionWeeklyCount'
+        trend: { $ref: '#/components/schemas/TrendDirection' }
+
+    BehaviorDescriptionTrend:
+      type: object
+      required: [studentId, period, periodStart, periodEnd, topDescriptions]
+      properties:
+        studentId: { type: integer, format: int64 }
+        period: { $ref: '#/components/schemas/EvaluationPeriod' }
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+        topDescriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/BehaviorDescriptionTrendItem'
 
     ClassRecordSummaryPeriod:
       type: string
@@ -1726,6 +2099,10 @@ components:
     EvaluationPeriod:
       type: string
       enum: [DAILY, WEEKLY, MONTHLY]
+
+    ProgressPeriod:
+      type: string
+      enum: [WEEKLY, MONTHLY]
 
     TrendDirection:
       type: string
@@ -1870,6 +2247,126 @@ components:
           $ref: '#/components/schemas/TrainingStatus'
         hasProgress:
           type: boolean
+
+    GoalProgressWeek:
+      type: object
+      required: [week, weekStart, weekEnd, totalCount, incompleteCount, assistedCount,
+                 independentCount, unclassifiedCount]
+      properties:
+        week: { type: integer, minimum: 1, maximum: 6 }
+        weekStart: { type: string, format: date }
+        weekEnd: { type: string, format: date }
+        totalCount: { type: integer, format: int64, minimum: 0 }
+        incompleteCount: { type: integer, format: int64, minimum: 0 }
+        assistedCount: { type: integer, format: int64, minimum: 0 }
+        independentCount: { type: integer, format: int64, minimum: 0 }
+        unclassifiedCount: { type: integer, format: int64, minimum: 0 }
+
+    GoalProgressItem:
+      type: object
+      required: [goalId, standardNumber, goalType, goalText, totalCount, incompleteCount,
+                 assistedCount, independentCount, unclassifiedCount, weeks]
+      properties:
+        goalId: { type: integer, format: int64 }
+        standardNumber:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 165
+        goalType: { type: string, enum: [STANDARD, CUSTOM] }
+        goalText: { type: string }
+        totalCount: { type: integer, format: int64, minimum: 0 }
+        incompleteCount: { type: integer, format: int64, minimum: 0 }
+        assistedCount: { type: integer, format: int64, minimum: 0 }
+        independentCount: { type: integer, format: int64, minimum: 0 }
+        unclassifiedCount: { type: integer, format: int64, minimum: 0 }
+        weeks:
+          type: array
+          description: WEEKLY 返回空数组，MONTHLY 返回该月自然周计数。
+          items:
+            $ref: '#/components/schemas/GoalProgressWeek'
+
+    GoalProgressModule:
+      type: object
+      required: [moduleCode, moduleLabel, goals]
+      properties:
+        moduleCode: { type: string }
+        moduleLabel: { type: string }
+        goals:
+          type: array
+          items:
+            $ref: '#/components/schemas/GoalProgressItem'
+
+    GoalsProgressResponse:
+      type: object
+      required: [studentId, period, periodStart, periodEnd, modules]
+      properties:
+        studentId: { type: integer, format: int64 }
+        period: { $ref: '#/components/schemas/ProgressPeriod' }
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+        modules:
+          type: array
+          items:
+            $ref: '#/components/schemas/GoalProgressModule'
+
+    GoalRecordOption:
+      type: object
+      required: [code, label]
+      properties:
+        code: { type: string }
+        label: { type: string }
+        customText:
+          type: string
+          nullable: true
+
+    GoalRecordItem:
+      type: object
+      required: [id, recordDate, occurredTime, courseCode, courseLabel, environmentCode,
+                 environmentLabel, behaviorCode, behaviorLabel, subBehaviors, statusCode,
+                 statusLabel, performanceOptions, performanceText]
+      properties:
+        id: { type: integer, format: int64 }
+        recordDate: { type: string, format: date }
+        occurredTime:
+          type: string
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+        courseCode: { type: string }
+        courseLabel: { type: string }
+        environmentCode: { type: string }
+        environmentLabel: { type: string }
+        behaviorCode: { type: string }
+        behaviorLabel: { type: string }
+        subBehaviors:
+          type: array
+          items:
+            $ref: '#/components/schemas/GoalRecordOption'
+        statusCode:
+          type: string
+          enum: [INCOMPLETE, ASSISTED, INDEPENDENT]
+          nullable: true
+        statusLabel:
+          type: string
+          nullable: true
+        performanceOptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/GoalRecordOption'
+        performanceText:
+          type: string
+          description: 多项使用中文逗号拼接；无选项时为“未填写”。
+
+    GoalRecordsResponse:
+      type: object
+      required: [standardNumber, goalText, totalCount, records]
+      properties:
+        standardNumber: { type: integer, minimum: 1, maximum: 165 }
+        goalText: { type: string }
+        totalCount: { type: integer, format: int64, minimum: 0 }
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/GoalRecordItem'
 
   responses:
     UnauthorizedTeacher:

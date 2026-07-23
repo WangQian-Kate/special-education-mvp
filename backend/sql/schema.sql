@@ -174,6 +174,14 @@ CREATE TABLE IF NOT EXISTS behavior_function_type (
   PRIMARY KEY (code)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS behavior_status_type (
+  code VARCHAR(32) NOT NULL,
+  label VARCHAR(64) NOT NULL,
+  display_order TINYINT UNSIGNED NOT NULL,
+  PRIMARY KEY (code),
+  UNIQUE KEY uk_behavior_status_type_display_order (display_order)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS assistance_type (
   code VARCHAR(64) NOT NULL,
   label VARCHAR(64) NOT NULL,
@@ -222,6 +230,8 @@ CREATE TABLE IF NOT EXISTS behavior_record (
   behavior_description VARCHAR(1000) NULL,
   consequence_text VARCHAR(1000) NULL,
   function_code VARCHAR(64) NULL,
+  function_other_text VARCHAR(500) NULL,
+  status_code VARCHAR(32) NULL,
   assistance_result_text VARCHAR(1000) NULL,
   detail_saved BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (id),
@@ -231,6 +241,7 @@ CREATE TABLE IF NOT EXISTS behavior_record (
   KEY idx_behavior_record_behavior (behavior_code),
   KEY idx_behavior_record_stage (stage_code),
   KEY idx_behavior_record_function (function_code),
+  KEY idx_behavior_record_status (status_code),
   CONSTRAINT chk_behavior_record_duration
     CHECK (duration_minutes IS NULL OR duration_minutes > 0),
   CONSTRAINT fk_behavior_record_class_record
@@ -242,7 +253,15 @@ CREATE TABLE IF NOT EXISTS behavior_record (
   CONSTRAINT fk_behavior_record_stage
     FOREIGN KEY (stage_code) REFERENCES behavior_stage_type (code),
   CONSTRAINT fk_behavior_record_function
-    FOREIGN KEY (function_code) REFERENCES behavior_function_type (code)
+    FOREIGN KEY (function_code) REFERENCES behavior_function_type (code),
+  CONSTRAINT fk_behavior_record_status
+    FOREIGN KEY (status_code) REFERENCES behavior_status_type (code),
+  CONSTRAINT chk_behavior_record_function_other
+    CHECK (
+      (function_code = 'OTHER' AND NULLIF(TRIM(function_other_text), '') IS NOT NULL)
+      OR (function_code <> 'OTHER' AND function_other_text IS NULL)
+      OR (function_code IS NULL AND function_other_text IS NULL)
+    )
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS behavior_record_assistance (
