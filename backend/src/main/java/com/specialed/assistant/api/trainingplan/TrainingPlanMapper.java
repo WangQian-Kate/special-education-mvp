@@ -4,6 +4,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 import java.time.LocalDate;
 
 @Mapper
@@ -34,4 +35,10 @@ public interface TrainingPlanMapper {
                                            @Param("standardNumber") Integer standardNumber,
                                            @Param("limit") int limit);
     List<GoalRecordSelectionEntity> findGoalRecordSelections(@Param("recordIds") List<Long> recordIds);
+
+    // 训练目标关联记录（GoalRecordsController 用）
+    String findGoalTextByNumber(@Param("standardNumber") Integer standardNumber);
+    List<Map<String, Object>> findGoalBehaviorRecords(@Param("standardNumber") Integer standardNumber,
+                                                       @Param("limit") int limit);
+    int countGoalBehaviorRecords(@Param("standardNumber") Integer standardNumber);
 }

@@ -9,6 +9,10 @@ public class BehaviorRecordEntity {
     private LocalDateTime occurredAt;
     private String behaviorCode;
     private String behaviorLabel;
+    private String subBehaviorCode;
+    private String subBehaviorLabel;
+    private String statusCode;
+    private String statusLabel;
     private Integer durationMinutes;
     private String stageCode;
     private String stageLabel;
@@ -18,8 +22,6 @@ public class BehaviorRecordEntity {
     private String functionCode;
     private String functionLabel;
     private String functionOtherText;
-    private String statusCode;
-    private String statusLabel;
     private String assistanceResultText;
     private boolean detailSaved;
 
@@ -35,6 +37,14 @@ public class BehaviorRecordEntity {
     public void setBehaviorCode(String behaviorCode) { this.behaviorCode = behaviorCode; }
     public String getBehaviorLabel() { return behaviorLabel; }
     public void setBehaviorLabel(String behaviorLabel) { this.behaviorLabel = behaviorLabel; }
+    public String getSubBehaviorCode() { return subBehaviorCode; }
+    public void setSubBehaviorCode(String v) { this.subBehaviorCode = v; }
+    public String getSubBehaviorLabel() { return subBehaviorLabel; }
+    public void setSubBehaviorLabel(String v) { this.subBehaviorLabel = v; }
+    public String getStatusCode() { return statusCode; }
+    public void setStatusCode(String v) { this.statusCode = v; }
+    public String getStatusLabel() { return statusLabel; }
+    public void setStatusLabel(String v) { this.statusLabel = v; }
     public Integer getDurationMinutes() { return durationMinutes; }
     public void setDurationMinutes(Integer durationMinutes) { this.durationMinutes = durationMinutes; }
     public String getStageCode() { return stageCode; }
@@ -53,10 +63,6 @@ public class BehaviorRecordEntity {
     public void setFunctionLabel(String functionLabel) { this.functionLabel = functionLabel; }
     public String getFunctionOtherText() { return functionOtherText; }
     public void setFunctionOtherText(String functionOtherText) { this.functionOtherText = functionOtherText; }
-    public String getStatusCode() { return statusCode; }
-    public void setStatusCode(String statusCode) { this.statusCode = statusCode; }
-    public String getStatusLabel() { return statusLabel; }
-    public void setStatusLabel(String statusLabel) { this.statusLabel = statusLabel; }
     public String getAssistanceResultText() { return assistanceResultText; }
     public void setAssistanceResultText(String value) { this.assistanceResultText = value; }
     public boolean isDetailSaved() { return detailSaved; }

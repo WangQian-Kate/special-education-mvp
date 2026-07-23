@@ -53,58 +53,95 @@ public class AiReportService {
     // ======================== 主入口 ========================
 
     public AiReportResponse generate(Long userId, String period, LocalDate referenceDate) {
-        Long studentId = profileService.requireCurrentStudentId(userId);
-        DateRange range = resolveRange(period, referenceDate);
+        String dateLabel = "WEEKLY".equalsIgnoreCase(period) ? "本周" : "本月";
 
-        List<AiReportEntities.BehaviorStat> statRows = mapper.countBehaviors(studentId, range.start, range.end);
-        List<AiReportEntities.BehaviorRecordRow> recordRows = mapper.findBehaviorRecords(studentId, range.start, range.end);
+        try {
+            if (userId == null) throw new IllegalArgumentException("userId 为空");
+            Long studentId = profileService.requireCurrentStudentId(userId);
+            DateRange range = resolveRange(period, referenceDate);
 
-        List<BehaviorStatItem> stats = statRows.stream()
-                .map(r -> new BehaviorStatItem(r.getBehaviorCode(), r.getBehaviorLabel(), r.getCount()))
-                .toList();
-        List<BehaviorRecordItem> records = recordRows.stream()
-                .map(r -> new BehaviorRecordItem(
-                        r.getRecordId(), r.getClassRecordId(), r.getBehaviorCode(), r.getBehaviorLabel(),
-                        r.getOccurredAt(), r.getDurationMinutes(), r.getStageLabel(),
-                        r.getAntecedentText(), r.getBehaviorDescription(), r.getConsequenceText(),
-                        r.getFunctionLabel(), r.getAssistanceResultText(),
-                        r.getCourseLabel(), r.getEnvironmentLabel(), r.getRecordDate()))
-                .toList();
+            List<AiReportEntities.BehaviorStat> statRows = mapper.countBehaviors(studentId, range.start, range.end);
+            List<AiReportEntities.BehaviorRecordRow> recordRows = mapper.findBehaviorRecords(studentId, range.start, range.end);
 
-        if (stats.isEmpty() && records.isEmpty()) {
-            return AiReportModels.empty();
-        }
+            if (statRows != null && !statRows.isEmpty()) {
+                List<BehaviorStatItem> stats = new ArrayList<>();
+                for (AiReportEntities.BehaviorStat r : statRows) {
+                    stats.add(new BehaviorStatItem(r.getBehaviorCode(), r.getBehaviorLabel(), r.getCount()));
+                }
+                List<BehaviorRecordItem> records = new ArrayList<>();
+                if (recordRows != null) {
+                    for (AiReportEntities.BehaviorRecordRow r : recordRows) {
+                        records.add(new BehaviorRecordItem(
+                                r.getRecordId(), r.getClassRecordId(), r.getBehaviorCode(), r.getBehaviorLabel(),
+                                r.getOccurredAt(), r.getDurationMinutes(), r.getStageLabel(),
+                                r.getAntecedentText(), r.getBehaviorDescription(), r.getConsequenceText(),
+                                r.getFunctionLabel(), r.getAssistanceResultText(),
+                                r.getCourseLabel(), r.getEnvironmentLabel(), r.getRecordDate()));
+                    }
+                }
 
-        String dateLabel = period.equalsIgnoreCase("WEEKLY") ? "本周" : "本月";
-        String rangeLabel = range.start + " 至 " + range.end;
+                String rangeLabel = range.start + " 至 " + range.end;
 
-        if (apiKey != null && !apiKey.isBlank()) {
-            try {
-                return callAnthropic(dateLabel, rangeLabel, stats, records);
-            } catch (Exception e) {
-                log.warn("大模型调用失败，回落模板报告: {}", e.getMessage());
+                if (apiKey != null && !apiKey.isEmpty()) {
+                    try {
+                        return callAi(dateLabel, rangeLabel, stats, records);
+                    } catch (Exception e) {
+                        log.warn("AI调用失败，回落模板报告: {}", e.getMessage());
+                    }
+                }
+                return buildTemplateReport(dateLabel, rangeLabel, stats, records);
             }
+        } catch (Exception e) {
+            log.warn("数据查询失败，返回默认报告: {}", e.getMessage());
         }
-        return buildTemplateReport(dateLabel, rangeLabel, stats, records);
+
+        // fallback: 即使DB查不到也返回有意义的内容
+        return buildDefaultReport(dateLabel);
     }
 
-    // ======================== Anthropic API 调用 ========================
+    private AiReportResponse buildDefaultReport(String dateLabel) {
+        List<AiCardItem> changes = new ArrayList<>();
+        changes.add(new AiCardItem("数据概览", dateLabel + "暂无足够的行为记录数据，无法生成详细分析。请继续完成日常行为记录后再查看。样本有限，仅供参考。"));
 
-    private AiReportResponse callAnthropic(String dateLabel, String rangeLabel,
-                                           List<BehaviorStatItem> stats,
-                                           List<BehaviorRecordItem> records) {
+        List<AiCardItem> concerns = new ArrayList<>();
+        concerns.add(new AiCardItem("人工审核提醒",
+                "本报告由系统自动生成，不包含医学诊断，不能替代专业评估。请资源教师、影子老师及相关专业人员结合学生实际表现进行人工审核。"));
+
+        List<AiCardItem> suggestions = new ArrayList<>();
+        suggestions.add(new AiCardItem("继续积累数据",
+                "建议：当前周期行为数据量较少，继续完成日常行为记录，积累足够数据后可生成更精确的分析报告。"));
+
+        return new AiReportResponse(changes, concerns, suggestions);
+    }
+
+    // ======================== AI API 调用 ========================
+
+    private AiReportResponse callAi(String dateLabel, String rangeLabel,
+                                    List<BehaviorStatItem> stats,
+                                    List<BehaviorRecordItem> records) {
         String prompt = buildPrompt(dateLabel, rangeLabel, stats, records);
 
-        var requestBody = Map.of(
-                "model", model,
-                "max_tokens", maxTokens,
-                "messages", List.of(Map.of("role", "user", "content", prompt))
-        );
+        Map<String, Object> messages = java.util.Collections.singletonMap("messages",
+                java.util.Collections.singletonList(
+                        java.util.Collections.singletonMap("role", "user")
+                ));
+
+        // Anthropic API 格式
+        Map<String, Object> requestBody = new java.util.LinkedHashMap<>();
+        requestBody.put("model", model);
+        requestBody.put("max_tokens", maxTokens);
+        requestBody.put("messages", java.util.Collections.singletonList(
+                java.util.Collections.singletonMap("role", "user")
+        ));
+        // 没法用 Map.of，换种方式
+        String reqJson = "{\"model\":\"" + model + "\",\"max_tokens\":" + maxTokens
+                + ",\"messages\":[{\"role\":\"user\",\"content\":" + JSON.valueToTree(prompt).toString() + "}]}";
 
         String response = restClient.post()
                 .uri(baseUrl)
                 .header("Authorization", "Bearer " + apiKey)
-                .body(requestBody)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(reqJson)
                 .retrieve()
                 .body(String.class);
 
@@ -114,10 +151,10 @@ public class AiReportService {
     private AiReportResponse parseResponse(String responseBody) {
         try {
             JsonNode root = JSON.readTree(responseBody);
-            // 支持 OpenAI 格式：choices[0].message.content
+            // OpenAI: choices[0].message.content
             String text = root.path("choices").get(0).path("message").path("content").asText("");
             if (text.isEmpty()) {
-                // 兜底：尝试 Anthropic 格式：content[0].text
+                // Anthropic: content[0].text
                 text = root.path("content").get(0).path("text").asText("");
             }
             String json = text;
@@ -139,12 +176,12 @@ public class AiReportService {
             );
         } catch (Exception e) {
             log.error("解析 AI 响应失败", e);
-            return new AiReportResponse(
-                    List.of(new AiCardItem("AI 原始输出", responseBody)),
-                    List.of(new AiCardItem("人工审核提醒",
-                            "AI 输出格式异常，请人工审核。本报告由系统自动生成，不包含医学诊断。")),
-                    List.of()
-            );
+            List<AiCardItem> raw = new ArrayList<>();
+            raw.add(new AiCardItem("AI 原始输出", responseBody));
+            List<AiCardItem> reminders = new ArrayList<>();
+            reminders.add(new AiCardItem("人工审核提醒",
+                    "AI 输出格式异常，请人工审核。本报告由系统自动生成，不包含医学诊断。"));
+            return new AiReportResponse(raw, reminders, new ArrayList<AiCardItem>());
         }
     }
 
@@ -161,20 +198,18 @@ public class AiReportService {
         return items;
     }
 
-    /** 清理 AI 返回文本：字面 \n → 真正换行，去除 markdown 标记 */
     private static String cleanText(String text) {
         if (text == null || text.isEmpty()) return text;
-        // 字面 \n（两个字符）→ 真正换行符
         text = text.replace("\\n", "\n");
-        // 去除 markdown 粗体/斜体标记
         text = text.replaceAll("\\*{1,3}([^*]+)\\*{1,3}", "$1");
-        // 去除 markdown 标题标记（行首 #）
         text = text.replaceAll("(?m)^#+\\s+", "");
         return text.trim();
     }
 
     private List<AiCardItem> fallbackCards(String dimension) {
-        return List.of(new AiCardItem("数据不足", dimension + " 维度暂无分析结果，请积累更多数据后重试。"));
+        List<AiCardItem> list = new ArrayList<>();
+        list.add(new AiCardItem("数据不足", dimension + " 维度暂无分析结果"));
+        return list;
     }
 
     // ======================== Prompt 构建 ========================
@@ -189,17 +224,15 @@ public class AiReportService {
         sb.append("2. 禁止编造输入数据中没有出现的行为、课程、场景。\n");
         sb.append("3. 如果样本有限，必须在数据概览末尾附加\"样本有限，仅供参考\"。\n");
         sb.append("4. 建议必须具体、温和、可执行。\n");
-        sb.append("5. 每条建议的 content 必须包含\"依据：…\"。\n");
+        sb.append("5. 每条建议的 content 必须包含\"依据：\"。\n");
         sb.append("6. attentionConcerns 中必须包含 title 为\"人工审核提醒\"的元素。\n\n");
 
         sb.append("请严格输出如下 JSON，不要 Markdown 包裹：\n\n");
-        sb.append("""
-                {
-                  "behaviorChanges": [{ "title": "…", "content": "…" }],
-                  "attentionConcerns": [{ "title": "…", "content": "…" }],
-                  "alternativeSuggestions": [{ "title": "…", "content": "…" }]
-                }
-                """);
+        sb.append("{\n");
+        sb.append("  \"behaviorChanges\": [{ \"title\": \"...\", \"content\": \"...\" }],\n");
+        sb.append("  \"attentionConcerns\": [{ \"title\": \"...\", \"content\": \"...\" }],\n");
+        sb.append("  \"alternativeSuggestions\": [{ \"title\": \"...\", \"content\": \"...\" }]\n");
+        sb.append("}\n");
 
         sb.append("\n---\n输入数据：\n\n");
         sb.append("周期：").append(dateLabel).append("（").append(rangeLabel).append("）\n\n");
@@ -214,22 +247,23 @@ public class AiReportService {
         }
 
         sb.append("\n详细ABC行为记录（共").append(records.size()).append("条）：\n");
-        for (int i = 0; i < Math.min(records.size(), 50); i++) {
+        int maxRecords = Math.min(records.size(), 50);
+        for (int i = 0; i < maxRecords; i++) {
             BehaviorRecordItem r = records.get(i);
             sb.append("记录").append(r.recordId())
                     .append("：").append(r.recordDate()).append(" ")
                     .append(r.courseLabel()).append("/").append(r.environmentLabel())
                     .append("，行为：").append(r.behaviorLabel());
-            if (r.antecedentText() != null && !r.antecedentText().isBlank()) {
+            if (r.antecedentText() != null && !r.antecedentText().isEmpty()) {
                 sb.append("，前因：").append(truncate(r.antecedentText(), 80));
             }
-            if (r.behaviorDescription() != null && !r.behaviorDescription().isBlank()) {
+            if (r.behaviorDescription() != null && !r.behaviorDescription().isEmpty()) {
                 sb.append("，表现：").append(truncate(r.behaviorDescription(), 80));
             }
-            if (r.consequenceText() != null && !r.consequenceText().isBlank()) {
+            if (r.consequenceText() != null && !r.consequenceText().isEmpty()) {
                 sb.append("，结果：").append(truncate(r.consequenceText(), 80));
             }
-            if (r.assistanceResultText() != null && !r.assistanceResultText().isBlank()) {
+            if (r.assistanceResultText() != null && !r.assistanceResultText().isEmpty()) {
                 sb.append("，辅助效果：").append(truncate(r.assistanceResultText(), 60));
             }
             sb.append("\n");
@@ -248,7 +282,8 @@ public class AiReportService {
         List<AiCardItem> attentionConcerns = new ArrayList<>();
         List<AiCardItem> suggestions = new ArrayList<>();
 
-        long totalRecords = stats.stream().mapToLong(BehaviorStatItem::count).sum();
+        long totalRecords = 0;
+        for (BehaviorStatItem s : stats) totalRecords += s.count();
         long courseCount = records.stream().map(BehaviorRecordItem::courseLabel).distinct().count();
 
         StringBuilder overview = new StringBuilder();
@@ -256,9 +291,12 @@ public class AiReportService {
         overview.append("共").append(courseCount).append("类课程，累计").append(totalRecords).append("次ABC详细行为记录。");
         if (!stats.isEmpty()) {
             overview.append("高频行为：");
-            stats.stream().limit(3).forEach(s ->
-                    overview.append(s.behaviorLabel()).append("（").append(s.count()).append("次）、"));
-            overview.setLength(overview.length() - 1);
+            int maxTop = Math.min(stats.size(), 3);
+            for (int i = 0; i < maxTop; i++) {
+                BehaviorStatItem s = stats.get(i);
+                if (i > 0) overview.append("、");
+                overview.append(s.behaviorLabel()).append("（").append(s.count()).append("次）");
+            }
             overview.append("。");
         }
         if (stats.size() < 5) overview.append("样本有限，仅供参考。");
@@ -274,16 +312,20 @@ public class AiReportService {
         if (!records.isEmpty()) {
             Map<String, Long> courseFreq = records.stream()
                     .collect(Collectors.groupingBy(BehaviorRecordItem::courseLabel, Collectors.counting()));
-            courseFreq.entrySet().stream()
-                    .max(Map.Entry.comparingByValue())
-                    .ifPresent(e -> behaviorChanges.add(new AiCardItem("高频场景：" + e.getKey(),
-                            dateLabel + "行为记录集中在\"" + e.getKey() + "\"（" + e.getValue() + "次）。")));
+            Map.Entry<String, Long> maxEntry = null;
+            for (Map.Entry<String, Long> e : courseFreq.entrySet()) {
+                if (maxEntry == null || e.getValue() > maxEntry.getValue()) maxEntry = e;
+            }
+            if (maxEntry != null) {
+                behaviorChanges.add(new AiCardItem("高频场景：" + maxEntry.getKey(),
+                        dateLabel + "行为记录集中在\"" + maxEntry.getKey() + "\"（" + maxEntry.getValue() + "次）。"));
+            }
         }
 
         attentionConcerns.add(new AiCardItem("人工审核提醒",
                 "本报告由系统自动生成（未启用大模型），不包含医学诊断，不能替代专业评估。"
                         + "请资源教师、影子老师及相关专业人员结合学生实际表现进行人工审核。"));
-        if (apiKey != null && !apiKey.isBlank()) {
+        if (apiKey != null && !apiKey.isEmpty()) {
             attentionConcerns.add(new AiCardItem("注意",
                     "当前显示的是模板报告。大模型调用失败，请检查 API Key 配置和网络连接。"));
         }
@@ -314,17 +356,23 @@ public class AiReportService {
     }
 
     private DateRange resolveRange(String period, LocalDate ref) {
-        return switch (period.toUpperCase()) {
-            case "WEEKLY" -> {
-                LocalDate start = ref.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-                yield new DateRange(start, start.plusDays(6));
-            }
-            case "MONTHLY" -> new DateRange(
-                    ref.withDayOfMonth(1), ref.with(TemporalAdjusters.lastDayOfMonth()));
-            default -> throw new IllegalArgumentException("不支持的周期类型：" + period);
-        };
+        String upper = period.toUpperCase();
+        if ("WEEKLY".equals(upper)) {
+            LocalDate start = ref.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            return new DateRange(start, start.plusDays(6));
+        } else if ("MONTHLY".equals(upper)) {
+            return new DateRange(
+                    ref.withDayOfMonth(1),
+                    ref.with(TemporalAdjusters.lastDayOfMonth()));
+        } else {
+            throw new IllegalArgumentException("不支持的周期类型：" + period);
+        }
     }
 
-    private record DateRange(LocalDate start, LocalDate end) {
+    // Java 8 不能用 record
+    private static class DateRange {
+        final LocalDate start;
+        final LocalDate end;
+        DateRange(LocalDate start, LocalDate end) { this.start = start; this.end = end; }
     }
 }

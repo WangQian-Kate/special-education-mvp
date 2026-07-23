@@ -94,7 +94,8 @@ public class ClassRecordController {
             @PathVariable @Positive Long classRecordId,
             @Valid @RequestBody CreateQuickBehaviorRequest request
     ) {
-        return service.createQuick(userId, classRecordId, request.behaviorCode());
+        return service.createQuick(userId, classRecordId, request.behaviorCode(),
+                request.subBehaviorCode(), request.statusCode());
     }
 
     @PostMapping("/class-records/{classRecordId}/behavior-records/supplement")
@@ -104,7 +105,8 @@ public class ClassRecordController {
             @PathVariable @Positive Long classRecordId,
             @Valid @RequestBody CreateSupplementBehaviorRequest request
     ) {
-        return service.createSupplement(userId, classRecordId, request.behaviorCode(), request.occurredAt());
+        return service.createSupplement(userId, classRecordId, request.behaviorCode(),
+                request.subBehaviorCode(), request.statusCode(), request.occurredAt());
     }
 
     @GetMapping("/class-records/{classRecordId}/behavior-records")

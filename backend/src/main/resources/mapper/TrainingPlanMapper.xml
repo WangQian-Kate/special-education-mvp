@@ -220,4 +220,50 @@
         </foreach>
         ORDER BY selection.behavior_record_id, option_row.option_type, option_row.display_order
     </select>
+
+    <!-- GoalRecordsController 用：训练目标关联行为记录 -->
+    <select id="findGoalTextByNumber" resultType="string">
+        SELECT goal_text FROM training_goal WHERE standard_number = #{standardNumber} LIMIT 1
+    </select>
+
+    <select id="findGoalBehaviorRecords" resultType="map">
+        SELECT br.id,
+               cr.record_date                                              AS recordDate,
+               DATE_FORMAT(br.occurred_at, '%H:%i')                       AS occurredTime,
+               ct.label                                                   AS courseLabel,
+               et.label                                                   AS environmentLabel,
+               bt.label                                                   AS behaviorLabel,
+               (SELECT bco.label FROM behavior_catalog_option bco
+                WHERE bco.code = br.sub_behavior_code AND bco.option_type = 'SUB_BEHAVIOR'
+                LIMIT 1)                                                   AS subBehaviorLabel,
+               br.status_code                                             AS statusCode,
+               CASE br.status_code
+                   WHEN 'independent' THEN '独立完成'
+                   WHEN 'assisted' THEN '辅助完成'
+                   ELSE '未完成'
+               END                                                         AS statusLabel,
+               COALESCE(
+                   (SELECT GROUP_CONCAT(COALESCE(brcs.custom_text, bco.label) SEPARATOR '，')
+                    FROM behavior_record_catalog_selection brcs
+                    JOIN behavior_catalog_option bco ON bco.code = brcs.option_code
+                    WHERE brcs.behavior_record_id = br.id AND bco.option_type = 'PERFORMANCE'),
+                   '未填写'
+               )                                                            AS performanceText
+        FROM behavior_training_goal btg
+        JOIN behavior_record br ON br.behavior_code = btg.behavior_code
+        JOIN class_record cr ON cr.id = br.class_record_id
+        JOIN behavior_type bt ON bt.code = br.behavior_code
+        JOIN course_type ct ON ct.code = cr.course_code
+        JOIN environment_type et ON et.code = cr.environment_code
+        WHERE btg.standard_number = #{standardNumber}
+        ORDER BY br.occurred_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="countGoalBehaviorRecords" resultType="int">
+        SELECT COUNT(*)
+        FROM behavior_training_goal btg
+        JOIN behavior_record br ON br.behavior_code = btg.behavior_code
+        WHERE btg.standard_number = #{standardNumber}
+    </select>
 </mapper>
