@@ -36,6 +36,10 @@ Page({
     courseStats: [],
     envStats: [],
     topBehaviors: [],
+    // ABC + 行为表现趋势
+    wkAbcDist: [],
+    wkBehDescTrends: [],
+    wkBehDescMax: 1,
     // AI 三维度报告
     aiReport: null, aiReportLoading: false,
     ecDaily: { onInit: initDailyChart },
@@ -57,46 +61,35 @@ Page({
     var period = pm[view]; if (!period) return;
     this.setData({ loading: true, empty: false });
     try {
-      var stats = await recordApi.getEvaluationStats(period, today());
+      var refDate = today();
+      var stats = await recordApi.getEvaluationStats(period, refDate);
       var items = (stats && stats.items) || [];
       var total = stats ? stats.totalCount : 0;
       var ov = stats ? stats.overview : null;
 
-      var incomplete = 0, assisted = 0, independent = 0;
-      items.forEach(function (i) { incomplete += Math.round(i.count * 0.15); assisted += Math.round(i.count * 0.25); independent += Math.round(i.count * 0.6); });
+      // 真实状态计数（后端已提供）
+      var incomplete = ov ? (ov.incompleteCount || 0) : 0;
+      var assisted = ov ? (ov.assistedCount || 0) : 0;
+      var independent = ov ? (ov.independentCount || 0) : 0;
 
       var dailyBars = [];
       if (view === 'daily') {
-        dailyBars = items.map(function (i) { return { label: i.behaviorLabel, count: i.count, pct: pct(i.count, total), trend: i.trendDirection }; });
+        dailyBars = items.map(function (i) {
+          return { label: i.behaviorLabel, count: i.count, pct: pct(i.count, total),
+                   trend: i.trendDirection,
+                   ind: i.independentCount || 0, ass: i.assistedCount || 0, inc: i.incompleteCount || 0 };
+        });
       }
 
-      var courseStats = [];
-      try {
-        var dayRecs = await recordApi.getDayRecords(today());
-        var crDetails = await Promise.all((dayRecs || []).map(function (r) { return recordApi.getClassRecordDetail(r.id).catch(function () { return null; }); }));
-        var crMap = {};
-        crDetails.forEach(function (d) {
-          if (!d) return;
-          var key = d.courseLabel || d.courseCode;
-          if (!crMap[key]) crMap[key] = { name: key, records: 0, details: 0 };
-          (d.behaviorCards || []).forEach(function (c) { crMap[key].records += c.count; if (c.latestDetailSaved) crMap[key].details += 1; });
-        });
-        courseStats = Object.values(crMap).sort(function (a, b) { return b.records - a.records; });
-      } catch (e) { /* skip */ }
+      // 课程/环境统计：后端已提供
+      var courseStats = (stats && stats.courseStats) ? stats.courseStats : [];
+      var envStats = (stats && stats.environmentStats) ? stats.environmentStats : [];
 
-      var envStats = [];
-      try {
-        var em = {};
-        crDetails.forEach(function (d) {
-          if (!d) return;
-          var key = d.environmentLabel || d.environmentCode;
-          if (!em[key]) em[key] = { name: key, records: 0 };
-          (d.behaviorCards || []).forEach(function (c) { em[key].records += c.count; });
-        });
-        envStats = Object.values(em).sort(function (a, b) { return b.records - a.records; });
-      } catch (e) { /* skip */ }
-
+      // TOP6 高频行为（带状态拆分）
       var topBeh = items.slice().sort(function (a, b) { return b.count - a.count; }).slice(0, 6);
+
+      // 每日趋势（仅周视图）
+      var dailyTrend = (stats && stats.dailyTrends) ? stats.dailyTrends : [];
 
       var distTotal = incomplete + assisted + independent || 1;
       this.setData({
@@ -106,15 +99,19 @@ Page({
         statusPctIncomplete: Math.round(incomplete / distTotal * 100),
         statusPctAssisted: Math.round(assisted / distTotal * 100),
         statusPctIndependent: Math.round(independent / distTotal * 100),
-        dailyTrend: [], courseStats: courseStats, envStats: envStats, topBehaviors: topBeh
+        dailyTrend: dailyTrend, courseStats: courseStats, envStats: envStats, topBehaviors: topBeh
       });
 
       this._updateCharts(view, items);
+
       // 日报用本地简单卡片，周报/月报调 AI 接口
       if (view === 'daily') {
         this.setData({ aiReport: null });
       } else {
         this._loadAiReport(view === 'weekly' ? 'WEEKLY' : 'MONTHLY');
+        // 并行拉 ABC 分布和行为表现趋势
+        this._loadAbcDist(period, refDate);
+        this._loadBehDescTrend(period, refDate);
       }
     } catch (err) {
       this.setData({ loading: false, empty: false });
@@ -157,6 +154,27 @@ Page({
     } finally {
       this.setData({ aiReportLoading: false });
     }
+  },
+
+  /** 加载 ABC 行为功能分布 */
+  async _loadAbcDist(period, refDate) {
+    try {
+      var dist = await recordApi.getAbcDistribution(period, refDate);
+      var items = (dist && dist.items) ? dist.items.map(function (i) {
+        return { label: i.functionLabel || i.label, pct: i.percentage, count: i.count };
+      }) : [];
+      this.setData({ wkAbcDist: items });
+    } catch (e) { /* 后端未就绪时静默 */ }
+  },
+
+  /** 加载行为表现（behavior_description）频次趋势 */
+  async _loadBehDescTrend(period, refDate) {
+    try {
+      var trend = await recordApi.getBehaviorDescTrend(period, refDate, 10);
+      var items = (trend && trend.topDescriptions) ? trend.topDescriptions : [];
+      var max = items.length ? Math.max.apply(null, items.map(function (i) { return i.totalCount || i.count || 0; })) : 1;
+      this.setData({ wkBehDescTrends: items, wkBehDescMax: max });
+    } catch (e) { /* 后端未就绪时静默 */ }
   },
 
   loadSemester() {

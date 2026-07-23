@@ -70,15 +70,24 @@
 
     <!-- 4. 课程维度统计 -->
     <view class="card section" wx:if="{{courseStats.length}}"><view class="block-title">课程维度统计</view>
-      <view class="tbl"><view class="tbl-h"><text class="tbl-c1">课程</text><text class="tbl-c2">记录数</text><text class="tbl-c3">详录</text></view>
-        <view wx:for="{{courseStats}}" wx:key="name" class="tbl-r"><text class="tbl-c1">{{item.name}}</text><text class="tbl-c2">{{item.records}}</text><text class="tbl-c3">{{item.details}}</text></view>
+      <view class="tbl"><view class="tbl-h"><text class="tbl-c1">课程</text><text class="tbl-c2">记录数</text><text class="tbl-c3">独立率</text></view>
+        <view wx:for="{{courseStats}}" wx:key="courseLabel" class="tbl-r"><text class="tbl-c1">{{item.courseLabel || item.name}}</text><text class="tbl-c2">{{item.totalCount || item.records}}</text><text class="tbl-c3">{{item.independentRate || 0}}%</text></view>
       </view>
     </view>
 
     <!-- 5. 环境维度统计 -->
     <view class="card section" wx:if="{{envStats.length}}"><view class="block-title">环境维度统计</view>
       <view class="tbl"><view class="tbl-h"><text class="tbl-c1">环境</text><text class="tbl-c2">记录数</text></view>
-        <view wx:for="{{envStats}}" wx:key="name" class="tbl-r"><text class="tbl-c1">{{item.name}}</text><text class="tbl-c2">{{item.records}}</text></view>
+        <view wx:for="{{envStats}}" wx:key="environmentLabel" class="tbl-r"><text class="tbl-c1">{{item.environmentLabel || item.name}}</text><text class="tbl-c2">{{item.count || item.records}}</text></view>
+      </view>
+    </view>
+
+    <!-- 6. ABC 行为功能统计 -->
+    <view class="card section" wx:if="{{wkAbcDist.length}}"><view class="block-title">ABC 行为功能统计</view>
+      <view wx:for="{{wkAbcDist}}" wx:key="label" class="tr-row">
+        <text class="tr-name">{{item.label}}</text>
+        <view class="tr-bar-bg"><view class="tr-bar" style="width:{{item.pct}}%"></view></view>
+        <text class="tr-count">{{item.pct}}%</text>
       </view>
     </view>
 
