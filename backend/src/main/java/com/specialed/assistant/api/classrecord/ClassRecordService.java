@@ -311,9 +311,12 @@ public class ClassRecordService {
         entity.setConsequenceText(normalizeOptionalText(request.consequenceText()));
         entity.setFunctionCode(functionCode);
         entity.setFunctionOtherText(functionOtherText);
-        entity.setStatusCode(explicitStatusCode != null
-                ? explicitStatusCode
-                : assistances.isEmpty() ? null : "ASSISTED");
+        if (explicitStatusCode != null) {
+            entity.setStatusCode(explicitStatusCode);
+        } else if (!assistances.isEmpty()) {
+            entity.setStatusCode("ASSISTED");
+        }
+        // 否则保持原有状态不变
         entity.setAssistanceResultText(normalizeOptionalText(request.assistanceResultText()));
         mapper.updateBehaviorDetails(entity);
         mapper.deleteAssistances(recordId);

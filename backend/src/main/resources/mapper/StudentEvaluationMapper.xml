@@ -127,4 +127,19 @@
           AND br.detail_saved = TRUE
           AND NULLIF(TRIM(br.behavior_description), '') IS NOT NULL
     </select>
+
+    <select id="findDailyEvaluation" resultType="com.specialed.assistant.api.studentevaluation.DailyEvaluationEntity">
+        SELECT student_id, record_date, emotion, adaptation, social, self_mgmt, language, focus
+        FROM daily_evaluation
+        WHERE student_id = #{studentId} AND record_date = #{recordDate}
+    </select>
+
+    <insert id="upsertDailyEvaluation" parameterType="com.specialed.assistant.api.studentevaluation.DailyEvaluationEntity">
+        INSERT INTO daily_evaluation (student_id, record_date, emotion, adaptation, social, self_mgmt, language, focus)
+        VALUES (#{studentId}, #{recordDate}, #{emotion}, #{adaptation}, #{social}, #{selfMgmt}, #{language}, #{focus})
+        ON DUPLICATE KEY UPDATE
+          emotion = VALUES(emotion), adaptation = VALUES(adaptation),
+          social = VALUES(social), self_mgmt = VALUES(self_mgmt),
+          language = VALUES(language), focus = VALUES(focus)
+    </insert>
 </mapper>
