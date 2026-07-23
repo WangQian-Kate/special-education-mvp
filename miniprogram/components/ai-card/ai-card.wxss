@@ -1,0 +1,30 @@
+.ai-card {
+  padding: 24rpx;
+  border-radius: 16rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+}
+
+.ai-card.info {
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.ai-card.warn {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.ai-card.success {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.title {
+  font-weight: 700;
+}
+
+.ai-card .content-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
