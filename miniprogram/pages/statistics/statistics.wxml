@@ -25,97 +25,28 @@
         <view class="pct-dot {{item.trend === 'UP' ? 'up' : item.trend === 'DOWN' ? 'down' : ''}}"></view><text class="pct-n">{{item.label}}</text><text class="pct-v">{{item.count}}次</text>
       </view></view>
     </view>
-
   </block>
 
-  <!-- ==================== 周报 / 月报 ==================== -->
+  <!-- ==================== 周报 / 月报（仅概览 + AI 分析，详细图表见随班记录页） ==================== -->
   <block wx:elif="{{(view === 'weekly' || view === 'monthly') && !empty}}">
-    <!-- 1. 记录概览 -->
     <view class="card section"><view class="sec-title">{{view === 'weekly' ? '本周' : '本月'}}记录概览</view>
       <view class="ov-grid"><view class="ov-i"><text class="ov-v">{{overview.behaviorRecordCount || totalCount}}</text><text class="ov-l">记录总次数</text></view>
       <view class="ov-i"><text class="ov-v">{{overview.observationCourseCount || 0}}</text><text class="ov-l">涉及课程</text></view>
       <view class="ov-i"><text class="ov-v">{{items.length}}</text><text class="ov-l">涉及行为</text></view>
-      <view class="ov-i"><text class="ov-v">{{overview.abcRecordCount || 0}}</text><text class="ov-l">详录条数</text></view></view>
-    </view>
-
-    <!-- 2. 行为状态环形图 -->
-    <view class="card section"><view class="block-title">行为状态分布</view>
-      <view class="donut-wrap">
-        <view class="donut-stats">
-          <view class="donut-bar c-ind" style="width:{{statusPctIncomplete}}%"></view>
-          <view class="donut-bar c-ass" style="width:{{statusPctAssisted}}%"></view>
-          <view class="donut-bar c-inde" style="width:{{statusPctIndependent}}%"></view>
-        </view>
-        <view class="donut-legends">
-          <view class="dl"><view class="dl-dot c-ind"></view><text>未完成 {{statusDist.incomplete}}次 ({{statusPctIncomplete}}%)</text></view>
-          <view class="dl"><view class="dl-dot c-ass"></view><text>辅助 {{statusDist.assisted}}次 ({{statusPctAssisted}}%)</text></view>
-          <view class="dl"><view class="dl-dot c-inde"></view><text>独立 {{statusDist.independent}}次 ({{statusPctIndependent}}%)</text></view>
-        </view>
-      </view>
-    </view>
-    <view class="card section" wx:if="{{items.length}}">
-      <view class="block-title">行为频次{{view === 'weekly' ? '（红↑升 绿↓降 蓝→稳）' : ''}}</view>
-      <view class="chart-box" wx:if="{{view === 'weekly'}}">
-        <ec-canvas id="weekly-chart" canvas-id="weekly-chart" ec="{{ecWeekly}}"></ec-canvas>
-      </view>
-      <view class="trend-list">
-        <view wx:for="{{items}}" wx:key="behaviorCode" class="tr-row">
-          <text class="tr-name">{{item.behaviorLabel}}</text>
-          <view class="tr-bar-bg"><view class="tr-bar" style="width:{{(item.count / totalCount) * 100 || 0}}%;background:{{item.trendDirection === 'UP' ? '#ef4444' : item.trendDirection === 'DOWN' ? '#22c55e' : '#9ca3af'}}"></view></view>
-          <text class="tr-count">{{item.count}}次</text>
-          <text class="tr-ch {{item.trendDirection === 'UP' ? 'up' : item.trendDirection === 'DOWN' ? 'down' : ''}}">{{item.trendDirection === 'UP' ? '↑' : item.trendDirection === 'DOWN' ? '↓' : '→'}} {{item.changePercent != null ? (item.changePercent >= 0 ? '+' : '') + item.changePercent + '%' : '新增'}}</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 4. 课程维度统计 -->
-    <view class="card section" wx:if="{{courseStats.length}}"><view class="block-title">课程维度统计</view>
-      <view class="tbl"><view class="tbl-h"><text class="tbl-c1">课程</text><text class="tbl-c2">记录数</text><text class="tbl-c3">独立率</text></view>
-        <view wx:for="{{courseStats}}" wx:key="courseLabel" class="tbl-r"><text class="tbl-c1">{{item.courseLabel || item.name}}</text><text class="tbl-c2">{{item.totalCount || item.records}}</text><text class="tbl-c3">{{item.independentRate || 0}}%</text></view>
-      </view>
-    </view>
-
-    <!-- 5. 环境维度统计 -->
-    <view class="card section" wx:if="{{envStats.length}}"><view class="block-title">环境维度统计</view>
-      <view class="tbl"><view class="tbl-h"><text class="tbl-c1">环境</text><text class="tbl-c2">记录数</text></view>
-        <view wx:for="{{envStats}}" wx:key="environmentLabel" class="tbl-r"><text class="tbl-c1">{{item.environmentLabel || item.name}}</text><text class="tbl-c2">{{item.count || item.records}}</text></view>
-      </view>
-    </view>
-
-    <!-- 6. ABC 行为功能统计 -->
-    <view class="card section" wx:if="{{wkAbcDist.length}}"><view class="block-title">ABC 行为功能统计</view>
-      <view wx:for="{{wkAbcDist}}" wx:key="label" class="tr-row">
-        <text class="tr-name">{{item.label}}</text>
-        <view class="tr-bar-bg"><view class="tr-bar" style="width:{{item.pct}}%"></view></view>
-        <text class="tr-count">{{item.pct}}%</text>
-      </view>
-    </view>
-
-    <!-- 6. 高频行为表现 -->
-    <view class="card section" wx:if="{{topBehaviors.length}}"><view class="block-title">高频行为</view>
-      <view class="trend-list">
-        <view wx:for="{{topBehaviors}}" wx:key="behaviorCode" class="tr-row">
-          <text class="tr-name">{{item.behaviorLabel}}</text>
-          <view class="tr-bar-bg"><view class="tr-bar" style="width:{{(item.count / totalCount) * 100 || 0}}%"></view></view>
-          <text class="tr-count">{{item.count}}次</text>
-        </view>
-      </view>
+      <view class="ov-i"><text class="ov-v">{{overview.trainingGoalCount || 0}}</text><text class="ov-l">训练目标</text></view></view>
     </view>
 
     <!-- AI 三维度分析报告 -->
     <view class="card section" wx:if="{{aiReport}}">
       <view class="block-title">🤖 AI 智能分析</view>
-      <!-- 维度一：行为变化（蓝色） -->
       <view wx:if="{{aiReport.behaviorChanges && aiReport.behaviorChanges.length}}" class="ai-group">
         <text class="ai-group-title">📊 {{view === 'weekly' ? '行为变化与趋势' : '月度发展总结'}}</text>
         <ai-card wx:for="{{aiReport.behaviorChanges}}" wx:key="title" type="info" title="{{item.title}}" content="{{item.content}}" />
       </view>
-      <!-- 维度二：关注提醒（橙色） -->
       <view wx:if="{{aiReport.attentionConcerns && aiReport.attentionConcerns.length}}" class="ai-group">
         <text class="ai-group-title">⚠️ 关注提醒</text>
         <ai-card wx:for="{{aiReport.attentionConcerns}}" wx:key="title" type="warn" title="{{item.title}}" content="{{item.content}}" />
       </view>
-      <!-- 维度三：替代建议（绿色） -->
       <view wx:if="{{aiReport.alternativeSuggestions && aiReport.alternativeSuggestions.length}}" class="ai-group">
         <text class="ai-group-title">💡 {{view === 'weekly' ? '干预建议' : '长期目标建议'}}</text>
         <ai-card wx:for="{{aiReport.alternativeSuggestions}}" wx:key="title" type="success" title="{{item.title}}" content="{{item.content}}" />
@@ -123,6 +54,9 @@
     </view>
     <view class="card section" wx:elif="{{aiReportLoading}}"><view class="block-title">🤖 AI 智能分析</view>
       <view class="empty-tip">AI 分析生成中，请稍候…</view>
+    </view>
+    <view class="card section" wx:else><view class="block-title">🤖 AI 智能分析</view>
+      <view class="empty-tip">暂无AI分析数据</view>
     </view>
   </block>
 
@@ -132,21 +66,6 @@
       <view class="ov-grid"><view class="ov-i"><text class="ov-v">{{overview.behaviorRecordCount}}</text><text class="ov-l">行为记录</text></view>
       <view class="ov-i"><text class="ov-v">{{overview.abcRecordCount}}</text><text class="ov-l">ABC详录</text></view>
       <view class="ov-i"><text class="ov-v">{{overview.remarkCount}}</text><text class="ov-l">备注</text></view></view>
-    </view>
-    <!-- 环形图 -->
-    <view class="card section"><view class="block-title">行为状态分布</view>
-      <view class="donut-wrap">
-        <view class="donut-stats">
-          <view class="donut-bar c-ind" style="width:{{statusPctIncomplete}}%"></view>
-          <view class="donut-bar c-ass" style="width:{{statusPctAssisted}}%"></view>
-          <view class="donut-bar c-inde" style="width:{{statusPctIndependent}}%"></view>
-        </view>
-        <view class="donut-legends">
-          <view class="dl"><view class="dl-dot c-ind"></view><text>未完成 {{statusDist.incomplete}}次</text></view>
-          <view class="dl"><view class="dl-dot c-ass"></view><text>辅助 {{statusDist.assisted}}次</text></view>
-          <view class="dl"><view class="dl-dot c-inde"></view><text>独立 {{statusDist.independent}}次</text></view>
-        </view>
-      </view>
     </view>
     <view class="card section"><view class="block-title">AI 学期总结</view>
       <ai-card type="info" title="学期总评" content="六大能力维度均有提升，平均进步20%。" />

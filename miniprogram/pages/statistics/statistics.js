@@ -32,14 +32,6 @@ Page({
     dailyBars: [], dailyMaxCount: 1,
     // 周报/月报特有
     statusDist: { incomplete: 0, assisted: 0, independent: 0 },
-    dailyTrend: [],
-    courseStats: [],
-    envStats: [],
-    topBehaviors: [],
-    // ABC + 行为表现趋势
-    wkAbcDist: [],
-    wkBehDescTrends: [],
-    wkBehDescMax: 1,
     // AI 三维度报告
     aiReport: null, aiReportLoading: false,
     ecDaily: { onInit: initDailyChart },
@@ -81,37 +73,18 @@ Page({
         });
       }
 
-      // 课程/环境统计：后端已提供
-      var courseStats = (stats && stats.courseStats) ? stats.courseStats : [];
-      var envStats = (stats && stats.environmentStats) ? stats.environmentStats : [];
-
-      // TOP6 高频行为（带状态拆分）
-      var topBeh = items.slice().sort(function (a, b) { return b.count - a.count; }).slice(0, 6);
-
-      // 每日趋势（仅周视图）
-      var dailyTrend = (stats && stats.dailyTrends) ? stats.dailyTrends : [];
-
       var distTotal = incomplete + assisted + independent || 1;
       this.setData({
         loading: false, empty: !items.length, overview: ov, totalCount: total, items: items,
         dailyBars: dailyBars, dailyMaxCount: dailyBars.length ? Math.max.apply(null, dailyBars.map(function (b) { return b.count; })) : 1,
-        statusDist: { incomplete: incomplete, assisted: assisted, independent: independent },
-        statusPctIncomplete: Math.round(incomplete / distTotal * 100),
-        statusPctAssisted: Math.round(assisted / distTotal * 100),
-        statusPctIndependent: Math.round(independent / distTotal * 100),
-        dailyTrend: dailyTrend, courseStats: courseStats, envStats: envStats, topBehaviors: topBeh
+        statusDist: { incomplete: incomplete, assisted: assisted, independent: independent }
       });
 
       this._updateCharts(view, items);
 
-      // 日报用本地简单卡片，周报/月报调 AI 接口
-      if (view === 'daily') {
-        this.setData({ aiReport: null });
-      } else {
+      // 周报/月报：只调 AI 接口（详细图表在随班记录页查看）
+      if (view !== 'daily') {
         this._loadAiReport(view === 'weekly' ? 'WEEKLY' : 'MONTHLY');
-        // 并行拉 ABC 分布和行为表现趋势
-        this._loadAbcDist(period, refDate);
-        this._loadBehDescTrend(period, refDate);
       }
     } catch (err) {
       this.setData({ loading: false, empty: false });
@@ -154,27 +127,6 @@ Page({
     } finally {
       this.setData({ aiReportLoading: false });
     }
-  },
-
-  /** 加载 ABC 行为功能分布 */
-  async _loadAbcDist(period, refDate) {
-    try {
-      var dist = await recordApi.getAbcDistribution(period, refDate);
-      var items = (dist && dist.items) ? dist.items.map(function (i) {
-        return { label: i.functionLabel || i.label, pct: i.percentage, count: i.count };
-      }) : [];
-      this.setData({ wkAbcDist: items });
-    } catch (e) { /* 后端未就绪时静默 */ }
-  },
-
-  /** 加载行为表现（behavior_description）频次趋势 */
-  async _loadBehDescTrend(period, refDate) {
-    try {
-      var trend = await recordApi.getBehaviorDescTrend(period, refDate, 10);
-      var items = (trend && trend.topDescriptions) ? trend.topDescriptions : [];
-      var max = items.length ? Math.max.apply(null, items.map(function (i) { return i.totalCount || i.count || 0; })) : 1;
-      this.setData({ wkBehDescTrends: items, wkBehDescMax: max });
-    } catch (e) { /* 后端未就绪时静默 */ }
   },
 
   loadSemester() {
