@@ -178,6 +178,15 @@ public class ClassRecordService {
         }).toList();
     }
 
+    public AbcTagDictionary getAbcTagDictionary(Long userId) {
+        profileService.requireCurrentStudentId(userId);
+        List<AbcTagOptionEntity> options = mapper.findAbcTagOptions();
+        return new AbcTagDictionary(
+                toAbcTagGroups(options, "ANTECEDENT"),
+                toAbcTagGroups(options, "CONSEQUENCE")
+        );
+    }
+
     private Map<String, List<String>> groupRelationCodes(List<BehaviorCatalogRelationEntity> relations) {
         return relations.stream().collect(Collectors.groupingBy(BehaviorCatalogRelationEntity::getBehaviorCode,
                 LinkedHashMap::new,
@@ -233,7 +242,12 @@ public class ClassRecordService {
                 : request.subBehaviorCodes().stream().map(String::strip).toList();
         List<PerformanceSelectionInput> performanceSelections = request.performanceSelections() == null
                 ? List.of() : request.performanceSelections();
-        if (!hasDetailContent(request, assistances, subBehaviorCodes, performanceSelections)) {
+        List<AbcTagSelectionInput> antecedentSelections = request.antecedentSelections() == null
+                ? List.of() : request.antecedentSelections();
+        List<AbcTagSelectionInput> consequenceSelections = request.consequenceSelections() == null
+                ? List.of() : request.consequenceSelections();
+        if (!hasDetailContent(request, assistances, subBehaviorCodes, performanceSelections,
+                antecedentSelections, consequenceSelections)) {
             throw validation("详细记录至少需要填写一项内容");
         }
 
@@ -303,6 +317,15 @@ public class ClassRecordService {
             }
             performanceCustomTexts.put(optionCode, customText);
         }
+        Map<String, AbcTagOptionEntity> abcTagOptions = mapper.findAbcTagOptions().stream()
+                .collect(Collectors.toMap(
+                        value -> abcTagKey(value.getDimension(), value.getCode()),
+                        Function.identity()
+                ));
+        Map<String, String> antecedentCustomTexts = validateAbcTagSelections(
+                "ANTECEDENT", "行为前因", antecedentSelections, abcTagOptions);
+        Map<String, String> consequenceCustomTexts = validateAbcTagSelections(
+                "CONSEQUENCE", "行为后果", consequenceSelections, abcTagOptions);
 
         entity.setDurationMinutes(request.durationMinutes());
         entity.setStageCode(stageCode);
@@ -331,12 +354,21 @@ public class ClassRecordService {
         for (Map.Entry<String, String> selection : performanceCustomTexts.entrySet()) {
             mapper.insertCatalogSelection(recordId, selection.getKey(), selection.getValue());
         }
+        mapper.deleteAbcTagSelections(recordId);
+        for (Map.Entry<String, String> selection : antecedentCustomTexts.entrySet()) {
+            mapper.insertAbcTagSelection(recordId, "ANTECEDENT", selection.getKey(), selection.getValue());
+        }
+        for (Map.Entry<String, String> selection : consequenceCustomTexts.entrySet()) {
+            mapper.insertAbcTagSelection(recordId, "CONSEQUENCE", selection.getKey(), selection.getValue());
+        }
         return getBehaviorDetail(recordId, studentId);
     }
 
     private boolean hasDetailContent(SaveBehaviorDetailsRequest request, List<AssistanceInput> assistances,
                                      List<String> subBehaviorCodes,
-                                     List<PerformanceSelectionInput> performanceSelections) {
+                                     List<PerformanceSelectionInput> performanceSelections,
+                                     List<AbcTagSelectionInput> antecedentSelections,
+                                     List<AbcTagSelectionInput> consequenceSelections) {
         return request.durationMinutes() != null
                 || hasText(request.stageCode())
                 || hasText(request.antecedentText())
@@ -348,7 +380,9 @@ public class ClassRecordService {
                 || !assistances.isEmpty()
                 || hasText(request.assistanceResultText())
                 || !subBehaviorCodes.isEmpty()
-                || !performanceSelections.isEmpty();
+                || !performanceSelections.isEmpty()
+                || !antecedentSelections.isEmpty()
+                || !consequenceSelections.isEmpty();
     }
 
     private boolean hasText(String value) {
@@ -429,6 +463,15 @@ public class ClassRecordService {
                 .map(value -> new AssistanceDetail(value.getCode(), value.getContent(), value.getLabel(), value.getGroup()))
                 .toList();
         List<CatalogSelectionEntity> selections = mapper.findCatalogSelections(recordId);
+        List<AbcTagSelectionEntity> abcTagSelections = mapper.findAbcTagSelections(recordId);
+        List<AbcTagSelectionDetail> antecedentSelections = abcTagSelections.stream()
+                .filter(value -> "ANTECEDENT".equals(value.getDimension()))
+                .map(this::toAbcTagSelectionDetail)
+                .toList();
+        List<AbcTagSelectionDetail> consequenceSelections = abcTagSelections.stream()
+                .filter(value -> "CONSEQUENCE".equals(value.getDimension()))
+                .map(this::toAbcTagSelectionDetail)
+                .toList();
         List<String> subBehaviorCodes = selections.stream()
                 .filter(value -> "SUB_BEHAVIOR".equals(value.getOptionType()))
                 .map(CatalogSelectionEntity::getOptionCode)
@@ -441,10 +484,81 @@ public class ClassRecordService {
         return new BehaviorRecordDetail(entity.getId(), entity.getClassRecordId(), entity.getBehaviorCode(),
                 entity.getBehaviorLabel(), toOffset(entity.getOccurredAt()), entity.isDetailSaved(),
                 entity.getDurationMinutes(), entity.getStageCode(), entity.getStageLabel(),
-                entity.getAntecedentText(), entity.getBehaviorDescription(), entity.getConsequenceText(),
+                entity.getAntecedentText(), antecedentSelections,
+                entity.getBehaviorDescription(), entity.getConsequenceText(), consequenceSelections,
                 entity.getFunctionCode(), entity.getFunctionLabel(), entity.getFunctionOtherText(),
                 entity.getStatusCode(), entity.getStatusLabel(), assistances, entity.getAssistanceResultText(),
                 subBehaviorCodes, performanceSelections);
+    }
+
+    private List<AbcTagGroupSummary> toAbcTagGroups(List<AbcTagOptionEntity> options, String dimension) {
+        return options.stream()
+                .filter(value -> dimension.equals(value.getDimension()))
+                .collect(Collectors.groupingBy(
+                        AbcTagOptionEntity::getGroupCode,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ))
+                .values().stream()
+                .map(groupOptions -> {
+                    AbcTagOptionEntity first = groupOptions.getFirst();
+                    return new AbcTagGroupSummary(
+                            first.getGroupCode(),
+                            first.getGroupLabel(),
+                            first.getGroupDisplayOrder(),
+                            groupOptions.stream()
+                                    .map(value -> new AbcTagOptionSummary(
+                                            value.getCode(),
+                                            value.getLabel(),
+                                            value.getDisplayOrder(),
+                                            value.isRequiresCustomText()
+                                    ))
+                                    .toList()
+                    );
+                })
+                .toList();
+    }
+
+    private Map<String, String> validateAbcTagSelections(
+            String dimension,
+            String dimensionLabel,
+            List<AbcTagSelectionInput> selections,
+            Map<String, AbcTagOptionEntity> options
+    ) {
+        Map<String, String> validated = new LinkedHashMap<>();
+        for (AbcTagSelectionInput selection : selections) {
+            String code = selection.code().strip();
+            if (validated.containsKey(code)) {
+                throw validation(dimensionLabel + "快捷标签不能重复：" + code);
+            }
+            AbcTagOptionEntity option = options.get(abcTagKey(dimension, code));
+            if (option == null) {
+                throw validation(dimensionLabel + "快捷标签不存在：" + code);
+            }
+            String customText = normalizeOptionalText(selection.customText());
+            if (option.isRequiresCustomText() && customText == null) {
+                throw validation(dimensionLabel + "选择“其他”时必须填写自定义内容");
+            }
+            if (!option.isRequiresCustomText() && customText != null) {
+                throw validation("非“其他”快捷标签不能填写自定义内容：" + code);
+            }
+            validated.put(code, customText);
+        }
+        return validated;
+    }
+
+    private String abcTagKey(String dimension, String code) {
+        return dimension + "|" + code;
+    }
+
+    private AbcTagSelectionDetail toAbcTagSelectionDetail(AbcTagSelectionEntity value) {
+        return new AbcTagSelectionDetail(
+                value.getCode(),
+                value.getLabel(),
+                value.getGroupCode(),
+                value.getGroupLabel(),
+                value.getCustomText()
+        );
     }
 
     private ClassRecordEntity requireClassRecord(Long id, Long studentId) {

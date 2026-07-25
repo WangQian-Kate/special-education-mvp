@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 特殊教育课堂助手 API
-  version: 0.12.0
+  version: 0.13.0
   description: |
     根据 V2 软件原型重写的接口契约，按“随班记录、训练计划、学生评估、我的、系统”五个页面模块组织。
     当前采用白名单伪登录，业务接口使用 X-Teacher-Id: t001/t002/t003 确定当前教师；不接收 X-User-Id。
@@ -199,6 +199,28 @@ paths:
                 $ref: '#/components/schemas/BehaviorCatalogListApiResponse'
         '400':
           $ref: '#/components/responses/BusinessValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /class-records/abc-tags:
+    parameters:
+      - $ref: '#/components/parameters/TeacherIdHeader'
+    get:
+      tags: [随班记录]
+      operationId: listAbcQuickTags
+      summary: 查询 ABC 前因和后果快捷标签字典
+      description: |
+        返回 A（行为前因）和 C（行为后果）的分组快捷标签，均按 displayOrder 升序排列。
+        前端应按分组渲染标签；requiresCustomText=true 的“其他”项选中后必须填写自定义内容。
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AbcTagDictionaryApiResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedTeacher'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -429,8 +451,10 @@ paths:
       operationId: saveBehaviorRecordDetails
       summary: 保存完整详细记录
       description: |
-        每次保存按请求整体覆盖详细字段。持续时间、行为环节、A/B/C、行为功能、
+        每次保存按请求整体覆盖详细字段。持续时间、行为环节、A/B/C 文本或快捷标签、行为功能、
         辅助方式或辅助结果至少填写一项；全部为空时返回 400。
+        antecedentSelections 和 consequenceSelections 支持多选；标签编码必须来自
+        GET /class-records/abc-tags。选择 OTHER 时 customText 必填，其他标签不得传 customText。
         保存成功后把 detailSaved 永久设为 true。
       requestBody:
         required: true
@@ -441,8 +465,12 @@ paths:
             example:
               durationMinutes: 1
               antecedentText: 教师开始点名。
+              antecedentSelections:
+                - code: TASK_NEW
               behaviorDescription: 学生离开座位走向门口。
               consequenceText: 教师口头提示后返回。
+              consequenceSelections:
+                - code: VERBAL_PROMPT
               assistances:
                 - code: VERBAL_ASSISTANCE
               assistanceResultText: 一次语言提示后返回座位。
@@ -1046,6 +1074,14 @@ components:
               items:
                 $ref: '#/components/schemas/BehaviorCatalogItem'
 
+    AbcTagDictionaryApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AbcTagDictionary'
+
     BehaviorCountStatisticsApiResponse:
       allOf:
         - $ref: '#/components/schemas/SuccessResponse'
@@ -1397,6 +1433,55 @@ components:
           items:
             $ref: '#/components/schemas/PerformanceOptionSummary'
 
+    AbcTagOption:
+      type: object
+      required: [code, label, displayOrder, requiresCustomText]
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 64
+        label:
+          type: string
+        displayOrder:
+          type: integer
+          minimum: 1
+        requiresCustomText:
+          type: boolean
+
+    AbcTagGroup:
+      type: object
+      required: [code, label, displayOrder, options]
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 64
+        label:
+          type: string
+        displayOrder:
+          type: integer
+          minimum: 1
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/AbcTagOption'
+
+    AbcTagDictionary:
+      type: object
+      required: [antecedentGroups, consequenceGroups]
+      properties:
+        antecedentGroups:
+          type: array
+          description: A（行为前因）分组，共 5 组。
+          items:
+            $ref: '#/components/schemas/AbcTagGroup'
+        consequenceGroups:
+          type: array
+          description: C（行为后果）分组，共 6 组。
+          items:
+            $ref: '#/components/schemas/AbcTagGroup'
+
     CreateClassRecordRequest:
       type: object
       required:
@@ -1634,6 +1719,37 @@ components:
           type: string
           nullable: true
 
+    AbcTagSelectionInput:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: 必须来自对应维度的 ABC 快捷标签字典。
+        customText:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: 仅 code=OTHER 时允许且必须填写。
+
+    AbcTagSelectionDetail:
+      type: object
+      required: [code, label, groupCode, groupLabel]
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        groupCode:
+          type: string
+        groupLabel:
+          type: string
+        customText:
+          type: string
+          nullable: true
+
     SaveBehaviorDetailsRequest:
       type: object
       description: 所有详细字段至少填写一项；数组缺省或为 null 时按空数组处理。
@@ -1652,6 +1768,14 @@ components:
           type: string
           nullable: true
           maxLength: 1000
+        antecedentSelections:
+          type: array
+          nullable: true
+          maxItems: 16
+          uniqueItems: true
+          description: A（行为前因）快捷标签多选；数组缺省或为 null 时按空数组处理。
+          items:
+            $ref: '#/components/schemas/AbcTagSelectionInput'
         behaviorDescription:
           type: string
           nullable: true
@@ -1660,6 +1784,14 @@ components:
           type: string
           nullable: true
           maxLength: 1000
+        consequenceSelections:
+          type: array
+          nullable: true
+          maxItems: 16
+          uniqueItems: true
+          description: C（行为后果）快捷标签多选；数组缺省或为 null 时按空数组处理。
+          items:
+            $ref: '#/components/schemas/AbcTagSelectionInput'
         functionCode:
           type: string
           nullable: true
@@ -1713,6 +1845,8 @@ components:
         - behaviorLabel
         - occurredAt
         - detailSaved
+        - antecedentSelections
+        - consequenceSelections
         - assistances
         - subBehaviorCodes
         - performanceSelections
@@ -1744,12 +1878,20 @@ components:
         antecedentText:
           type: string
           nullable: true
+        antecedentSelections:
+          type: array
+          items:
+            $ref: '#/components/schemas/AbcTagSelectionDetail'
         behaviorDescription:
           type: string
           nullable: true
         consequenceText:
           type: string
           nullable: true
+        consequenceSelections:
+          type: array
+          items:
+            $ref: '#/components/schemas/AbcTagSelectionDetail'
         functionCode:
           type: string
           nullable: true

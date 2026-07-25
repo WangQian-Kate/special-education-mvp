@@ -61,6 +61,11 @@ public class ClassRecordController {
         return service.listBehaviorOptions(userId, courseCode, environmentCode);
     }
 
+    @GetMapping("/class-records/abc-tags")
+    public AbcTagDictionary abcTags(@CurrentUserId Long userId) {
+        return service.getAbcTagDictionary(userId);
+    }
+
     @GetMapping("/class-records/summary")
     public BehaviorCountStatistics summary(
             @CurrentUserId Long userId,

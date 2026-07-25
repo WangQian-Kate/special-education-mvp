@@ -191,6 +191,29 @@ CREATE TABLE IF NOT EXISTS assistance_type (
   UNIQUE KEY uk_assistance_type_display_order (display_order)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS abc_tag_group (
+  dimension ENUM('ANTECEDENT', 'CONSEQUENCE') NOT NULL,
+  code VARCHAR(64) NOT NULL,
+  label VARCHAR(64) NOT NULL,
+  display_order TINYINT UNSIGNED NOT NULL,
+  PRIMARY KEY (dimension, code),
+  UNIQUE KEY uk_abc_tag_group_order (dimension, display_order)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS abc_tag_option (
+  dimension ENUM('ANTECEDENT', 'CONSEQUENCE') NOT NULL,
+  code VARCHAR(64) NOT NULL,
+  group_code VARCHAR(64) NOT NULL,
+  label VARCHAR(255) NOT NULL,
+  display_order TINYINT UNSIGNED NOT NULL,
+  requires_custom_text BOOLEAN NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (dimension, code),
+  UNIQUE KEY uk_abc_tag_option_order (dimension, group_code, display_order),
+  CONSTRAINT fk_abc_tag_option_group
+    FOREIGN KEY (dimension, group_code)
+    REFERENCES abc_tag_group (dimension, code) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS class_record (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   student_id BIGINT UNSIGNED NOT NULL,
@@ -278,6 +301,24 @@ CREATE TABLE IF NOT EXISTS behavior_record_assistance (
     FOREIGN KEY (behavior_record_id) REFERENCES behavior_record (id) ON DELETE CASCADE,
   CONSTRAINT fk_behavior_record_assistance_type
     FOREIGN KEY (assistance_code) REFERENCES assistance_type (code)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS behavior_record_abc_tag (
+  behavior_record_id BIGINT UNSIGNED NOT NULL,
+  dimension ENUM('ANTECEDENT', 'CONSEQUENCE') NOT NULL,
+  tag_code VARCHAR(64) NOT NULL,
+  custom_text VARCHAR(500) NULL,
+  PRIMARY KEY (behavior_record_id, dimension, tag_code),
+  KEY idx_behavior_record_abc_tag_option (dimension, tag_code),
+  CONSTRAINT chk_behavior_record_abc_tag_custom CHECK (
+    (tag_code = 'OTHER' AND NULLIF(TRIM(custom_text), '') IS NOT NULL)
+    OR (tag_code <> 'OTHER' AND custom_text IS NULL)
+  ),
+  CONSTRAINT fk_behavior_record_abc_tag_record
+    FOREIGN KEY (behavior_record_id) REFERENCES behavior_record (id) ON DELETE CASCADE,
+  CONSTRAINT fk_behavior_record_abc_tag_option
+    FOREIGN KEY (dimension, tag_code)
+    REFERENCES abc_tag_option (dimension, code)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS behavior_record_catalog_selection (

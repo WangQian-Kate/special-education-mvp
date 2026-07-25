@@ -29,9 +29,55 @@
                DATE_FORMAT(br.occurred_at, '%Y-%m-%dT%H:%i:%s+08:00') AS occurredAt,
                br.duration_minutes                       AS durationMinutes,
                bst.label                                 AS stageLabel,
-               br.antecedent_text                        AS antecedentText,
+               NULLIF(CONCAT_WS(
+                   '；',
+                   NULLIF(TRIM(br.antecedent_text), ''),
+                   (
+                       SELECT GROUP_CONCAT(
+                                  CASE
+                                      WHEN tag.tag_code = 'OTHER'
+                                          THEN CONCAT(option_row.label, '：', tag.custom_text)
+                                      ELSE option_row.label
+                                  END
+                                  ORDER BY group_row.display_order, option_row.display_order
+                                  SEPARATOR '；'
+                              )
+                       FROM behavior_record_abc_tag tag
+                       JOIN abc_tag_option option_row
+                         ON option_row.dimension = tag.dimension
+                        AND option_row.code = tag.tag_code
+                       JOIN abc_tag_group group_row
+                         ON group_row.dimension = option_row.dimension
+                        AND group_row.code = option_row.group_code
+                       WHERE tag.behavior_record_id = br.id
+                         AND tag.dimension = 'ANTECEDENT'
+                   )
+               ), '')                                     AS antecedentText,
                br.behavior_description                   AS behaviorDescription,
-               br.consequence_text                       AS consequenceText,
+               NULLIF(CONCAT_WS(
+                   '；',
+                   NULLIF(TRIM(br.consequence_text), ''),
+                   (
+                       SELECT GROUP_CONCAT(
+                                  CASE
+                                      WHEN tag.tag_code = 'OTHER'
+                                          THEN CONCAT(option_row.label, '：', tag.custom_text)
+                                      ELSE option_row.label
+                                  END
+                                  ORDER BY group_row.display_order, option_row.display_order
+                                  SEPARATOR '；'
+                              )
+                       FROM behavior_record_abc_tag tag
+                       JOIN abc_tag_option option_row
+                         ON option_row.dimension = tag.dimension
+                        AND option_row.code = tag.tag_code
+                       JOIN abc_tag_group group_row
+                         ON group_row.dimension = option_row.dimension
+                        AND group_row.code = option_row.group_code
+                       WHERE tag.behavior_record_id = br.id
+                         AND tag.dimension = 'CONSEQUENCE'
+                   )
+               ), '')                                     AS consequenceText,
                bft.label                                 AS functionLabel,
                br.assistance_result_text                 AS assistanceResultText,
                ct.label                                  AS courseLabel,

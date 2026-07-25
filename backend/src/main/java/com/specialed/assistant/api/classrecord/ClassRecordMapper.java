@@ -22,6 +22,7 @@ public interface ClassRecordMapper {
     boolean existsFunction(String code);
     boolean existsStatus(String code);
     boolean existsAssistance(String code);
+    List<AbcTagOptionEntity> findAbcTagOptions();
     List<BehaviorCatalogEntity> findBehaviorCatalog(@Param("courseCode") String courseCode,
                                                      @Param("environmentCode") String environmentCode);
     List<BehaviorGroupItemEntity> findBehaviorCatalogGroups(@Param("courseCode") String courseCode,
@@ -54,6 +55,12 @@ public interface ClassRecordMapper {
     int insertCatalogSelection(@Param("recordId") Long recordId, @Param("optionCode") String optionCode,
                                @Param("customText") String customText);
     List<CatalogSelectionEntity> findCatalogSelections(Long recordId);
+    int deleteAbcTagSelections(Long recordId);
+    int insertAbcTagSelection(@Param("recordId") Long recordId,
+                              @Param("dimension") String dimension,
+                              @Param("tagCode") String tagCode,
+                              @Param("customText") String customText);
+    List<AbcTagSelectionEntity> findAbcTagSelections(Long recordId);
     List<BehaviorCountEntity> countBehaviors(@Param("studentId") Long studentId,
                                              @Param("start") LocalDate start,
                                              @Param("end") LocalDate end);

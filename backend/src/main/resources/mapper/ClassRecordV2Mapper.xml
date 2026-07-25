@@ -123,6 +123,24 @@
         SELECT COUNT(*) &gt; 0 FROM assistance_type WHERE code = #{code}
     </select>
 
+    <select id="findAbcTagOptions"
+            resultType="com.specialed.assistant.api.classrecord.AbcTagOptionEntity">
+        SELECT option_row.dimension,
+               option_row.code,
+               option_row.label,
+               option_row.group_code,
+               group_row.label AS group_label,
+               group_row.display_order AS group_display_order,
+               option_row.display_order,
+               option_row.requires_custom_text
+        FROM abc_tag_option option_row
+        JOIN abc_tag_group group_row
+          ON group_row.dimension = option_row.dimension
+         AND group_row.code = option_row.group_code
+        ORDER BY FIELD(option_row.dimension, 'ANTECEDENT', 'CONSEQUENCE'),
+                 group_row.display_order, option_row.display_order
+    </select>
+
     <sql id="behaviorCatalogFilter">
         AND (
           #{courseCode} = 'ALL_DAY_SUMMARY'
@@ -360,6 +378,41 @@
         JOIN behavior_catalog_option option_row ON option_row.code = selection.option_code
         WHERE selection.behavior_record_id = #{recordId}
         ORDER BY option_row.option_type, option_row.display_order
+    </select>
+
+    <delete id="deleteAbcTagSelections">
+        DELETE FROM behavior_record_abc_tag
+        WHERE behavior_record_id = #{recordId}
+    </delete>
+
+    <insert id="insertAbcTagSelection">
+        INSERT INTO behavior_record_abc_tag
+            (behavior_record_id, dimension, tag_code, custom_text)
+        VALUES
+            (#{recordId}, #{dimension}, #{tagCode}, #{customText})
+    </insert>
+
+    <select id="findAbcTagSelections"
+            resultType="com.specialed.assistant.api.classrecord.AbcTagSelectionEntity">
+        SELECT selection.dimension,
+               selection.tag_code AS code,
+               option_row.label,
+               option_row.group_code,
+               group_row.label AS group_label,
+               group_row.display_order AS group_display_order,
+               option_row.display_order,
+               option_row.requires_custom_text,
+               selection.custom_text
+        FROM behavior_record_abc_tag selection
+        JOIN abc_tag_option option_row
+          ON option_row.dimension = selection.dimension
+         AND option_row.code = selection.tag_code
+        JOIN abc_tag_group group_row
+          ON group_row.dimension = option_row.dimension
+         AND group_row.code = option_row.group_code
+        WHERE selection.behavior_record_id = #{recordId}
+        ORDER BY FIELD(selection.dimension, 'ANTECEDENT', 'CONSEQUENCE'),
+                 group_row.display_order, option_row.display_order
     </select>
 
     <select id="countBehaviors" resultType="com.specialed.assistant.api.classrecord.BehaviorCountEntity">

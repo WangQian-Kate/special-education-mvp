@@ -1,5 +1,6 @@
 package com.specialed.assistant;
 
+import com.specialed.assistant.api.aireport.AiReportMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,9 @@ class V2ApiIntegrationTest {
 
     @Autowired
     private DataSource dataSource;
+
+    @Autowired
+    private AiReportMapper aiReportMapper;
 
     private JdbcTemplate jdbc;
     private long standardGoalId;
@@ -143,6 +147,21 @@ class V2ApiIntegrationTest {
                 .andExpect(jsonPath("$.data[?(@.code == 'B011')].subBehaviors[0].performanceOptions.length()")
                         .value(5))
                 .andExpect(jsonPath("$.data[?(@.code == 'B011')].trainingGoals.length()").value(4));
+
+        mockMvc.perform(get("/class-records/abc-tags").header(TEACHER_HEADER, "t001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.antecedentGroups.length()").value(5))
+                .andExpect(jsonPath("$.data.consequenceGroups.length()").value(6))
+                .andExpect(jsonPath("$.data.antecedentGroups[0].code").value("TASK_INSTRUCTION"))
+                .andExpect(jsonPath("$.data.antecedentGroups[0].label").value("任务与指令类"))
+                .andExpect(jsonPath("$.data.antecedentGroups[0].options[0].code").value("TASK_DIFFICULT"))
+                .andExpect(jsonPath("$.data.antecedentGroups[0].options[0].label")
+                        .value("任务难度过高/无法理解"))
+                .andExpect(jsonPath("$.data.antecedentGroups[4].options[2].code").value("OTHER"))
+                .andExpect(jsonPath("$.data.antecedentGroups[4].options[2].requiresCustomText").value(true))
+                .andExpect(jsonPath("$.data.consequenceGroups[0].options[0].code").value("VERBAL_PROMPT"))
+                .andExpect(jsonPath("$.data.consequenceGroups[5].options[0].code").value("OTHER"))
+                .andExpect(jsonPath("$.data.consequenceGroups[5].options[0].requiresCustomText").value(true));
 
         mockMvc.perform(post("/class-records").header(TEACHER_HEADER, "t001")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -335,6 +354,88 @@ class V2ApiIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message")
                         .value("选择子行为状态前必须先选择对应子行为：B011_S01"));
+    }
+
+    @Test
+    void abcQuickTagsAreValidatedPersistedAndReturnedByGroup() throws Exception {
+        long classRecordId = createClassRecord("2026-07-25", "ABC 快捷标签测试");
+        long recordId = createQuickBehavior(classRecordId, "B006");
+
+        mockMvc.perform(put("/behavior-records/{id}/details", recordId)
+                        .header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "antecedentSelections": [
+                                    {"code":"TASK_DIFFICULT"},
+                                    {"code":"OTHER","customText":"临时更换座位"}
+                                  ],
+                                  "consequenceSelections": [
+                                    {"code":"VERBAL_SOOTHING"},
+                                    {"code":"OTHER","customText":"联系家长共同处理"}
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.detailSaved").value(true))
+                .andExpect(jsonPath("$.data.antecedentSelections.length()").value(2))
+                .andExpect(jsonPath("$.data.antecedentSelections[0].code").value("TASK_DIFFICULT"))
+                .andExpect(jsonPath("$.data.antecedentSelections[0].groupCode").value("TASK_INSTRUCTION"))
+                .andExpect(jsonPath("$.data.antecedentSelections[1].code").value("OTHER"))
+                .andExpect(jsonPath("$.data.antecedentSelections[1].customText").value("临时更换座位"))
+                .andExpect(jsonPath("$.data.consequenceSelections[0].code").value("VERBAL_SOOTHING"))
+                .andExpect(jsonPath("$.data.consequenceSelections[1].customText").value("联系家长共同处理"));
+
+        mockMvc.perform(get("/behavior-records/{id}", recordId)
+                        .header(TEACHER_HEADER, "t001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.antecedentSelections[0].label").value("任务难度过高/无法理解"))
+                .andExpect(jsonPath("$.data.antecedentSelections[1].groupLabel").value("生理与其它"))
+                .andExpect(jsonPath("$.data.consequenceSelections[0].label").value("语言安抚/情绪疏导"))
+                .andExpect(jsonPath("$.data.consequenceSelections[1].groupLabel").value("其他"));
+
+        var aiRows = aiReportMapper.findBehaviorRecords(
+                1L, java.time.LocalDate.parse("2026-07-25"), java.time.LocalDate.parse("2026-07-25"));
+        var aiRow = aiRows.stream()
+                .filter(value -> value.getRecordId() == recordId)
+                .findFirst()
+                .orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(aiRow.getAntecedentText())
+                .isEqualTo("任务难度过高/无法理解；其他：临时更换座位");
+        org.assertj.core.api.Assertions.assertThat(aiRow.getConsequenceText())
+                .isEqualTo("语言安抚/情绪疏导；其他：联系家长共同处理");
+
+        mockMvc.perform(put("/behavior-records/{id}/details", recordId)
+                        .header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"antecedentSelections\":[{\"code\":\"NOT_EXISTS\"}]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("行为前因快捷标签不存在：NOT_EXISTS"));
+
+        mockMvc.perform(put("/behavior-records/{id}/details", recordId)
+                        .header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"antecedentSelections\":[{\"code\":\"OTHER\"}]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("行为前因选择“其他”时必须填写自定义内容"));
+
+        mockMvc.perform(put("/behavior-records/{id}/details", recordId)
+                        .header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"consequenceSelections":[
+                                  {"code":"VERBAL_PROMPT","customText":"不应填写"}
+                                ]}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("非“其他”快捷标签不能填写自定义内容：VERBAL_PROMPT"));
+
+        mockMvc.perform(put("/behavior-records/{id}/details", recordId)
+                        .header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"antecedentSelections\":[{\"code\":\"VERBAL_PROMPT\"}]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("行为前因快捷标签不存在：VERBAL_PROMPT"));
     }
 
     @Test

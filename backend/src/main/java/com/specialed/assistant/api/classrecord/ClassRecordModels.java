@@ -17,6 +17,28 @@ public final class ClassRecordModels {
 
     public enum SummaryPeriod { WEEKLY, MONTHLY }
 
+    public record AbcTagOptionSummary(
+            String code,
+            String label,
+            Integer displayOrder,
+            boolean requiresCustomText
+    ) {
+    }
+
+    public record AbcTagGroupSummary(
+            String code,
+            String label,
+            Integer displayOrder,
+            List<AbcTagOptionSummary> options
+    ) {
+    }
+
+    public record AbcTagDictionary(
+            List<AbcTagGroupSummary> antecedentGroups,
+            List<AbcTagGroupSummary> consequenceGroups
+    ) {
+    }
+
     public record BehaviorGroupStatusSummary(
             String code,
             String label,
@@ -180,12 +202,29 @@ public final class ClassRecordModels {
     ) {
     }
 
+    public record AbcTagSelectionInput(
+            @NotBlank @Size(max = 64) String code,
+            @Size(max = 500) String customText
+    ) {
+    }
+
+    public record AbcTagSelectionDetail(
+            String code,
+            String label,
+            String groupCode,
+            String groupLabel,
+            String customText
+    ) {
+    }
+
     public record SaveBehaviorDetailsRequest(
             @Min(1) @Max(1440) Integer durationMinutes,
             @Size(min = 1, max = 64) String stageCode,
             @Size(max = 1000) String antecedentText,
+            @Size(max = 16) List<@NotNull @Valid AbcTagSelectionInput> antecedentSelections,
             @Size(max = 1000) String behaviorDescription,
             @Size(max = 1000) String consequenceText,
+            @Size(max = 16) List<@NotNull @Valid AbcTagSelectionInput> consequenceSelections,
             @Size(min = 1, max = 64) String functionCode,
             @Size(max = 500) String functionOtherText,
             @Size(min = 1, max = 32) String statusCode,
@@ -207,8 +246,10 @@ public final class ClassRecordModels {
             String stageCode,
             String stageLabel,
             String antecedentText,
+            List<AbcTagSelectionDetail> antecedentSelections,
             String behaviorDescription,
             String consequenceText,
+            List<AbcTagSelectionDetail> consequenceSelections,
             String functionCode,
             String functionLabel,
             String functionOtherText,
