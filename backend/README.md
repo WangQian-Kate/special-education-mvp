@@ -8,8 +8,8 @@
 |---|---|
 | OpenAPI 契约 | `0.12.0`，共 28 个接口 |
 | Java 实现 | 已完成，按前端页面分包 |
-| MySQL | `special_ed_assistant` 已迁移到 `2.7.0`，内置 100 个标准行为、三态完成字典及完整映射 |
-| 自动化测试 | 8 个数据库集成场景覆盖核心业务及全部新增接口，已通过 |
+| MySQL | `special_ed_assistant` 已迁移到 `2.8.0`，内置 100 个标准行为、三态完成字典及完整映射 |
+| 自动化测试 | 9 个数据库集成场景覆盖核心业务及全部新增接口，已通过 |
 | Apifox | 需将 0.12.0 重新导入现有新版模块 |
 
 ## 页面模块
@@ -138,8 +138,9 @@ Invoke-RestMethod http://localhost:3000/api/health
 | `sql/migrate-v2.5-course-environment-dictionaries.sql` | V2.4.0 收敛为 16 项课程和 7 项环境字典 |
 | `sql/migrate-v2.6-behavior-catalog.sql` | V2.5.0 增加标准行为目录、分组、状态和训练目标关联结构 |
 | `sql/migrate-v2.7-reporting-status.sql` | V2.6.0 增加行为三态、ABC“其他”及统计索引 |
+| `sql/migrate-v2.8-daily-evaluation.sql` | V2.7.0 增加每日评价表，并补齐行为记录子行为字段、索引和外键 |
 
-正式本地数据库已升级到 `2.7.0`、共 28 张表，并包含 3 名白名单教师、6 名绑定学生、16 项课程、7 项环境、5 项行为功能、3 项行为完成状态、100 个主行为、88 个子行为、531 个表现/状态选项、28 个分组、3 个分组状态栏选项和编号连续的 165 项标准训练目标。应用账号只需要 `special_ed_assistant.*` 上的 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。
+正式本地数据库已升级到 `2.8.0`、共 29 张表，并包含 3 名白名单教师、6 名绑定学生、16 项课程、7 项环境、5 项行为功能、3 项行为完成状态、100 个主行为、88 个子行为、531 个表现/状态选项、28 个分组、3 个分组状态栏选项和编号连续的 165 项标准训练目标。应用账号只需要 `special_ed_assistant.*` 上的 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。
 
 `seed.sql` 只用于本地开发，不应直接用于生产数据环境。
 

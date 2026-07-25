@@ -2550,5 +2550,6 @@ INSERT IGNORE INTO schema_migration (version) VALUES ('2.4.0');
 INSERT IGNORE INTO schema_migration (version) VALUES ('2.5.0');
 INSERT IGNORE INTO schema_migration (version) VALUES ('2.6.0');
 INSERT IGNORE INTO schema_migration (version) VALUES ('2.7.0');
+INSERT IGNORE INTO schema_migration (version) VALUES ('2.8.0');
 
 -- 行为环节和训练等级数据尚未提供，暂不写入虚假数据。

@@ -224,6 +224,7 @@ CREATE TABLE IF NOT EXISTS behavior_record (
   creator_id BIGINT UNSIGNED NOT NULL,
   occurred_at DATETIME(3) NOT NULL,
   behavior_code VARCHAR(64) NOT NULL,
+  sub_behavior_code VARCHAR(64) NULL,
   duration_minutes SMALLINT UNSIGNED NULL,
   stage_code VARCHAR(64) NULL,
   antecedent_text VARCHAR(1000) NULL,
@@ -239,6 +240,7 @@ CREATE TABLE IF NOT EXISTS behavior_record (
     (class_record_id, behavior_code, occurred_at, id),
   KEY idx_behavior_record_creator (creator_id),
   KEY idx_behavior_record_behavior (behavior_code),
+  KEY idx_behavior_record_sub_behavior (sub_behavior_code),
   KEY idx_behavior_record_stage (stage_code),
   KEY idx_behavior_record_function (function_code),
   KEY idx_behavior_record_status (status_code),
@@ -250,6 +252,8 @@ CREATE TABLE IF NOT EXISTS behavior_record (
     FOREIGN KEY (creator_id) REFERENCES app_user (id),
   CONSTRAINT fk_behavior_record_behavior
     FOREIGN KEY (behavior_code) REFERENCES behavior_type (code),
+  CONSTRAINT fk_behavior_record_sub_behavior
+    FOREIGN KEY (sub_behavior_code) REFERENCES behavior_catalog_option (code),
   CONSTRAINT fk_behavior_record_stage
     FOREIGN KEY (stage_code) REFERENCES behavior_stage_type (code),
   CONSTRAINT fk_behavior_record_function
@@ -378,6 +382,20 @@ CREATE TABLE IF NOT EXISTS student_training_goal (
     FOREIGN KEY (student_id) REFERENCES student (id) ON DELETE CASCADE,
   CONSTRAINT fk_student_training_goal_goal
     FOREIGN KEY (goal_id) REFERENCES training_goal (id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS daily_evaluation (
+  student_id BIGINT UNSIGNED NOT NULL,
+  record_date DATE NOT NULL,
+  emotion VARCHAR(500) NULL,
+  adaptation VARCHAR(500) NULL,
+  social VARCHAR(500) NULL,
+  self_mgmt VARCHAR(500) NULL,
+  language VARCHAR(500) NULL,
+  focus VARCHAR(500) NULL,
+  PRIMARY KEY (student_id, record_date),
+  CONSTRAINT fk_daily_evaluation_student
+    FOREIGN KEY (student_id) REFERENCES student (id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 INSERT IGNORE INTO schema_migration (version) VALUES ('2.0.0');

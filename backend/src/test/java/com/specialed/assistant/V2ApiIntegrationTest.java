@@ -121,21 +121,21 @@ class V2ApiIntegrationTest {
                         .queryParam("courseCode", "CHINESE")
                         .queryParam("environmentCode", "CLASSROOM"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[?(@.code == 'B006')].label").value("调整桌椅"))
-                .andExpect(jsonPath("$.data[?(@.code == 'B006')].moduleCode").value("SCHOOL_ENTRY"))
-                .andExpect(jsonPath("$.data[?(@.code == 'B006')].performanceOptions.length()").value(5))
-                .andExpect(jsonPath("$.data[?(@.code == 'B006')].groups[0].statusOptions.length()").value(3))
-                .andExpect(jsonPath("$.data[?(@.code == 'B006')].groups[0].statusOptions[2].label")
+                .andExpect(jsonPath("$.data[?(@.code == 'B016')].label").value("调整桌椅"))
+                .andExpect(jsonPath("$.data[?(@.code == 'B016')].moduleCode").value("SCHOOL_ENTRY"))
+                .andExpect(jsonPath("$.data[?(@.code == 'B016')].performanceOptions.length()").value(5))
+                .andExpect(jsonPath("$.data[?(@.code == 'B016')].groups[0].statusOptions.length()").value(3))
+                .andExpect(jsonPath("$.data[?(@.code == 'B016')].groups[0].statusOptions[2].label")
                         .value("独立"));
 
         mockMvc.perform(get("/class-records/behavior-options").header(TEACHER_HEADER, "t001")
                         .queryParam("courseCode", "OTHER")
                         .queryParam("environmentCode", "OFF_CAMPUS"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[?(@.code == 'B001')].subBehaviors.length()").value(4))
-                .andExpect(jsonPath("$.data[?(@.code == 'B001')].subBehaviors[0].performanceOptions.length()")
+                .andExpect(jsonPath("$.data[?(@.code == 'B011')].subBehaviors.length()").value(4))
+                .andExpect(jsonPath("$.data[?(@.code == 'B011')].subBehaviors[0].performanceOptions.length()")
                         .value(5))
-                .andExpect(jsonPath("$.data[?(@.code == 'B001')].trainingGoals.length()").value(4));
+                .andExpect(jsonPath("$.data[?(@.code == 'B011')].trainingGoals.length()").value(4));
 
         mockMvc.perform(post("/class-records").header(TEACHER_HEADER, "t001")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -196,7 +196,7 @@ class V2ApiIntegrationTest {
                                  "overallRemark":"初始备注"}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.behaviorCards.length()").value(16))
+                .andExpect(jsonPath("$.data.behaviorCards.length()").value(22))
                 .andReturn().getResponse().getContentAsString();
         long classRecordId = objectMapper.readTree(classResponse).get("data").get("id").longValue();
 
@@ -307,27 +307,27 @@ class V2ApiIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         long classRecordId = objectMapper.readTree(classResponse).get("data").get("id").longValue();
-        long recordId = createQuickBehavior(classRecordId, "B001");
+        long recordId = createQuickBehavior(classRecordId, "B011");
 
         mockMvc.perform(put("/behavior-records/{id}/details", recordId).header(TEACHER_HEADER, "t001")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"subBehaviorCodes":["B001_S01"],
-                                 "performanceSelections":[{"optionCode":"B001_P04"}]}
+                                {"subBehaviorCodes":["B011_S01"],
+                                 "performanceSelections":[{"optionCode":"B011_P04"}]}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.detailSaved").value(true))
-                .andExpect(jsonPath("$.data.subBehaviorCodes[0]").value("B001_S01"))
-                .andExpect(jsonPath("$.data.performanceSelections[0].optionCode").value("B001_P04"))
+                .andExpect(jsonPath("$.data.subBehaviorCodes[0]").value("B011_S01"))
+                .andExpect(jsonPath("$.data.performanceSelections[0].optionCode").value("B011_P04"))
                 .andExpect(jsonPath("$.data.performanceSelections[0].parentSubBehaviorCode")
-                        .value("B001_S01"));
+                        .value("B011_S01"));
 
         mockMvc.perform(put("/behavior-records/{id}/details", recordId).header(TEACHER_HEADER, "t001")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"performanceSelections\":[{\"optionCode\":\"B001_P04\"}]}"))
+                        .content("{\"performanceSelections\":[{\"optionCode\":\"B011_P04\"}]}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message")
-                        .value("选择子行为状态前必须先选择对应子行为：B001_S01"));
+                        .value("选择子行为状态前必须先选择对应子行为：B011_S01"));
     }
 
     @Test
@@ -380,10 +380,10 @@ class V2ApiIntegrationTest {
     @Test
     void reportingStatusGoalProgressAndGoalRecordsFollowV27Contract() throws Exception {
         long classRecordId = createClassRecord("2026-07-20", "统计测试");
-        long independentRecord = createQuickBehavior(classRecordId, "B006");
-        long assistedRecord = createQuickBehavior(classRecordId, "B006");
+        long independentRecord = createQuickBehavior(classRecordId, "B016");
+        long assistedRecord = createQuickBehavior(classRecordId, "B016");
         long incompleteRecord = createQuickBehavior(classRecordId, "B094");
-        createQuickBehavior(classRecordId, "B006");
+        createQuickBehavior(classRecordId, "B016");
 
         mockMvc.perform(put("/behavior-records/{id}/details", independentRecord)
                         .header(TEACHER_HEADER, "t001")
@@ -392,7 +392,7 @@ class V2ApiIntegrationTest {
                                 {"statusCode":"INDEPENDENT","behaviorDescription":" 东张西望 ",
                                  "functionCode":"ATTENTION",
                                  "assistances":[{"code":"VERBAL_ASSISTANCE"}],
-                                 "performanceSelections":[{"optionCode":"B006_P03"}]}
+                                 "performanceSelections":[{"optionCode":"B016_P03"}]}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.statusCode").value("INDEPENDENT"));
@@ -438,7 +438,7 @@ class V2ApiIntegrationTest {
                         .queryParam("period", "WEEKLY").queryParam("referenceDate", "2026-07-22"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.overview.behaviorRecordCount").value(4))
-                .andExpect(jsonPath("$.data.overview.trainingGoalCount").value(3))
+                .andExpect(jsonPath("$.data.overview.trainingGoalCount").value(2))
                 .andExpect(jsonPath("$.data.overview.incompleteCount").value(1))
                 .andExpect(jsonPath("$.data.overview.assistedCount").value(1))
                 .andExpect(jsonPath("$.data.overview.independentCount").value(1))
@@ -447,7 +447,7 @@ class V2ApiIntegrationTest {
                 .andExpect(jsonPath("$.data.dailyTrends[0].date").value("2026-07-20"))
                 .andExpect(jsonPath("$.data.dailyTrends[0].recordCount").value(4))
                 .andExpect(jsonPath("$.data.courseStats[0].independentRate").value(33))
-                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'B006')].unclassifiedCount").value(1));
+                .andExpect(jsonPath("$.data.items[?(@.behaviorCode == 'B016')].unclassifiedCount").value(1));
 
         mockMvc.perform(get("/student-evaluation/statistics").header(TEACHER_HEADER, "t001")
                         .queryParam("period", "MONTHLY").queryParam("referenceDate", "2026-07-22"))
@@ -522,6 +522,37 @@ class V2ApiIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(response).get("data").get("record").get("id").longValue();
+    }
+
+    @Test
+    void dailyEvaluationCanBeSavedAndReadBack() throws Exception {
+        mockMvc.perform(get("/student-evaluation/daily-evaluation")
+                        .header(TEACHER_HEADER, "t001")
+                        .queryParam("date", "2026-07-24"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.emotion").value(nullValue()));
+
+        mockMvc.perform(put("/student-evaluation/daily-evaluation")
+                        .header(TEACHER_HEADER, "t001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"recordDate":"2026-07-24","emotion":"情绪稳定",
+                                 "adaptation":"能适应课堂安排","social":"主动回应同伴",
+                                 "selfMgmt":"能够整理用品","language":"表达清晰",
+                                 "focus":"可持续专注十五分钟"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0));
+
+        mockMvc.perform(get("/student-evaluation/daily-evaluation")
+                        .header(TEACHER_HEADER, "t001")
+                        .queryParam("date", "2026-07-24"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.recordDate").value("2026-07-24"))
+                .andExpect(jsonPath("$.data.emotion").value("情绪稳定"))
+                .andExpect(jsonPath("$.data.selfMgmt").value("能够整理用品"))
+                .andExpect(jsonPath("$.data.focus").value("可持续专注十五分钟"));
     }
 
     @Test
