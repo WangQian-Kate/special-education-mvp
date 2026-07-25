@@ -91,6 +91,13 @@ class V2ApiIntegrationTest {
                 "RESTROOM:卫生间"
         );
 
+        mockMvc.perform(get("/api/").contextPath("/api"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.name").value("special-ed-assistant"))
+                .andExpect(jsonPath("$.data.status").value("UP"))
+                .andExpect(jsonPath("$.data.health").value("/api/health"));
+
         mockMvc.perform(get("/api/health").contextPath("/api"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
@@ -640,6 +647,12 @@ class V2ApiIntegrationTest {
 
     @Test
     void validationAndResourceIsolationReturnStableErrors() throws Exception {
+        mockMvc.perform(get("/api/not-found-check").contextPath("/api"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(40401))
+                .andExpect(jsonPath("$.message").value("接口不存在"))
+                .andExpect(jsonPath("$.data").value(nullValue()));
+
         mockMvc.perform(get("/me"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value(40101))
