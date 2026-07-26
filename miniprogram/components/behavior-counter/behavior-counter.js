@@ -1,5 +1,6 @@
 // components/behavior-counter/behavior-counter.js
 const store = require('../../utils/store');
+const request = require('../../utils/request');
 Component({
   properties: {
     behavior: {
@@ -35,22 +36,15 @@ Component({
     _doDelete(rid) {
       const b = this.properties.behavior;
       this.triggerEvent('countchange', { behaviorCode: b.behaviorCode, delta: -1 });
-      // 直接 wx.request 删除，不走任何封装
-      wx.request({
-        url: 'http://localhost:3000/api/behavior-records/' + rid,
-        method: 'DELETE',
-        header: { 'Content-Type': 'application/json', 'X-Teacher-Id': store.getTeacherId() },
-        success: (r) => {
-          const body = r.data || {};
-          if (body.code === 0) {
-            wx.showToast({ title: '已删除', icon: 'success' });
-            this.triggerEvent('countchange', { behaviorCode: b.behaviorCode, delta: 0 }); // 通知页面刷新
-          } else {
-            wx.showToast({ title: body.message || '删除失败', icon: 'none' });
-          }
-        },
-        fail: () => wx.showToast({ title: '网络异常', icon: 'none' })
-      });
+      request.del('/behavior-records/' + rid)
+        .then(() => {
+          wx.showToast({ title: '已删除', icon: 'success' });
+          this.triggerEvent('countchange', { behaviorCode: b.behaviorCode, delta: 0 });
+        })
+        .catch(() => {
+          wx.showToast({ title: '删除失败', icon: 'none' });
+          this.triggerEvent('countchange', { behaviorCode: b.behaviorCode, delta: 1 });
+        });
     },
 
     onPlus() {
