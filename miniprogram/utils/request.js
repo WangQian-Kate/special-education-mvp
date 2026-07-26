@@ -9,10 +9,10 @@ const store = require('./store');
  * - local  : 开发者工具（需在工具详情里勾选"不校验合法域名"）
  * - tunnel : 内网穿透 HTTPS 地址（真机预览用，等后端提供后填入）
  */
-const ENV = 'local';
+const ENV = 'tunnel';
 const BASE_URLS = {
   local: 'http://localhost:3000/api',
-  tunnel: 'https://TODO-你的穿透域名.example.com/api'
+  tunnel: 'https://27029b63.r40.cpolar.top/api'
 };
 const BASE_URL = BASE_URLS[ENV];
 

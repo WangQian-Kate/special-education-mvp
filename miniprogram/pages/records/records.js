@@ -184,6 +184,7 @@ Page({
       // 初始加载：只在当前课程有记录时才绑定
       var curCode = COURSES[this.data.courseIndex].code;
       var myRec = (list || []).filter(function (r) { return r.courseCode === curCode; }).pop();
+      console.log('[records] loadDay curCode:', curCode, 'myRec:', myRec && myRec.id);
       if (myRec) await this.bindRecord(myRec.id, epoch);
     } catch (err) {
       if (epoch !== this._epoch) return;
@@ -261,11 +262,12 @@ Page({
           beh.counts = counts;
         });
       });
-    } catch (e) { /* skip */ }
+    } catch (e) { console.error('[records] _aggregateAllDayCounts error:', e); }
     return modules;
   },
 
   async bindRecord(id, epoch) {
+    console.log('[records] bindRecord called, id:', id, 'epoch:', epoch);
     var detail = await recordApi.getClassRecordDetail(id);
     if (epoch !== this._epoch) return;
     // 课程默认环境优先（用户可手动切环境），再加载目录
@@ -315,6 +317,7 @@ Page({
       });
       return { ...mod, behaviors: behaviors };
     });
+    console.log('[records] bindRecord done, classRecordId:', detail.id, 'first beh counts:', modules[0] && modules[0].behaviors && modules[0].behaviors[0] && modules[0].behaviors[0].counts);
     this.setData({
       classRecordId: detail.id,
       note: detail.overallRemark || '', noteSaveState: '',
@@ -540,6 +543,10 @@ Page({
 
   ensureClassRecord(extra) {
     if (this.isAllDay()) return Promise.reject(new Error('全天汇总'));
+    // 先检查当天是否已有同名课程记录，有则复用
+    var curCode = COURSES[this.data.courseIndex].code;
+    var existing = (this.dayRecords || []).filter(function (r) { return r.courseCode === curCode; }).pop();
+    if (existing) { if (!this.data.classRecordId) this.setData({ classRecordId: existing.id }); return Promise.resolve(existing.id); }
     if (this.data.classRecordId) return Promise.resolve(this.data.classRecordId);
     if (this._createPromise) return this._createPromise;
     var epoch = this._epoch;
@@ -633,10 +640,16 @@ Page({
       var behaviors = mod.behaviors.map(function (beh) {
         if (beh.code !== d.behaviorCode) return beh;
         var counts = {};
-        Object.keys(beh.counts).forEach(function (k) { counts[k] = Object.assign({}, beh.counts[k]); });
-        var key = d.subBehavior || '';
-        if (key && counts[key]) counts[key][d.status] = (counts[key][d.status] || 0) + d.delta;
-        else counts[d.status] = (counts[d.status] || 0) + d.delta;
+        if (beh.subBehaviors && beh.subBehaviors.length) {
+          (beh.subBehaviors || []).forEach(function (sub) {
+            counts[sub.name] = { ...(beh.counts[sub.name] || { incomplete: 0, assisted: 0, independent: 0 }) };
+          });
+          var key = d.subBehavior || '';
+          if (key && counts[key]) counts[key][d.status] = Math.max(0, (counts[key][d.status] || 0) + d.delta);
+        } else {
+          counts = { incomplete: (beh.counts.incomplete || 0), assisted: (beh.counts.assisted || 0), independent: (beh.counts.independent || 0) };
+          counts[d.status] = Math.max(0, (counts[d.status] || 0) + d.delta);
+        }
         return Object.assign({}, beh, { counts: counts });
       });
       return Object.assign({}, mod, { behaviors: behaviors });

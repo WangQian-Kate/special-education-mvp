@@ -12,6 +12,6 @@ mybatis:
 # ===== AI 配置（智谱清言 GLM-4） =====
 ai:
   base-url: ${AI_BASE_URL:https://open.bigmodel.cn/api/paas/v4/chat/completions}
-  api-key: ${AI_API_KEY:}
+  api-key: ${AI_API_KEY:ebe462b21dd841ca8c49df5b525601b5.gnW6IV5tcfOA5yAy}
   model: ${AI_MODEL:glm-4-flash}
   max-tokens: ${AI_MAX_TOKENS:2048}

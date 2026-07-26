@@ -75,12 +75,15 @@ Page({
     const item = cat.items.find((p) => p.id === id);
     if (!item) return;
     item[field] = value;
+    this._lastFieldChange = Date.now();
     this.applyFilters();
     // TODO 阶段三：api/plan.js 更新接口
   },
 
   /** 点击训练目标行 → 展示关联行为记录弹窗 */
   async onGoalTap(e) {
+    // 点击了行内 picker 控件（评级/阶段/状态）不触发弹窗
+    if (e.target.dataset.field) return;
     const standardNumber = e.currentTarget.dataset.standardNumber;
     const goalText = e.currentTarget.dataset.goalText;
     if (!standardNumber) {

@@ -66,6 +66,9 @@ const deleteBehaviorRecord = (recordId) =>
 /** CLASS-004 查询周/月只读汇总 → BehaviorCountStatistics */
 const getSummary = (period, referenceDate) => get('/class-records/summary', { period, referenceDate });
 
+/** CLASS-013 获取 ABC 前因后果标签字典 */
+const getAbcTags = () => get('/class-records/abc-tags');
+
 /** EVAL-001 查询日/周/月行为频次统计（增强版：含 overview 状态计数 + dailyTrends + courseStats 等） */
 const getEvaluationStats = (period, referenceDate) => get('/student-evaluation/statistics', { period, referenceDate });
 
@@ -95,6 +98,7 @@ module.exports = {
   saveBehaviorDetail,
   deleteBehaviorRecord,
   getSummary,
+  getAbcTags,
   getEvaluationStats,
   getAbcDistribution,
   getBehaviorDescTrend,

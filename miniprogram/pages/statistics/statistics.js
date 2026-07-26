@@ -5,23 +5,6 @@ const aiApi = require('../../api/ai');
 const aiMock = require('../../mock/ai-report');
 const { today } = require('../../utils/datetime');
 
-// ECharts 实例
-var dailyChart = null;
-var weeklyChart = null;
-
-function initDailyChart(canvas, width, height, dpr) {
-  if (!canvas || !width || !height) return null;
-  var echarts = require('../../components/ec-canvas/echarts');
-  var chart = echarts.init(canvas, null, { width: width, height: height, devicePixelRatio: dpr });
-  canvas.setChart(chart); dailyChart = chart; return chart;
-}
-function initWeeklyChart(canvas, width, height, dpr) {
-  if (!canvas || !width || !height) return null;
-  var echarts = require('../../components/ec-canvas/echarts');
-  var chart = echarts.init(canvas, null, { width: width, height: height, devicePixelRatio: dpr });
-  canvas.setChart(chart); weeklyChart = chart; return chart;
-}
-
 function pct(a, b) { return b ? Math.round(a / b * 100) : 0; }
 
 Page({
@@ -34,11 +17,9 @@ Page({
     statusDist: { incomplete: 0, assisted: 0, independent: 0 },
     // AI 三维度报告
     aiReport: null, aiReportLoading: false,
-    ecDaily: { onInit: initDailyChart },
-    ecWeekly: { onInit: initWeeklyChart }
   },
 
-  onShow() { this.loadData(this.data.view); },
+  onShow() { console.log('[statistics] onShow, view:', this.data.view); this.loadData(this.data.view); },
   onPullDownRefresh() { this.loadData(this.data.view).then(function () { wx.stopPullDownRefresh(); }); },
 
   onSwitchView(e) {
@@ -53,7 +34,9 @@ Page({
     var period = pm[view]; if (!period) return;
     this.setData({ loading: true, empty: false });
     try {
+      console.log('[statistics] _loadPeriod enter, view:', view);
       var refDate = today();
+      console.log('[statistics] refDate:', refDate);
       var stats = await recordApi.getEvaluationStats(period, refDate);
       var items = (stats && stats.items) || [];
       var total = stats ? stats.totalCount : 0;
@@ -66,10 +49,15 @@ Page({
 
       var dailyBars = [];
       if (view === 'daily') {
-        dailyBars = items.map(function (i) {
+        dailyBars = items.filter(function (i) { return i.count > 0; }).map(function (i) {
+          var cnt = i.count || 1;
+          var ind = i.independentCount || 0;
+          var ass = i.assistedCount || 0;
+          var inc = i.incompleteCount || 0;
           return { label: i.behaviorLabel, count: i.count, pct: pct(i.count, total),
                    trend: i.trendDirection,
-                   ind: i.independentCount || 0, ass: i.assistedCount || 0, inc: i.incompleteCount || 0 };
+                   ind: ind, ass: ass, inc: inc,
+                   indPct: pct(ind, cnt), assPct: pct(ass, cnt), incPct: pct(inc, cnt) };
         });
       }
 
@@ -79,21 +67,22 @@ Page({
         dailyBars: dailyBars, dailyMaxCount: dailyBars.length ? Math.max.apply(null, dailyBars.map(function (b) { return b.count; })) : 1,
         statusDist: { incomplete: incomplete, assisted: assisted, independent: independent }
       });
-
-      this._updateCharts(view, items);
+      console.log('[statistics] view:', view, 'items:', items.length, 'dailyBars:', dailyBars.length, 'ov:', !!ov);
 
       // 周报/月报：只调 AI 接口（详细图表在随班记录页查看）
       if (view !== 'daily') {
         this._loadAiReport(view === 'weekly' ? 'WEEKLY' : 'MONTHLY');
       }
     } catch (err) {
+      console.error('[statistics] _loadPeriod error:', err);
       this.setData({ loading: false, empty: false });
       if (err && err.code !== 40101) wx.showToast({ title: '加载失败', icon: 'none' });
     }
   },
 
   _updateCharts(view, items) {
-    var chart = view === 'daily' ? dailyChart : weeklyChart;
+    if (view === 'daily') return; // 日报已改用纯列表，无图表
+    var chart = weeklyChart;
     if (!chart || !items || !items.length) return;
     var names = items.map(function (i) { return i.behaviorLabel; });
     var values = items.map(function (i) { return i.count; });

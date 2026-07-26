@@ -2,7 +2,7 @@
   "miniprogramRoot": "miniprogram/",
   "projectname": "special-education-mvp",
   "description": "特殊教育智能辅助干预系统",
-  "appid": "wx85f5b6f5abcf1578",
+  "appid": "wxcc6d1fbadbb44db1",
   "setting": {
     "urlCheck": false,
     "es6": true,

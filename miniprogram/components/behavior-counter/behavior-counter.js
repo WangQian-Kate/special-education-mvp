@@ -37,7 +37,7 @@ Component({
       this.triggerEvent('countchange', { behaviorCode: b.behaviorCode, delta: -1 });
       // 直接 wx.request 删除，不走任何封装
       wx.request({
-        url: 'http://localhost:3000/api/behavior-records/' + rid,
+        url: require('../../utils/request').BASE_URL + '/behavior-records/' + rid,
         method: 'DELETE',
         header: { 'Content-Type': 'application/json', 'X-Teacher-Id': store.getTeacherId() },
         success: (r) => {

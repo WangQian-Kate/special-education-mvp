@@ -52,15 +52,21 @@ module.exports = { statusClass: function (s) { return map[s] || 'pending'; } };
       <view class="td col-id">{{item.standardNumber || item.id}}</view>
       <view class="td col-title">{{item.title}}</view>
       <view class="td col-c dim">{{item.level1}}</view>
-      <picker class="td col-c" range="{{levels}}" data-id="{{item.id}}" data-field="levelNow" bindchange="onFieldChange">
-        <view class="editable">{{item.levelNow}}</view>
-      </picker>
-      <picker class="td col-c" range="{{phases}}" data-id="{{item.id}}" data-field="phase" bindchange="onFieldChange">
-        <view class="editable-plain">{{item.phase}}</view>
-      </picker>
-      <picker class="td col-status" range="{{statusList}}" data-id="{{item.id}}" data-field="status" bindchange="onFieldChange">
-        <view class="status-tag s-{{fmt.statusClass(item.status)}}">{{item.status}}</view>
-      </picker>
+      <view class="td col-c">
+        <picker range="{{levels}}" data-id="{{item.id}}" data-field="levelNow" bindchange="onFieldChange">
+          <view class="editable" data-field="levelNow">{{item.levelNow}}</view>
+        </picker>
+      </view>
+      <view class="td col-c">
+        <picker range="{{phases}}" data-id="{{item.id}}" data-field="phase" bindchange="onFieldChange">
+          <view class="editable-plain" data-field="phase">{{item.phase}}</view>
+        </picker>
+      </view>
+      <view class="td col-status">
+        <picker range="{{statusList}}" data-id="{{item.id}}" data-field="status" bindchange="onFieldChange">
+          <view class="status-tag s-{{fmt.statusClass(item.status)}}" data-field="status">{{item.status}}</view>
+        </picker>
+      </view>
     </view>
     <view class="empty-tip" wx:if="{{!filteredItems.length}}">无匹配的训练目标</view>
   </view>

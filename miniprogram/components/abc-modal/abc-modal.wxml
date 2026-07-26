@@ -1,5 +1,5 @@
 <view wx:if="{{visible}}" class="abc-mask" bindtap="onClose" catchtouchmove="noop">
-  <view class="abc-panel {{records.length ? 'has-records' : 'no-records'}}" catchtap="noop" catchtouchmove="noop">
+  <view class="abc-panel {{records.length ? 'has-records' : 'no-records'}}" catchtap="noop">
     <!-- 头部 -->
     <view class="abc-header">
       <view class="abc-title">{{behavior.behaviorLabel}} · 详细记录</view>
@@ -31,15 +31,33 @@
     </view>
 
     <!-- 下方可滚动：详情表单 -->
-    <scroll-view scroll-y class="abc-body" wx:if="{{currentRecordId}}">
+    <scroll-view scroll-y enhanced show-scrollbar="{{false}}" class="abc-body" wx:if="{{currentRecordId}}">
         <view class="form-item">
           <view class="form-label">持续时间（分钟）</view>
-          <input class="form-input" type="number" value="{{form.durationMinutes}}" data-field="durationMinutes" bindinput="onFormInput" placeholder="选填" />
+          <picker mode="selector" range="{{durationOptions}}" value="{{durationIndex}}" bindchange="onDurationChange">
+            <view class="form-picker">{{durationLabel}} ▾</view>
+          </picker>
+          <input wx:if="{{durationIndex === durationOptions.length - 1}}" class="form-input" style="margin-top:12rpx" type="number" value="{{form.durationMinutes}}" data-field="durationMinutes" bindinput="onFormInput" placeholder="自定义分钟数" />
         </view>
 
         <view class="form-item">
           <view class="form-label">A · 行为前因</view>
-          <textarea class="form-textarea" value="{{form.antecedentText}}" data-field="antecedentText" bindinput="onFormInput" placeholder="记录行为发生前的情况..." maxlength="500" />
+          <view wx:if="{{abcAntecedentOpts.length}}" class="perf-list">
+            <block wx:for="{{abcAntecedentOpts}}" wx:key="code">
+              <view wx:if="{{!item.requiresCustomText}}" class="perf-row">
+                <view class="perf-check {{antecedentChecks[item.code] ? 'on' : ''}}" data-code="{{item.code}}" bindtap="onAntecedentToggle">{{antecedentChecks[item.code] ? '✓' : ''}}</view>
+                <text class="perf-label" data-code="{{item.code}}" bindtap="onAntecedentToggle">{{item.label}}</text>
+              </view>
+            </block>
+            <view class="perf-row">
+              <view class="perf-check {{antecedentChecks['_A_OTHER_'] ? 'on' : ''}}" data-code="_A_OTHER_" bindtap="onAntecedentToggle">{{antecedentChecks['_A_OTHER_'] ? '✓' : ''}}</view>
+              <text class="perf-label" data-code="_A_OTHER_" bindtap="onAntecedentToggle">其它</text>
+            </view>
+            <view class="perf-other">
+              <input class="perf-input" value="{{antecedentOtherText}}" bindinput="onAntecedentOtherInput" placeholder="请补充具体前因..." maxlength="500" />
+            </view>
+          </view>
+          <textarea wx:else class="form-textarea" value="{{form.antecedentText}}" data-field="antecedentText" bindinput="onFormInput" placeholder="其它：补充前因描述（选填）" maxlength="500" />
         </view>
 
         <view class="form-item">
@@ -58,18 +76,28 @@
 
         <view class="form-item">
           <view class="form-label">C · 行为后果</view>
-          <textarea class="form-textarea" value="{{form.consequenceText}}" data-field="consequenceText" bindinput="onFormInput" placeholder="记录行为发生后的结果..." maxlength="500" />
+          <view wx:if="{{abcConsequenceOpts.length}}" class="perf-list">
+            <block wx:for="{{abcConsequenceOpts}}" wx:key="code">
+              <view wx:if="{{!item.requiresCustomText}}" class="perf-row">
+                <view class="perf-check {{consequenceChecks[item.code] ? 'on' : ''}}" data-code="{{item.code}}" bindtap="onConsequenceToggle">{{consequenceChecks[item.code] ? '✓' : ''}}</view>
+                <text class="perf-label" data-code="{{item.code}}" bindtap="onConsequenceToggle">{{item.label}}</text>
+              </view>
+            </block>
+            <view class="perf-row">
+              <view class="perf-check {{consequenceChecks['_C_OTHER_'] ? 'on' : ''}}" data-code="_C_OTHER_" bindtap="onConsequenceToggle">{{consequenceChecks['_C_OTHER_'] ? '✓' : ''}}</view>
+              <text class="perf-label" data-code="_C_OTHER_" bindtap="onConsequenceToggle">其它</text>
+            </view>
+            <view class="perf-other">
+              <input class="perf-input" value="{{consequenceOtherText}}" bindinput="onConsequenceOtherInput" placeholder="请补充具体后果..." maxlength="500" />
+            </view>
+          </view>
+          <textarea wx:else class="form-textarea" value="{{form.consequenceText}}" data-field="consequenceText" bindinput="onFormInput" placeholder="其它：补充后果描述（选填）" maxlength="500" />
         </view>
 
-        <view class="form-item">
-          <view class="form-label">辅助结果</view>
-          <textarea class="form-textarea" value="{{form.assistanceResultText}}" data-field="assistanceResultText" bindinput="onFormInput" placeholder="记录辅助结果..." maxlength="500" />
-        </view>
-
-        <!-- ========== 折叠面板：行为功能与辅助方式 ========== -->
+        <!-- ========== 折叠面板：行为功能，辅助方式与辅助结果 ========== -->
         <view class="fold-panel">
           <view class="fold-head" bindtap="toggleFold">
-            <text>行为功能与辅助方式</text>
+            <text>行为功能，辅助方式与辅助结果</text>
             <text class="fold-arrow">{{foldOpen ? '▲' : '▼'}}</text>
           </view>
           <view class="fold-body" wx:if="{{foldOpen}}">
@@ -81,7 +109,7 @@
               </picker>
             </view>
 
-            <!-- 辅助方式勾选（不填内容） -->
+            <!-- 辅助方式勾选 -->
             <view class="form-item">
               <view class="form-label">辅助方式</view>
               <block wx:for="{{assistances}}" wx:key="code">
@@ -91,6 +119,12 @@
                   <text class="assist-label" data-index="{{index}}" bindtap="onAssistToggle">{{item.label}}</text>
                 </view>
               </block>
+            </view>
+
+            <!-- 辅助结果 -->
+            <view class="form-item">
+              <view class="form-label">辅助结果</view>
+              <textarea class="form-textarea" value="{{form.assistanceResultText}}" data-field="assistanceResultText" bindinput="onFormInput" placeholder="记录辅助结果..." maxlength="500" />
             </view>
           </view>
         </view>

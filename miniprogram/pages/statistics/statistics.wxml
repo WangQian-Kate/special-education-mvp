@@ -19,11 +19,18 @@
     </view>
 
     <view class="card section" wx:if="{{dailyBars.length}}">
-      <view class="block-title">行为频次</view>
-      <view class="chart-box"><ec-canvas id="bar-chart" canvas-id="bar-chart" ec="{{ecDaily}}"></ec-canvas></view>
-      <view class="pct-row"><view wx:for="{{dailyBars}}" wx:key="label" class="pct-i">
-        <view class="pct-dot {{item.trend === 'UP' ? 'up' : item.trend === 'DOWN' ? 'down' : ''}}"></view><text class="pct-n">{{item.label}}</text><text class="pct-v">{{item.count}}次</text>
-      </view></view>
+      <view class="sec-title">今日行为分布</view>
+      <view wx:for="{{dailyBars}}" wx:key="label" class="dist-row">
+        <view class="dist-head">
+          <text class="dist-label">{{item.label}}</text>
+          <text class="dist-count">{{item.count}}次</text>
+        </view>
+        <view class="dist-bar-wrap">
+          <view class="dist-bar dist-ind" style="width:{{item.indPct || 0}}%">{{item.ind > 0 ? '独立' + item.ind : ''}}</view>
+          <view class="dist-bar dist-ass" style="width:{{item.assPct || 0}}%">{{item.ass > 0 ? '辅助' + item.ass : ''}}</view>
+          <view class="dist-bar dist-inc" style="width:{{item.incPct || 0}}%">{{item.inc > 0 ? '未完成' + item.inc : ''}}</view>
+        </view>
+      </view>
     </view>
   </block>
 

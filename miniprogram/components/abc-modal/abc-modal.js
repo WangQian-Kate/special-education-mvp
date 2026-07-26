@@ -39,9 +39,11 @@ Component({
         this.setData({
           supplementOpen: false, perfChecks: [], otherText: '',
           supplementTime: nowHhmm(), foldOpen: false,
-          allDayClassIds: [], loadingList: true
+          allDayClassIds: [], loadingList: true,
+          durationIndex: 0, durationLabel: '选填', 'form.durationMinutes': ''
         });
         this.loadList();
+        this.loadAbcTags();
       }
     },
     'behavior.behaviorCode': function () {
@@ -60,7 +62,12 @@ Component({
     perfChecks: [], otherText: '',
     functionIndex: -1, functionLabel: '请选择行为功能...',
     functionRange: ['未选择', '获取关注', '获取实物', '逃避', '感官刺激'],
-    foldOpen: false, currentRecordSaved: false, saving: false
+    foldOpen: false, currentRecordSaved: false, saving: false,
+    durationOptions: ['选填', '1分钟', '3分钟', '5分钟', '10分钟', '自定义'],
+    durationIndex: 0, durationLabel: '选填',
+    abcAntecedentOpts: [], abcConsequenceOpts: [],
+    antecedentChecks: {}, consequenceChecks: {},
+    antecedentOtherText: '', consequenceOtherText: ''
   },
 
   methods: {
@@ -187,19 +194,60 @@ Component({
         const perfChecks = opts.map(function (o) {
           return { code: o.code, label: o.label, checked: savedLabels.indexOf(o.label) >= 0, custom: o.requiresCustomText };
         });
-        const otherChecked = perfChecks.some(function (c) { return c.checked && c.custom; });
+        // 非标准选项的文字自动作为"其它"内容回显，有则勾选自定义项
+        var unmatched = savedLabels.filter(function (l) { return !opts.some(function (o) { return o.label === l; }); });
+        var bOtherText = unmatched.join('、');
+        if (bOtherText) {
+          perfChecks.forEach(function (c) { if (c.custom) c.checked = true; });
+        }
+        // 初始化持续时间下拉
+        var durVal = d.durationMinutes;
+        var durIdx = 0, durLabel = '选填';
+        if (durVal === 1) { durIdx = 1; durLabel = '1分钟'; }
+        else if (durVal === 3) { durIdx = 2; durLabel = '3分钟'; }
+        else if (durVal === 5) { durIdx = 3; durLabel = '5分钟'; }
+        else if (durVal === 10) { durIdx = 4; durLabel = '10分钟'; }
+        else if (durVal != null && durVal > 0) { durIdx = 5; durLabel = '自定义'; }
+        // 初始化 A/C 标签勾选
+        const antChecks = {};
+        var antOtherText = '';
+        (d.antecedentSelections || []).forEach(function (c) {
+          if (c.code === 'OTHER') { antChecks['_A_OTHER_'] = true; antOtherText = c.customText || ''; }
+          else antChecks[c.code || c] = true;
+        });
+        const conChecks = {};
+        var conOtherText = '';
+        (d.consequenceSelections || []).forEach(function (c) {
+          if (c.code === 'OTHER') { conChecks['_C_OTHER_'] = true; conOtherText = c.customText || ''; }
+          else conChecks[c.code || c] = true;
+        });
         this.setData({
           currentRecordId: recordId, currentRecordSaved: rec ? rec.detailSaved : false,
           formTimeText: formatTime(d.occurredAt),
           functionIndex: funcIdx, functionLabel: funcIdx >= 0 ? this.data.functionRange[funcIdx + 1] : this.data.functionRange[0],
-          perfChecks: perfChecks, otherText: otherChecked ? (d.behaviorDescription || '') : '',
+          perfChecks: perfChecks, otherText: bOtherText,
           form: { durationMinutes: d.durationMinutes == null ? '' : String(d.durationMinutes), antecedentText: d.antecedentText || '', behaviorDescription: d.behaviorDescription || '', consequenceText: d.consequenceText || '', assistanceResultText: d.assistanceResultText || '' },
-          assistances
+          assistances,
+          durationIndex: durIdx, durationLabel: durLabel,
+          antecedentChecks: antChecks, consequenceChecks: conChecks,
+          antecedentOtherText: antOtherText, consequenceOtherText: conOtherText
         });
-      } catch (err) {}
+      } catch (err) {
+        console.error('[abc-modal] openForm 加载失败:', err);
+      }
     },
 
     onFormInput(e) { const { field } = e.currentTarget.dataset; this.setData({ ['form.' + field]: e.detail.value }); },
+
+    onDurationChange(e) {
+      var idx = Number(e.detail.value);
+      var mins = [null, 1, 3, 5, 10, null][idx];
+      this.setData({
+        durationIndex: idx,
+        durationLabel: this.data.durationOptions[idx],
+        'form.durationMinutes': mins != null ? String(mins) : ''
+      });
+    },
     onAssistToggle(e) { const { index } = e.currentTarget.dataset; this.setData({ ['assistances[' + index + '].checked']: !this.data.assistances[index].checked }); },
     onFunctionChange(e) {
       const idx = Number(e.detail.value) - 1;
@@ -218,15 +266,35 @@ Component({
       const functionCode = (funcIdx >= 0 && FUNCTIONS[funcIdx]) ? FUNCTIONS[funcIdx].code : null;
       const checked = this.data.assistances.filter(function (a) { return a.checked; });
       var perfLabels = this.data.perfChecks.filter(function (c) { return c.checked && !c.custom; }).map(function (c) { return c.label; });
-      var otherOpt = this.data.perfChecks.filter(function (c) { return c.checked && c.custom; });
-      if (otherOpt.length && this.data.otherText.trim()) perfLabels.push(this.data.otherText.trim());
+      if (this.data.otherText && this.data.otherText.trim()) perfLabels.push(this.data.otherText.trim());
       var behDesc = perfLabels.join('、') || null;
       this.setData({ saving: true });
       try {
+        // 收集 A/C 标签勾选（"其它"输入框有字=已选，自动映射为真实 OTHER code）
+        var antOtherCode = this.data.abcAntecedentOpts.filter(function (o) { return o.requiresCustomText; })[0];
+        var antOtherRealCode = antOtherCode ? antOtherCode.code : '_A_OTHER_';
+        var antOtherEffective = this.data.antecedentChecks[antOtherRealCode] || (this.data.antecedentOtherText && this.data.antecedentOtherText.trim().length > 0);
+        var antecedentSelections = Object.keys(this.data.antecedentChecks).filter(function (k) { return this.data.antecedentChecks[k] && k !== antOtherRealCode; }.bind(this)).map(function (c) { return { code: c }; });
+        if (antOtherEffective) {
+          var item = { code: 'OTHER' };
+          if (this.data.antecedentOtherText.trim()) item.customText = this.data.antecedentOtherText.trim();
+          antecedentSelections.push(item);
+        }
+        var conOtherCode = this.data.abcConsequenceOpts.filter(function (o) { return o.requiresCustomText; })[0];
+        var conOtherRealCode = conOtherCode ? conOtherCode.code : '_C_OTHER_';
+        var conOtherEffective = this.data.consequenceChecks[conOtherRealCode] || (this.data.consequenceOtherText && this.data.consequenceOtherText.trim().length > 0);
+        var consequenceSelections = Object.keys(this.data.consequenceChecks).filter(function (k) { return this.data.consequenceChecks[k] && k !== conOtherRealCode; }.bind(this)).map(function (c) { return { code: c }; });
+        if (conOtherEffective) {
+          var item2 = { code: 'OTHER' };
+          if (this.data.consequenceOtherText.trim()) item2.customText = this.data.consequenceOtherText.trim();
+          consequenceSelections.push(item2);
+        }
         await recordApi.saveBehaviorDetail(this.data.currentRecordId, {
           durationMinutes, stageCode: null,
-          antecedentText: f.antecedentText || null, behaviorDescription: behDesc,
-          consequenceText: f.consequenceText || null, functionCode: functionCode,
+          antecedentText: f.antecedentText || null, antecedentSelections: antecedentSelections,
+          behaviorDescription: behDesc,
+          consequenceText: f.consequenceText || null, consequenceSelections: consequenceSelections,
+          functionCode: functionCode,
           assistances: checked.map(function (a) { return { code: a.code }; }), assistanceResultText: f.assistanceResultText || null
         });
         wx.showToast({ title: '已保存', icon: 'success' });
@@ -239,6 +307,62 @@ Component({
 
     toggleFold() { this.setData({ foldOpen: !this.data.foldOpen }); },
     onClose() { this.triggerEvent('close'); },
-    noop() {}
+    noop() {},
+
+    // ==================== ABC 标签 ====================
+
+    async loadAbcTags() {
+      if (this.data.abcAntecedentOpts.length) return;
+      await new Promise(function (resolve) { wx.nextTick(resolve); });
+      try {
+        if (typeof recordApi.getAbcTags !== 'function') { console.error('[abc-modal] recordApi.getAbcTags 未定义'); return; }
+        const dict = await recordApi.getAbcTags();
+        console.log('[abc-modal] abc-tags loaded:', dict ? 'OK' : 'empty');
+        // 每组取第一个非 OTHER 选项 + 末尾固定追加"其它"
+        var flatAnte = (dict && dict.antecedentGroups || []).map(function (g) {
+          var first = (g.options || []).filter(function (o) { return !o.requiresCustomText; })[0];
+          return first ? { code: first.code, label: first.label, requiresCustomText: false } : null;
+        }).filter(Boolean);
+        flatAnte.push({ code: '_A_OTHER_', label: '其它', requiresCustomText: true });
+        var flatConse = (dict && dict.consequenceGroups || []).map(function (g) {
+          var first = (g.options || []).filter(function (o) { return !o.requiresCustomText; })[0];
+          return first ? { code: first.code, label: first.label, requiresCustomText: false } : null;
+        }).filter(Boolean);
+        flatConse.push({ code: '_C_OTHER_', label: '其它', requiresCustomText: true });
+        console.log('[abc-modal] flat A:', flatAnte.length, 'flat C:', flatConse.length);
+        this.setData({ abcAntecedentOpts: flatAnte, abcConsequenceOpts: flatConse });
+      } catch (err) {
+        console.error('[abc-modal] loadAbcTags 失败:', err);
+      }
+    },
+
+    onAntecedentToggle(e) {
+      const { code } = e.currentTarget.dataset;
+      const checks = this.data.antecedentChecks;
+      checks[code] = !checks[code];
+      this.setData({ antecedentChecks: checks });
+    },
+
+    onConsequenceToggle(e) {
+      const { code } = e.currentTarget.dataset;
+      const checks = this.data.consequenceChecks;
+      checks[code] = !checks[code];
+      this.setData({ consequenceChecks: checks });
+    },
+
+    onAntecedentOtherInput(e) {
+      var val = e.detail.value;
+      var checks = this.data.antecedentChecks;
+      var otherCode = this.data.abcAntecedentOpts.filter(function (o) { return o.requiresCustomText; })[0];
+      if (otherCode) { checks[otherCode.code] = val && val.trim().length > 0; }
+      this.setData({ antecedentOtherText: val, antecedentChecks: checks });
+    },
+    onConsequenceOtherInput(e) {
+      var val = e.detail.value;
+      var checks = this.data.consequenceChecks;
+      var otherCode = this.data.abcConsequenceOpts.filter(function (o) { return o.requiresCustomText; })[0];
+      if (otherCode) { checks[otherCode.code] = val && val.trim().length > 0; }
+      this.setData({ consequenceOtherText: val, consequenceChecks: checks });
+    }
   }
 });
