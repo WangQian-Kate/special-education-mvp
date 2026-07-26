@@ -134,7 +134,7 @@ public class AiReportService {
 
         int total = records.size();
         if (total == 0) {
-            return new ConfidenceResult(0.0, "LOW", 0, 0.0);
+            return new ConfidenceResult(0.0, "LOW", 0, 0.0, 0);
         }
 
         // 1. 统计支持目标功能的记录数
@@ -176,7 +176,7 @@ public class AiReportService {
 
         String level = confidence >= 0.8 ? "HIGH" : confidence >= 0.5 ? "MEDIUM" : "LOW";
 
-        return new ConfidenceResult(confidence, level, N, Math.round(P * 100.0) / 100.0);
+        return new ConfidenceResult(confidence, level, N, Math.round(P * 100.0) / 100.0, contextCount);
     }
 
     /** 从记录中推断最可能的功能代码 */
@@ -268,8 +268,14 @@ public class AiReportService {
             String topFunc = inferTopFunction(records);
             ConfidenceResult cr = calculateConfidence(records, topFunc);
             String label = FUNCTION_LABELS.getOrDefault(topFunc, "未知");
+            String confidenceNote = String.format(
+                "置信度 %.2f（%s）：基于%d条记录，%.0f%%模式一致，跨%d种情境。",
+                cr.confidence(), cr.level(), cr.sampleSize(),
+                cr.patternConsistency() * 100, cr.contextCount()
+            );
             return new HypothesizedFunction(topFunc, label, cr.confidence(), cr.level(),
-                    "基于数据标注的功能分布自动推断（AI未返回该字段）", cr.sampleSize(), cr.patternConsistency());
+                    "基于数据标注的功能分布自动推断（AI未返回该字段）\n" + confidenceNote,
+                    cr.sampleSize(), cr.patternConsistency());
         }
 
         String funcCode = cleanText(node.path("functionCode").asText("UNKNOWN"));
@@ -280,9 +286,17 @@ public class AiReportService {
         // 使用代码计算的置信度覆盖 AI 返回的（更可靠）
         ConfidenceResult cr = calculateConfidence(records, funcCode);
 
+        // 追加置信度解释（一句话）
+        String confidenceNote = String.format(
+            "置信度 %.2f（%s）：基于%d条记录，%.0f%%模式一致，跨%d种情境。",
+            cr.confidence(), cr.level(), cr.sampleSize(),
+            cr.patternConsistency() * 100, cr.contextCount()
+        );
+        String finalReasoning = reasoning.isEmpty() ? confidenceNote : reasoning + "\n" + confidenceNote;
+
         return new HypothesizedFunction(
                 funcCode.toUpperCase(), funcLabel,
-                cr.confidence(), cr.level(), reasoning,
+                cr.confidence(), cr.level(), finalReasoning,
                 cr.sampleSize(), cr.patternConsistency()
         );
     }
@@ -406,6 +420,25 @@ public class AiReportService {
         sb.append("4. 若 N > 5，最高置信度上限开放至 0.95。\n");
         sb.append("5. 你的推断必须寻找 A 和 C 标签在先验知识库中的聚集度。\n\n");
 
+        // 推理步骤强制要求
+        sb.append("# 推理步骤（必须严格按顺序执行）\n\n");
+        sb.append("步骤1：统计 A 标签分布\n");
+        sb.append("- 从输入记录的前因描述中，归纳出 SEAT 先验知识库中对应的标签\n");
+        sb.append("- 找出 TOP 3 高频 A 标签及其出现次数\n\n");
+        sb.append("步骤2：统计 C 标签分布\n");
+        sb.append("- 从输入记录的后果描述中，归纳出 SEAT 先验知识库中对应的标签\n");
+        sb.append("- 找出 TOP 3 高频 C 标签及其出现次数\n\n");
+        sb.append("步骤3：A→C 映射分析\n");
+        sb.append("- 将高频 A 标签与 SEAT 先验知识库中的「高优触发前因」逐一比对\n");
+        sb.append("- 将高频 C 标签与 SEAT 先验知识库中的「高优强化后果」逐一比对\n");
+        sb.append("- 计算每个 SEAT 功能的 A+C 匹配得分，得分最高的即为推断功能\n\n");
+        sb.append("步骤4：排除法验证\n");
+        sb.append("- 对得分最高的功能，必须逐一解释为什么其他三个功能得分较低\n");
+        sb.append("- 每个排除理由必须引用输入数据中的具体证据\n\n");
+        sb.append("步骤5：生成因果链\n");
+        sb.append("- 每条因果链必须引用至少 1 个具体 recordId\n");
+        sb.append("- 因果链中的 A/B/C 描述必须来自原始记录文本，不得编造\n\n");
+
         sb.append("## 严格限制\n");
         sb.append("1. 禁止进行医学诊断、开具药物建议。\n");
         sb.append("2. 禁止编造输入数据中没有出现的行为、课程、场景。\n");
@@ -423,11 +456,11 @@ public class AiReportService {
         sb.append("  },\n");
         sb.append("  \"causalChainAnalysis\": [\n");
         sb.append("    {\n");
-        sb.append("      \"antecedent\": \"前因描述\",\n");
-        sb.append("      \"behavior\": \"行为表现描述\",\n");
-        sb.append("      \"consequence\": \"结果描述\",\n");
-        sb.append("      \"maintainingCycle\": \"该行为如何通过负强化/正强化维持\",\n");
-        sb.append("      \"recordIds\": [1001, 1002]\n");
+        sb.append("      \"antecedent\": \"必须来自原始记录的前因描述文本\",\n");
+        sb.append("      \"behavior\": \"必须来自原始记录的行为描述文本\",\n");
+        sb.append("      \"consequence\": \"必须来自原始记录的后果描述文本\",\n");
+        sb.append("      \"maintainingCycle\": \"基于A→B→C推断的强化机制说明\",\n");
+        sb.append("      \"recordIds\": [1001, 1002]  // 必须引用至少1个真实recordId，不得编造\n");
         sb.append("    }\n");
         sb.append("  ],\n");
         sb.append("  \"antecedentInterventions\": [\n");
