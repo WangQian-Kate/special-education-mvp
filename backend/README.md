@@ -6,16 +6,17 @@
 
 | 内容 | 当前状态 |
 |---|---|
-| OpenAPI 契约 | `0.13.0`，共 29 个接口 |
+| OpenAPI 契约 | `0.14.0`，共 33 个接口 |
 | Java 实现 | 已完成，按前端页面分包 |
-| MySQL | `special_ed_assistant` 已迁移到 `2.9.0`，增加 ABC 前因/后果分组快捷标签及记录关联结构 |
-| 自动化测试 | 10 个数据库集成场景覆盖核心业务及 ABC 标签接口、保存校验和 AI 数据拼接 |
-| Apifox | 需将 0.13.0 重新导入现有新版模块 |
+| MySQL | `special_ed_assistant` 已迁移到 `3.1.0`，包含微信身份、登录会话和统计覆盖索引 |
+| 自动化测试 | 17 个场景覆盖核心业务、正式微信认证、OpenAPI 和微信上游错误映射 |
+| Apifox | 需将 0.14.0 重新导入现有新版模块 |
 
 ## 页面模块
 
 ```text
 src/main/java/com/specialed/assistant/api/
+├─ auth/               # 登录认证
 ├─ classrecord/        # 随班记录
 ├─ trainingplan/       # 训练计划
 ├─ studentevaluation/  # 学生评估
@@ -27,16 +28,17 @@ src/main/java/com/specialed/assistant/api/
 
 | 页面模块 | 接口数 |
 |---|---:|
+| 登录认证 | 2 |
 | 随班记录 | 13 |
 | 训练计划 | 9 |
-| 学生评估 | 3 |
+| 学生评估 | 5 |
 | 我的 | 3 |
 | 系统 | 1 |
-| 合计 | 29 |
+| 合计 | 31 |
 
 详细契约见：
 
-- `docs/openapi.yaml`：OpenAPI 0.13.0 统一契约。
+- `docs/openapi.yaml`：OpenAPI 0.14.0 统一契约。
 - `docs/behavior-catalog.json`：由确认版 Markdown 自动生成的行为目录交换文件。
 - `docs/接口文档.md`：中文接口总览。
 - `docs/api/`：按页面拆分的中文接口说明。
@@ -78,6 +80,10 @@ $env:DB_PASSWORD='<special_ed_app 的本地密码>'
 | `SPRING_PROFILES_ACTIVE` | `dev` | Spring 配置环境 |
 | `SERVER_ADDRESS` | `127.0.0.1` | HTTP 监听地址；内网穿透时可改为 `0.0.0.0` |
 | `SERVER_PORT` | `3000` | HTTP 端口 |
+| `WECHAT_APP_ID` | 无，正式登录必填 | 微信小程序 AppID |
+| `WECHAT_APP_SECRET` | 无，正式登录必填 | 微信小程序 AppSecret，只允许配置在后端 |
+| `AUTH_SESSION_DURATION_DAYS` | `7` | Bearer 会话有效天数 |
+| `AUTH_DEV_TEACHER_HEADER_ENABLED` | dev 默认 `true` | 是否允许开发环境使用 `X-Teacher-Id` |
 
 运行测试和服务：
 
@@ -105,7 +111,9 @@ Invoke-RestMethod http://localhost:3000/api/health
 
 `code` 为 `0` 表示成功；非 `0` 时前端展示 `message`。删除成功同样返回 HTTP 200 和统一包体，其中 `data` 为 `null`。
 
-除健康检查外，业务接口只接受请求头 `X-Teacher-Id: t001/t002/t003`。后端通过白名单映射读取教师及其绑定学生，不再接受 `X-User-Id`。缺少或无法识别教师身份时返回 HTTP 401、错误码 `40101`。
+正式业务接口使用 `Authorization: Bearer <accessToken>`。前端通过 `POST /auth/wechat/login` 提交 `wx.login()` 返回的临时 code；首次登录还需提交一次性教师绑定码。生产环境禁用 `X-Teacher-Id`，仅 dev/test 环境可选择保留该请求头用于本地回归。
+
+AppSecret、微信临时 code、OpenID 和原始 accessToken 不得写入 Git、文档或日志。数据库只保存登录 token 的 SHA-256 哈希。
 
 ## HTTPS 内网穿透
 
@@ -140,14 +148,18 @@ Invoke-RestMethod http://localhost:3000/api/health
 | `sql/migrate-v2.7-reporting-status.sql` | V2.6.0 增加行为三态、ABC“其他”及统计索引 |
 | `sql/migrate-v2.8-daily-evaluation.sql` | V2.8.0 增加每日评价表，并补齐行为记录子行为字段、索引和外键 |
 | `sql/migrate-v2.9-abc-tags.sql` | V2.9.0 增加 A/C 分组快捷标签字典、记录关联表和严格校验约束 |
+| `sql/migrate-v3.0-wechat-auth.sql` | V3.0.0 增加微信身份、一次性教师绑定码和登录会话 |
+| `sql/migrate-v3.1-reporting-indexes.sql` | V3.1.0 增加学生评估统计覆盖索引 |
 
-正式本地数据库已升级到 `2.9.0`、共 32 张表，并包含 3 名白名单教师、6 名绑定学生、16 项课程、7 项环境、5 项行为功能、3 项行为完成状态、11 个 ABC 标签分组、26 个 A/C 快捷标签，以及编号连续的 165 项标准训练目标。应用账号只需要 `special_ed_assistant.*` 上的 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。
+正式本地数据库已升级到 `3.1.0`、共 35 张表，并包含 3 名教师、6 名绑定学生、16 项课程、7 项环境、5 项行为功能、3 项行为完成状态、11 个 ABC 标签分组、26 个 A/C 快捷标签，以及编号连续的 165 项标准训练目标。应用账号只需要 `special_ed_assistant.*` 上的 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。
 
 `seed.sql` 只用于本地开发，不应直接用于生产数据环境。
 
 ## 已实现的关键规则
 
 - 后端保存当前学生，并校验用户与学生绑定关系。
+- 微信 `code2Session` 只在后端调用；首次登录用一次性绑定码关联教师，后续签发 7 天 Bearer 会话。
+- 一次性绑定码和登录 token 均只保存 SHA-256 哈希；退出后当前设备会话立即失效。
 - 一条行为记录代表一次发生，次数按记录条数统计。
 - 快速记录时间由后端生成；补记必须提交过去的发生时间。
 - A、C 同时支持分组快捷标签多选和兼容性自由文本，B 继续使用自由文本；标签 code 由后端字典严格校验。
@@ -175,6 +187,5 @@ Invoke-RestMethod http://localhost:3000/api/health
 - 导出与分享。
 - 学生信息管理。
 - 个人资料修改。
-- 登录、认证和退出登录。
 
 这些内容尚未由前端或其他成员提供，当前接口会返回空的对应字典，不会虚构业务数据。标准目标库已经包含本次提供的全部 165 项。

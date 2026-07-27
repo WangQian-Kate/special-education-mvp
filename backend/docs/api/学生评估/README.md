@@ -2,13 +2,19 @@
 
 ## 页面范围
 
-统计对象始终是 `X-Teacher-Id` 对应教师的当前学生，数据全部来自随班记录，不使用前端静态估算。
+统计对象始终是 Bearer 会话对应教师的当前学生，数据全部来自随班记录，不使用前端静态估算。
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | GET | `/student-evaluation/statistics` | 日、周、月概览，行为环比、三态、每日/自然周、课程和环境统计 |
 | GET | `/student-evaluation/abc-distribution` | ABC 行为功能分布 |
 | GET | `/student-evaluation/behavior-description-trend` | B 字段自由文本 TOP N 与月度趋势 |
+| GET | `/student-evaluation/daily-evaluation?date=YYYY-MM-DD` | 查询指定日期六维度评估 |
+| PUT | `/student-evaluation/daily-evaluation` | 新增或覆盖指定日期六维度评估 |
+
+## 六维度日报
+
+日报包含 `emotion`、`adaptation`、`social`、`selfMgmt`、`language`、`focus` 六个可空文本字段，每项最多 500 字。保存时 `recordDate` 必填，`studentId` 由当前会话中的学生决定，前端传入值不作为授权依据。同一学生同一天重复保存时覆盖原记录；未填写的日期查询时返回对应日期和六个空字段。
 
 ## 周期规则
 

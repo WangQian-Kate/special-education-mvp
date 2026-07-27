@@ -9,6 +9,9 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
 
+auth:
+  dev-teacher-header-enabled: ${AUTH_DEV_TEACHER_HEADER_ENABLED:true}
+
 # ===== AI 配置（智谱清言 GLM-4） =====
 ai:
   base-url: ${AI_BASE_URL:https://open.bigmodel.cn/api/paas/v4/chat/completions}

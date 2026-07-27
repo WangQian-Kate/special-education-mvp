@@ -1,15 +1,25 @@
 package com.specialed.assistant.api.studentevaluation;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
 import java.time.LocalDate;
 
 public class DailyEvaluationEntity {
     private Long studentId;
+    @NotNull
     private LocalDate recordDate;
+    @Size(max = 500)
     private String emotion;
+    @Size(max = 500)
     private String adaptation;
+    @Size(max = 500)
     private String social;
+    @Size(max = 500)
     private String selfMgmt;
+    @Size(max = 500)
     private String language;
+    @Size(max = 500)
     private String focus;
 
     public Long getStudentId() { return studentId; }

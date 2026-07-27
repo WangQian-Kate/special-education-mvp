@@ -15,6 +15,7 @@
         JOIN behavior_type bt ON bt.code = br.behavior_code
         WHERE cr.student_id = #{studentId}
           AND cr.record_date BETWEEN #{start} AND #{end}
+          AND br.detail_saved = TRUE
         GROUP BY br.behavior_code, bt.label
         ORDER BY count DESC
     </select>
@@ -78,6 +79,7 @@
                          AND tag.dimension = 'CONSEQUENCE'
                    )
                ), '')                                     AS consequenceText,
+               br.function_code                          AS functionCode,
                bft.label                                 AS functionLabel,
                br.assistance_result_text                 AS assistanceResultText,
                ct.label                                  AS courseLabel,
@@ -86,8 +88,8 @@
         FROM behavior_record br
         JOIN class_record cr ON cr.id = br.class_record_id
         JOIN behavior_type bt ON bt.code = br.behavior_code
-        JOIN course_type ct ON ct.code = cr.course_code
-        JOIN environment_type et ON et.code = cr.environment_code
+        LEFT JOIN course_type ct ON ct.code = cr.course_code
+        LEFT JOIN environment_type et ON et.code = cr.environment_code
         LEFT JOIN behavior_stage_type bst ON bst.code = br.stage_code
         LEFT JOIN behavior_function_type bft ON bft.code = br.function_code
         WHERE cr.student_id = #{studentId}

@@ -560,7 +560,7 @@ class V2ApiIntegrationTest {
         mockMvc.perform(get("/student-evaluation/statistics").header(TEACHER_HEADER, "t001")
                         .queryParam("period", "MONTHLY").queryParam("referenceDate", "2026-07-22"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.weeklyBreakdown.length()").value(4))
+                .andExpect(jsonPath("$.data.weeklyBreakdown.length()").value(5))
                 .andExpect(jsonPath("$.data.weeklyBreakdown[3].week").value(4))
                 .andExpect(jsonPath("$.data.weeklyBreakdown[3].totalCount").value(4));
 

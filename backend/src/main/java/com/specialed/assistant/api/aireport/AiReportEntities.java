@@ -33,6 +33,7 @@ public final class AiReportEntities {
         private String antecedentText;
         private String behaviorDescription;
         private String consequenceText;
+        private String functionCode;
         private String functionLabel;
         private String assistanceResultText;
         private String courseLabel;
@@ -59,6 +60,8 @@ public final class AiReportEntities {
         public void setBehaviorDescription(String v) { this.behaviorDescription = v; }
         public String getConsequenceText() { return consequenceText; }
         public void setConsequenceText(String v) { this.consequenceText = v; }
+        public String getFunctionCode() { return functionCode; }
+        public void setFunctionCode(String v) { this.functionCode = v; }
         public String getFunctionLabel() { return functionLabel; }
         public void setFunctionLabel(String v) { this.functionLabel = v; }
         public String getAssistanceResultText() { return assistanceResultText; }

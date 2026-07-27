@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -26,6 +27,14 @@ public class AiReportService {
     private static final Logger log = LoggerFactory.getLogger(AiReportService.class);
     private static final ObjectMapper JSON = new ObjectMapper();
 
+    /** SEAT 四功能代码 → 中文标签映射 */
+    private static final Map<String, String> FUNCTION_LABELS = Map.of(
+            "SENSORY", "感官刺激",
+            "ESCAPE", "逃避",
+            "ATTENTION", "寻求关注",
+            "TANGIBLE", "获取实物"
+    );
+
     private final ProfileService profileService;
     private final AiReportMapper mapper;
     private final RestClient restClient;
@@ -45,7 +54,11 @@ public class AiReportService {
         this.apiKey = apiKey;
         this.model = model;
         this.maxTokens = maxTokens;
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000);
+        factory.setReadTimeout(30000);
         this.restClient = RestClient.builder()
+                .requestFactory(factory)
                 .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
@@ -58,11 +71,18 @@ public class AiReportService {
         try {
             if (userId == null) throw new IllegalArgumentException("userId 为空");
             Long studentId = profileService.requireCurrentStudentId(userId);
+            log.info("使用学生ID: {} 查询记录", studentId);
             DateRange range = resolveRange(period, referenceDate);
+            log.info("查询日期范围: {} 至 {}", range.start, range.end);
 
             List<AiReportEntities.BehaviorStat> statRows = mapper.countBehaviors(studentId, range.start, range.end);
             List<AiReportEntities.BehaviorRecordRow> recordRows = mapper.findBehaviorRecords(studentId, range.start, range.end);
-
+            
+            // 调试日志：打印查询到的记录数
+            log.info("AI报告查询到 {} 条统计行，{} 条记录行", 
+                statRows != null ? statRows.size() : 0,
+                recordRows != null ? recordRows.size() : 0);
+            
             if (statRows != null && !statRows.isEmpty()) {
                 List<BehaviorStatItem> stats = new ArrayList<>();
                 for (AiReportEntities.BehaviorStat r : statRows) {
@@ -75,7 +95,7 @@ public class AiReportService {
                                 r.getRecordId(), r.getClassRecordId(), r.getBehaviorCode(), r.getBehaviorLabel(),
                                 r.getOccurredAt(), r.getDurationMinutes(), r.getStageLabel(),
                                 r.getAntecedentText(), r.getBehaviorDescription(), r.getConsequenceText(),
-                                r.getFunctionLabel(), r.getAssistanceResultText(),
+                                r.getFunctionCode(), r.getFunctionLabel(), r.getAssistanceResultText(),
                                 r.getCourseLabel(), r.getEnvironmentLabel(), r.getRecordDate()));
                     }
                 }
@@ -95,23 +115,88 @@ public class AiReportService {
             log.warn("数据查询失败，返回默认报告: {}", e.getMessage());
         }
 
-        // fallback: 即使DB查不到也返回有意义的内容
-        return buildDefaultReport(dateLabel);
+        return empty();
     }
 
-    private AiReportResponse buildDefaultReport(String dateLabel) {
-        List<AiCardItem> changes = new ArrayList<>();
-        changes.add(new AiCardItem("数据概览", dateLabel + "暂无足够的行为记录数据，无法生成详细分析。请继续完成日常行为记录后再查看。样本有限，仅供参考。"));
+    // ======================== 置信度计算 ========================
 
-        List<AiCardItem> concerns = new ArrayList<>();
-        concerns.add(new AiCardItem("人工审核提醒",
-                "本报告由系统自动生成，不包含医学诊断，不能替代专业评估。请资源教师、影子老师及相关专业人员结合学生实际表现进行人工审核。"));
+    /**
+     * 计算某功能假设的置信度
+     * 公式：confidence = 0.4 * f(N) + 0.4 * P + 0.2 * C
+     *   N = 支持该功能的记录数
+     *   P = 模式一致性 = N / totalRecords
+     *   C = 跨情境因子（1/2/3+ 个不同课程×环境组合）
+     *   f(N) = 样本量因子（阶梯函数）
+     */
+    private ConfidenceResult calculateConfidence(
+            List<BehaviorRecordItem> records,
+            String targetFunctionCode) {
 
-        List<AiCardItem> suggestions = new ArrayList<>();
-        suggestions.add(new AiCardItem("继续积累数据",
-                "建议：当前周期行为数据量较少，继续完成日常行为记录，积累足够数据后可生成更精确的分析报告。"));
+        int total = records.size();
+        if (total == 0) {
+            return new ConfidenceResult(0.0, "LOW", 0, 0.0, 0);
+        }
 
-        return new AiReportResponse(changes, concerns, suggestions);
+        // 1. 统计支持目标功能的记录数
+        List<BehaviorRecordItem> matched = records.stream()
+                .filter(r -> targetFunctionCode.equalsIgnoreCase(r.functionCode()))
+                .toList();
+        int N = matched.size();
+
+        // 2. 模式一致性 P
+        double P = (double) N / total;
+
+        // 3. 跨情境因子 C
+        long contextCount = matched.stream()
+                .map(r -> (r.courseLabel() == null ? "" : r.courseLabel())
+                        + "|" + (r.environmentLabel() == null ? "" : r.environmentLabel()))
+                .distinct()
+                .count();
+        double C = contextCount <= 1 ? 0.3 : contextCount == 2 ? 0.6 : 1.0;
+
+        // 4. 样本量因子 f(N)
+        double fN = N < 3 ? 0.2 : N < 5 ? 0.4 : N < 10 ? 0.6 : N < 20 ? 0.8 : 1.0;
+
+        // 5. 加权计算
+        double confidence = 0.4 * fN + 0.4 * P + 0.2 * C;
+        
+        // 6. 应用王骞老师要求的硬性阈值限制
+        if (N < 3) {
+            // 样本量过低，强制限制置信度上限为0.3
+            confidence = Math.min(confidence, 0.3);
+        } else if (N <= 5) {
+            // 样本量中等，强制限制置信度上限为0.7
+            confidence = Math.min(confidence, 0.7);
+        } else {
+            // 样本量充足，强制限制置信度上限为0.95
+            confidence = Math.min(confidence, 0.95);
+        }
+        
+        confidence = Math.round(confidence * 100.0) / 100.0; // 保留两位小数
+
+        String level = confidence >= 0.8 ? "HIGH" : confidence >= 0.5 ? "MEDIUM" : "LOW";
+
+        return new ConfidenceResult(confidence, level, N, Math.round(P * 100.0) / 100.0, contextCount);
+    }
+
+    /** 从记录中推断最可能的功能代码 */
+    private String inferTopFunction(List<BehaviorRecordItem> records) {
+        if (records.isEmpty()) return "UNKNOWN";
+
+        // 统计各功能出现次数
+        Map<String, Long> funcCounts = records.stream()
+                .filter(r -> r.functionCode() != null && !r.functionCode().isEmpty())
+                .collect(Collectors.groupingBy(
+                        r -> r.functionCode().toUpperCase(),
+                        Collectors.counting()
+                ));
+
+        if (funcCounts.isEmpty()) return "UNKNOWN";
+
+        return funcCounts.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse("UNKNOWN");
     }
 
     // ======================== AI API 调用 ========================
@@ -121,19 +206,6 @@ public class AiReportService {
                                     List<BehaviorRecordItem> records) {
         String prompt = buildPrompt(dateLabel, rangeLabel, stats, records);
 
-        Map<String, Object> messages = java.util.Collections.singletonMap("messages",
-                java.util.Collections.singletonList(
-                        java.util.Collections.singletonMap("role", "user")
-                ));
-
-        // Anthropic API 格式
-        Map<String, Object> requestBody = new java.util.LinkedHashMap<>();
-        requestBody.put("model", model);
-        requestBody.put("max_tokens", maxTokens);
-        requestBody.put("messages", java.util.Collections.singletonList(
-                java.util.Collections.singletonMap("role", "user")
-        ));
-        // 没法用 Map.of，换种方式
         String reqJson = "{\"model\":\"" + model + "\",\"max_tokens\":" + maxTokens
                 + ",\"messages\":[{\"role\":\"user\",\"content\":" + JSON.valueToTree(prompt).toString() + "}]}";
 
@@ -145,10 +217,10 @@ public class AiReportService {
                 .retrieve()
                 .body(String.class);
 
-        return parseResponse(response);
+        return parseResponse(response, records);
     }
 
-    private AiReportResponse parseResponse(String responseBody) {
+    private AiReportResponse parseResponse(String responseBody, List<BehaviorRecordItem> records) {
         try {
             JsonNode root = JSON.readTree(responseBody);
             // OpenAI: choices[0].message.content
@@ -165,37 +237,134 @@ public class AiReportService {
             }
             JsonNode report = JSON.readTree(json);
 
-            List<AiCardItem> changes = parseCardArray(report.path("behaviorChanges"));
-            List<AiCardItem> concerns = parseCardArray(report.path("attentionConcerns"));
-            List<AiCardItem> suggestions = parseCardArray(report.path("alternativeSuggestions"));
+            // 解析 hypothesizedFunction
+            HypothesizedFunction hf = parseHypothesizedFunction(report.path("hypothesizedFunction"), records);
 
-            return new AiReportResponse(
-                    changes.isEmpty() ? fallbackCards("behaviorChanges") : changes,
-                    concerns.isEmpty() ? fallbackCards("attentionConcerns") : concerns,
-                    suggestions.isEmpty() ? fallbackCards("alternativeSuggestions") : suggestions
-            );
+            // 解析 causalChainAnalysis
+            List<CausalChainItem> chains = parseCausalChains(report.path("causalChainAnalysis"));
+
+            // 解析 antecedentInterventions
+            List<AntecedentInterventionItem> interventions = parseInterventions(report.path("antecedentInterventions"));
+
+            // 解析 replacementBehaviors
+            List<ReplacementBehaviorItem> replacements = parseReplacements(report.path("replacementBehaviors"));
+
+            return new AiReportResponse(hf, chains, interventions, replacements);
         } catch (Exception e) {
             log.error("解析 AI 响应失败", e);
-            List<AiCardItem> raw = new ArrayList<>();
-            raw.add(new AiCardItem("AI 原始输出", responseBody));
-            List<AiCardItem> reminders = new ArrayList<>();
-            reminders.add(new AiCardItem("人工审核提醒",
-                    "AI 输出格式异常，请人工审核。本报告由系统自动生成，不包含医学诊断。"));
-            return new AiReportResponse(raw, reminders, new ArrayList<AiCardItem>());
+            // 解析失败时返回带错误信息的报告
+            HypothesizedFunction fallback = new HypothesizedFunction(
+                    "UNKNOWN", "解析异常", 0.0, "LOW",
+                    "AI输出格式异常，请人工审核。原始响应：" + truncate(responseBody, 200),
+                    0, 0.0
+            );
+            return new AiReportResponse(fallback, List.of(), List.of(), List.of());
         }
     }
 
-    private List<AiCardItem> parseCardArray(JsonNode node) {
-        List<AiCardItem> items = new ArrayList<>();
+    private HypothesizedFunction parseHypothesizedFunction(JsonNode node, List<BehaviorRecordItem> records) {
+        if (node.isMissingNode() || node.isNull()) {
+            // AI 没返回该字段，用代码计算兜底
+            String topFunc = inferTopFunction(records);
+            ConfidenceResult cr = calculateConfidence(records, topFunc);
+            String label = FUNCTION_LABELS.getOrDefault(topFunc, "未知");
+            String confidenceNote = String.format(
+                "置信度 %.2f（%s）：基于%d条记录，%.0f%%模式一致，跨%d种情境。",
+                cr.confidence(), cr.level(), cr.sampleSize(),
+                cr.patternConsistency() * 100, cr.contextCount()
+            );
+            return new HypothesizedFunction(topFunc, label, cr.confidence(), cr.level(),
+                    "基于数据标注的功能分布自动推断（AI未返回该字段）\n" + confidenceNote,
+                    cr.sampleSize(), cr.patternConsistency());
+        }
+
+        String funcCode = cleanText(node.path("functionCode").asText("UNKNOWN"));
+        String funcLabel = cleanText(node.path("functionLabel").asText(
+                FUNCTION_LABELS.getOrDefault(funcCode.toUpperCase(), "未知")));
+        String reasoning = cleanText(node.path("reasoning").asText(""));
+
+        // 使用代码计算的置信度覆盖 AI 返回的（更可靠）
+        ConfidenceResult cr = calculateConfidence(records, funcCode);
+
+        // 追加置信度解释（一句话）
+        String confidenceNote = String.format(
+            "置信度 %.2f（%s）：基于%d条记录，%.0f%%模式一致，跨%d种情境。",
+            cr.confidence(), cr.level(), cr.sampleSize(),
+            cr.patternConsistency() * 100, cr.contextCount()
+        );
+        String finalReasoning = reasoning.isEmpty() ? confidenceNote : reasoning + "\n" + confidenceNote;
+
+        return new HypothesizedFunction(
+                funcCode.toUpperCase(), funcLabel,
+                cr.confidence(), cr.level(), finalReasoning,
+                cr.sampleSize(), cr.patternConsistency()
+        );
+    }
+
+    private List<CausalChainItem> parseCausalChains(JsonNode node) {
+        List<CausalChainItem> list = new ArrayList<>();
         if (node.isArray()) {
             for (JsonNode item : node) {
-                items.add(new AiCardItem(
-                        cleanText(item.path("title").asText("")),
-                        cleanText(item.path("content").asText(""))
+                List<Long> ids = new ArrayList<>();
+                JsonNode idsNode = item.path("recordIds");
+                if (idsNode.isArray()) {
+                    for (JsonNode id : idsNode) {
+                        ids.add(id.asLong());
+                    }
+                }
+                list.add(new CausalChainItem(
+                        cleanText(item.path("antecedent").asText("")),
+                        cleanText(item.path("behavior").asText("")),
+                        cleanText(item.path("consequence").asText("")),
+                        cleanText(item.path("maintainingCycle").asText("")),
+                        ids
                 ));
             }
         }
-        return items;
+        return list;
+    }
+
+    private List<AntecedentInterventionItem> parseInterventions(JsonNode node) {
+        List<AntecedentInterventionItem> list = new ArrayList<>();
+        if (node.isArray()) {
+            for (JsonNode item : node) {
+                List<String> targets = parseStringArray(item.path("targetFunctions"));
+                list.add(new AntecedentInterventionItem(
+                        cleanText(item.path("strategy").asText("")),
+                        cleanText(item.path("description").asText("")),
+                        cleanText(item.path("rationale").asText("")),
+                        targets
+                ));
+            }
+        }
+        return list;
+    }
+
+    private List<ReplacementBehaviorItem> parseReplacements(JsonNode node) {
+        List<ReplacementBehaviorItem> list = new ArrayList<>();
+        if (node.isArray()) {
+            for (JsonNode item : node) {
+                List<String> related = parseStringArray(item.path("relatedFunctions"));
+                list.add(new ReplacementBehaviorItem(
+                        cleanText(item.path("targetBehavior").asText("")),
+                        cleanText(item.path("teachingStrategy").asText("")),
+                        cleanText(item.path("reinforcementPlan").asText("")),
+                        cleanText(item.path("difficultyLevel").asText("MEDIUM")),
+                        related
+                ));
+            }
+        }
+        return list;
+    }
+
+    private List<String> parseStringArray(JsonNode node) {
+        List<String> list = new ArrayList<>();
+        if (node.isArray()) {
+            for (JsonNode s : node) {
+                list.add(s.asText(""));
+            }
+        }
+        return list;
     }
 
     private static String cleanText(String text) {
@@ -206,32 +375,111 @@ public class AiReportService {
         return text.trim();
     }
 
-    private List<AiCardItem> fallbackCards(String dimension) {
-        List<AiCardItem> list = new ArrayList<>();
-        list.add(new AiCardItem("数据不足", dimension + " 维度暂无分析结果"));
-        return list;
-    }
-
-    // ======================== Prompt 构建 ========================
+    // ======================== Prompt 构建（SEAT 框架） ========================
 
     private String buildPrompt(String dateLabel, String rangeLabel,
                                List<BehaviorStatItem> stats,
                                List<BehaviorRecordItem> records) {
         StringBuilder sb = new StringBuilder();
-        sb.append("你是特殊教育融合课堂场景中的数据分析助手。你只能基于输入的数据进行分析。\n\n");
-        sb.append("严格限制：\n");
+        
+        // 角色设定（王骞老师要求）
+        sb.append("# 角色设定\n");
+        sb.append("你是专业的 BCBA（应用行为分析师），负责基于 ABC 行为记录推断学生的行为功能。\n\n");
+        
+        sb.append("# 核心任务\n");
+        sb.append("分析传入的 JSON 格式 ABC 行为记录，必须且只能将其归类为 SEAT 四大功能之一。\n\n");
+
+        // SEAT 框架说明与先验知识库（王骞老师要求）
+        sb.append("# SEAT 框架说明与先验知识库\n\n");
+        
+        sb.append("## 1. 逃避/回避任务 (Escape)\n");
+        sb.append("**高优触发前因 (A)**：TASK_DIFFICULT（任务难度过高）, TASK_NEW（新任务）, TASK_URGED（被催促）, TRANSITION（场景转换）\n");
+        sb.append("**高优强化后果 (C)**：TASK_PAUSED（任务暂停/延期）, TASK_SIMPLIFIED（降低任务难度）, REMOVED_FROM_ENV（被带离环境）\n");
+        sb.append("**AI 推理逻辑**：当 A 集中在「任务/指令」，且 C 导致了「任务中断或难度降低」时，高概率推断为 Escape。\n\n");
+        
+        sb.append("## 2. 获得关注 (Attention)\n");
+        sb.append("**高优触发前因 (A)**：ATTENTION_SHIFT（教师/家长关注他人）, UNSTRUCTURED（非结构化时间）\n");
+        sb.append("**高优强化后果 (C)**：VERBAL_PROMPT（口头提醒/讲道理/批评——注：在特教中，哪怕是批评也是一种关注）, VERBAL_SOOTHING（语言安抚）, PEER_ATTENTION（同伴围观/议论）\n");
+        sb.append("**AI 推理逻辑**：当行为发生后，学生获得了任何形式的社会性回应（无论是正向安抚还是负向批评），且前因往往是缺乏关注时，高概率推断为 Attention。\n\n");
+        
+        sb.append("## 3. 获得实物/活动 (Tangible)\n");
+        sb.append("**高优触发前因 (A)**：ACTIVITY_STOPPED（被要求停止喜爱活动）, ITEM_DENIED（拿不到喜爱物品）, REQUEST_DENIED（需求被拒）\n");
+        sb.append("**高优强化后果 (C)**：PEER_YIELDED（同伴妥协给予物品）, ITEM_GIVEN（给予喜爱物品或活动作为安抚）\n");
+        sb.append("**AI 推理逻辑**：当 A 是「失去或得不到」，而 C 是「最终得到」，强概率推断为 Tangible。\n\n");
+        
+        sb.append("## 4. 感官刺激 (Sensory / Automatic)\n");
+        sb.append("**高优触发前因 (A)**：ENV_NOISY（环境嘈杂/刺激过载）, PHYSICAL_DISCOMFORT（身体不适）, NO_OBVIOUS_TRIGGER（无明显诱因）\n");
+        sb.append("**高优强化后果 (C)**：PLANNED_IGNORING（冷处理后行为依然持续，说明行为本身自带强化）, 或者缺乏外部 C 标签的介入\n");
+        sb.append("**AI 推理逻辑**：当行为发生不依赖于他人的关注或物品，或者明显是为了隔绝环境噪音/寻求某种感官输入时，推断为 Sensory。\n\n");
+
+        // 置信度强制规则（王骞老师要求）
+        sb.append("# 置信度强制规则\n");
+        sb.append("1. 计算输入的数据记录条数 N。\n");
+        sb.append("2. 若 N < 3，你必须输出低置信度（<0.3），并在 reasoning 字段的首部强制包含字符串：\"【样本量过低（小于3条），当前推断仅供参考】\"。\n");
+        sb.append("3. 若 N ∈ [3, 5]，最高置信度上限为 0.7。\n");
+        sb.append("4. 若 N > 5，最高置信度上限开放至 0.95。\n");
+        sb.append("5. 你的推断必须寻找 A 和 C 标签在先验知识库中的聚集度。\n\n");
+
+        // 推理步骤强制要求
+        sb.append("# 推理步骤（必须严格按顺序执行）\n\n");
+        sb.append("步骤1：统计 A 标签分布\n");
+        sb.append("- 从输入记录的前因描述中，归纳出 SEAT 先验知识库中对应的标签\n");
+        sb.append("- 找出 TOP 3 高频 A 标签及其出现次数\n\n");
+        sb.append("步骤2：统计 C 标签分布\n");
+        sb.append("- 从输入记录的后果描述中，归纳出 SEAT 先验知识库中对应的标签\n");
+        sb.append("- 找出 TOP 3 高频 C 标签及其出现次数\n\n");
+        sb.append("步骤3：A→C 映射分析\n");
+        sb.append("- 将高频 A 标签与 SEAT 先验知识库中的「高优触发前因」逐一比对\n");
+        sb.append("- 将高频 C 标签与 SEAT 先验知识库中的「高优强化后果」逐一比对\n");
+        sb.append("- 计算每个 SEAT 功能的 A+C 匹配得分，得分最高的即为推断功能\n\n");
+        sb.append("步骤4：排除法验证\n");
+        sb.append("- 对得分最高的功能，必须逐一解释为什么其他三个功能得分较低\n");
+        sb.append("- 每个排除理由必须引用输入数据中的具体证据\n\n");
+        sb.append("步骤5：生成因果链\n");
+        sb.append("- 每条因果链必须引用至少 1 个具体 recordId\n");
+        sb.append("- 因果链中的 A/B/C 描述必须来自原始记录文本，不得编造\n\n");
+
+        sb.append("## 严格限制\n");
         sb.append("1. 禁止进行医学诊断、开具药物建议。\n");
         sb.append("2. 禁止编造输入数据中没有出现的行为、课程、场景。\n");
-        sb.append("3. 如果样本有限，必须在数据概览末尾附加\"样本有限，仅供参考\"。\n");
-        sb.append("4. 建议必须具体、温和、可执行。\n");
-        sb.append("5. 每条建议的 content 必须包含\"依据：\"。\n");
-        sb.append("6. attentionConcerns 中必须包含 title 为\"人工审核提醒\"的元素。\n\n");
+        sb.append("3. 干预建议必须具体、温和、可执行。\n");
+        sb.append("4. functionCode 只能是 SENSORY、ESCAPE、ATTENTION、TANGIBLE 之一。\n");
+        sb.append("5. difficultyLevel 只能是 EASY、MEDIUM、HARD 之一。\n\n");
 
+        sb.append("## 输出格式\n");
         sb.append("请严格输出如下 JSON，不要 Markdown 包裹：\n\n");
         sb.append("{\n");
-        sb.append("  \"behaviorChanges\": [{ \"title\": \"...\", \"content\": \"...\" }],\n");
-        sb.append("  \"attentionConcerns\": [{ \"title\": \"...\", \"content\": \"...\" }],\n");
-        sb.append("  \"alternativeSuggestions\": [{ \"title\": \"...\", \"content\": \"...\" }]\n");
+        sb.append("  \"hypothesizedFunction\": {\n");
+        sb.append("    \"functionCode\": \"ESCAPE\",\n");
+        sb.append("    \"functionLabel\": \"逃避\",\n");
+        sb.append("    \"reasoning\": \"基于N条ABC记录的分析推理...\"\n");
+        sb.append("  },\n");
+        sb.append("  \"causalChainAnalysis\": [\n");
+        sb.append("    {\n");
+        sb.append("      \"antecedent\": \"必须来自原始记录的前因描述文本\",\n");
+        sb.append("      \"behavior\": \"必须来自原始记录的行为描述文本\",\n");
+        sb.append("      \"consequence\": \"必须来自原始记录的后果描述文本\",\n");
+        sb.append("      \"maintainingCycle\": \"基于A→B→C推断的强化机制说明\",\n");
+        sb.append("      \"recordIds\": [1001, 1002]  // 必须引用至少1个真实recordId，不得编造\n");
+        sb.append("    }\n");
+        sb.append("  ],\n");
+        sb.append("  \"antecedentInterventions\": [\n");
+        sb.append("    {\n");
+        sb.append("      \"strategy\": \"策略名称\",\n");
+        sb.append("      \"description\": \"具体操作描述\",\n");
+        sb.append("      \"rationale\": \"为什么这个策略有效\",\n");
+        sb.append("      \"targetFunctions\": [\"ESCAPE\"]\n");
+        sb.append("    }\n");
+        sb.append("  ],\n");
+        sb.append("  \"replacementBehaviors\": [\n");
+        sb.append("    {\n");
+        sb.append("      \"targetBehavior\": \"要替代的问题行为\",\n");
+        sb.append("      \"teachingStrategy\": \"如何教授替代行为\",\n");
+        sb.append("      \"reinforcementPlan\": \"如何强化替代行为\",\n");
+        sb.append("      \"difficultyLevel\": \"MEDIUM\",\n");
+        sb.append("      \"relatedFunctions\": [\"ESCAPE\"]\n");
+        sb.append("    }\n");
+        sb.append("  ]\n");
         sb.append("}\n");
 
         sb.append("\n---\n输入数据：\n\n");
@@ -254,6 +502,9 @@ public class AiReportService {
                     .append("：").append(r.recordDate()).append(" ")
                     .append(r.courseLabel()).append("/").append(r.environmentLabel())
                     .append("，行为：").append(r.behaviorLabel());
+            if (r.functionCode() != null && !r.functionCode().isEmpty()) {
+                sb.append("，功能代码：").append(r.functionCode());
+            }
             if (r.antecedentText() != null && !r.antecedentText().isEmpty()) {
                 sb.append("，前因：").append(truncate(r.antecedentText(), 80));
             }
@@ -269,7 +520,7 @@ public class AiReportService {
             sb.append("\n");
         }
 
-        sb.append("\n请根据以上数据生成").append(dateLabel).append("分析报告 JSON：");
+        sb.append("\n请根据以上数据，使用 SEAT 框架生成").append(dateLabel).append("行为功能分析报告 JSON：");
         return sb.toString();
     }
 
@@ -278,77 +529,182 @@ public class AiReportService {
     private AiReportResponse buildTemplateReport(String dateLabel, String rangeLabel,
                                                   List<BehaviorStatItem> stats,
                                                   List<BehaviorRecordItem> records) {
-        List<AiCardItem> behaviorChanges = new ArrayList<>();
-        List<AiCardItem> attentionConcerns = new ArrayList<>();
-        List<AiCardItem> suggestions = new ArrayList<>();
+        // 1. 推断最可能的功能
+        String topFunc = inferTopFunction(records);
+        ConfidenceResult cr = calculateConfidence(records, topFunc);
+        String funcLabel = FUNCTION_LABELS.getOrDefault(topFunc, "未知");
 
-        long totalRecords = 0;
-        for (BehaviorStatItem s : stats) totalRecords += s.count();
-        long courseCount = records.stream().map(BehaviorRecordItem::courseLabel).distinct().count();
-
-        StringBuilder overview = new StringBuilder();
-        overview.append("观察周期：").append(rangeLabel).append("。");
-        overview.append("共").append(courseCount).append("类课程，累计").append(totalRecords).append("次ABC详细行为记录。");
-        if (!stats.isEmpty()) {
-            overview.append("高频行为：");
-            int maxTop = Math.min(stats.size(), 3);
-            for (int i = 0; i < maxTop; i++) {
-                BehaviorStatItem s = stats.get(i);
-                if (i > 0) overview.append("、");
-                overview.append(s.behaviorLabel()).append("（").append(s.count()).append("次）");
-            }
-            overview.append("。");
-        }
-        if (stats.size() < 5) overview.append("样本有限，仅供参考。");
-        behaviorChanges.add(new AiCardItem("数据概览", overview.toString()));
-
-        if (!stats.isEmpty()) {
-            BehaviorStatItem top = stats.get(0);
-            behaviorChanges.add(new AiCardItem(top.behaviorLabel() + "频次最高",
-                    dateLabel + "\"" + top.behaviorLabel() + "\"共记录" + top.count() + "次（"
-                            + pct(top.count(), totalRecords) + "），建议关注触发前因。"));
-        }
-
-        if (!records.isEmpty()) {
-            Map<String, Long> courseFreq = records.stream()
-                    .collect(Collectors.groupingBy(BehaviorRecordItem::courseLabel, Collectors.counting()));
-            Map.Entry<String, Long> maxEntry = null;
-            for (Map.Entry<String, Long> e : courseFreq.entrySet()) {
-                if (maxEntry == null || e.getValue() > maxEntry.getValue()) maxEntry = e;
-            }
-            if (maxEntry != null) {
-                behaviorChanges.add(new AiCardItem("高频场景：" + maxEntry.getKey(),
-                        dateLabel + "行为记录集中在\"" + maxEntry.getKey() + "\"（" + maxEntry.getValue() + "次）。"));
-            }
-        }
-
-        attentionConcerns.add(new AiCardItem("人工审核提醒",
-                "本报告由系统自动生成（未启用大模型），不包含医学诊断，不能替代专业评估。"
-                        + "请资源教师、影子老师及相关专业人员结合学生实际表现进行人工审核。"));
-        if (apiKey != null && !apiKey.isEmpty()) {
-            attentionConcerns.add(new AiCardItem("注意",
-                    "当前显示的是模板报告。大模型调用失败，请检查 API Key 配置和网络连接。"));
-        }
-
-        if (!stats.isEmpty()) {
-            BehaviorStatItem top = stats.get(0);
-            suggestions.add(new AiCardItem("针对\"" + top.behaviorLabel() + "\"的干预",
-                    "建议：在高频场景中提前给予视觉提示和任务预告，及时正向强化替代行为。"
-                            + "\n依据：该行为为" + dateLabel + "最高频（" + top.count() + "次）。"));
+        // 2. 构建 reasoning
+        StringBuilder reasoning = new StringBuilder();
+        reasoning.append(dateLabel).append("共").append(records.size()).append("条ABC记录。");
+        if (!"UNKNOWN".equals(topFunc)) {
+            reasoning.append("其中").append(cr.sampleSize()).append("条标注为\"").append(funcLabel).append("\"功能，");
+            reasoning.append("占比").append(Math.round(cr.patternConsistency() * 100)).append("%。");
         } else {
-            suggestions.add(new AiCardItem("继续积累数据",
-                    "建议：当前数据量较少，继续完成日常记录以生成更精确的干预建议。"));
+            reasoning.append("行为记录中缺少功能标注数据，无法进行有效推断。");
+        }
+        if (cr.sampleSize() < 5) {
+            reasoning.append("样本有限，仅供参考。");
+        }
+        reasoning.append("当前为模板报告（未启用大模型），建议配置 API Key 获取更精准的分析。");
+
+        HypothesizedFunction hf = new HypothesizedFunction(
+                topFunc, funcLabel, cr.confidence(), cr.level(),
+                reasoning.toString(), cr.sampleSize(), cr.patternConsistency()
+        );
+
+        // 3. 因果链（从数据中提取典型模式）
+        List<CausalChainItem> chains = buildTemplateChains(records);
+
+        // 4. 前因干预策略
+        List<AntecedentInterventionItem> interventions = buildTemplateInterventions(topFunc, stats, records);
+
+        // 5. 替代行为
+        List<ReplacementBehaviorItem> replacements = buildTemplateReplacements(topFunc, records);
+
+        return new AiReportResponse(hf, chains, interventions, replacements);
+    }
+
+    private List<CausalChainItem> buildTemplateChains(List<BehaviorRecordItem> records) {
+        List<CausalChainItem> chains = new ArrayList<>();
+        if (records.isEmpty()) return chains;
+
+        // 按功能分组，取最多的功能组中的前3条记录构建因果链
+        Map<String, List<BehaviorRecordItem>> byFunc = records.stream()
+                .filter(r -> r.functionCode() != null && !r.functionCode().isEmpty())
+                .collect(Collectors.groupingBy(r -> r.functionCode().toUpperCase()));
+
+        if (byFunc.isEmpty()) {
+            // 没有功能标注时，用前3条记录构建通用因果链
+            int limit = Math.min(3, records.size());
+            for (int i = 0; i < limit; i++) {
+                BehaviorRecordItem r = records.get(i);
+                chains.add(new CausalChainItem(
+                        r.antecedentText() != null ? r.antecedentText() : "（未记录前因）",
+                        r.behaviorLabel() + "：" + (r.behaviorDescription() != null ? r.behaviorDescription() : ""),
+                        r.consequenceText() != null ? r.consequenceText() : "（未记录结果）",
+                        "需更多数据确认维持机制",
+                        List.of(r.recordId())
+                ));
+            }
+            return chains;
         }
 
-        return new AiReportResponse(behaviorChanges, attentionConcerns, suggestions);
+        // 取最大功能组
+        List<BehaviorRecordItem> topGroup = byFunc.values().stream()
+                .max((a, b) -> Integer.compare(a.size(), b.size()))
+                .orElse(List.of());
+
+        int limit = Math.min(3, topGroup.size());
+        for (int i = 0; i < limit; i++) {
+            BehaviorRecordItem r = topGroup.get(i);
+            chains.add(new CausalChainItem(
+                    r.antecedentText() != null ? r.antecedentText() : "（未记录前因）",
+                    r.behaviorLabel() + "：" + (r.behaviorDescription() != null ? r.behaviorDescription() : ""),
+                    r.consequenceText() != null ? r.consequenceText() : "（未记录结果）",
+                    "需结合更多数据确认该行为模式的维持机制",
+                    List.of(r.recordId())
+            ));
+        }
+        return chains;
+    }
+
+    private List<AntecedentInterventionItem> buildTemplateInterventions(
+            String topFunc, List<BehaviorStatItem> stats, List<BehaviorRecordItem> records) {
+        List<AntecedentInterventionItem> list = new ArrayList<>();
+
+        // 通用策略
+        list.add(new AntecedentInterventionItem(
+                "视觉日程提示",
+                "在教室显眼位置张贴当日课程安排与行为期望，课前用视觉提示卡预告即将进行的活动。",
+                "视觉提示可降低不确定感，减少因未知引发的焦虑和问题行为。",
+                List.of("ESCAPE", "ATTENTION")
+        ));
+
+        if ("ESCAPE".equals(topFunc)) {
+            list.add(new AntecedentInterventionItem(
+                    "任务分解与微休息",
+                    "将连续任务拆分为3~5分钟的小步骤，每步完成后给予短暂休息（如闭眼深呼吸30秒）。",
+                    "降低认知负荷，减少逃避行为的触发条件。",
+                    List.of("ESCAPE")
+            ));
+        } else if ("ATTENTION".equals(topFunc)) {
+            list.add(new AntecedentInterventionItem(
+                    "定时关注计划",
+                    "每5~8分钟主动给予学生一次正向关注（如微笑、点头、简短表扬），不等问题行为出现。",
+                    "提前满足关注需求，降低通过问题行为获取关注的动机。",
+                    List.of("ATTENTION")
+            ));
+        } else if ("SENSORY".equals(topFunc)) {
+            list.add(new AntecedentInterventionItem(
+                    "感觉饮食安排",
+                    "在课表中安排定时的感觉活动（如捏压力球、拉伸），每20~30分钟一次。",
+                    "提前提供感官输入，减少因感官饥渴引发的问题行为。",
+                    List.of("SENSORY")
+            ));
+        } else if ("TANGIBLE".equals(topFunc)) {
+            list.add(new AntecedentInterventionItem(
+                    "代币经济系统",
+                    "使用代币卡记录正向行为，积累一定数量后可兑换偏好物品或活动。",
+                    "将实物获取与适当行为挂钩，建立延迟满足能力。",
+                    List.of("TANGIBLE")
+            ));
+        }
+
+        return list;
+    }
+
+    private List<ReplacementBehaviorItem> buildTemplateReplacements(
+            String topFunc, List<BehaviorRecordItem> records) {
+        List<ReplacementBehaviorItem> list = new ArrayList<>();
+
+        if ("ESCAPE".equals(topFunc)) {
+            list.add(new ReplacementBehaviorItem(
+                    "用适当方式请求休息",
+                    "教授学生使用\"休息卡\"或手势信号来表达需要休息，而非通过问题行为逃避。",
+                    "当学生使用休息卡时，立即允许短暂休息并给予表扬。逐步延长等待时间。",
+                    "EASY",
+                    List.of("ESCAPE")
+            ));
+        } else if ("ATTENTION".equals(topFunc)) {
+            list.add(new ReplacementBehaviorItem(
+                    "用适当方式发起互动",
+                    "教授学生使用举手、轻拍肩膀或语言来表达\"请看看我\"的需求。",
+                    "当学生使用适当方式时，立即给予积极回应。逐步延迟回应时间以培养等待能力。",
+                    "MEDIUM",
+                    List.of("ATTENTION")
+            ));
+        } else if ("SENSORY".equals(topFunc)) {
+            list.add(new ReplacementBehaviorItem(
+                    "使用替代感官工具",
+                    "提供压力球、咀嚼项链等替代感官工具，教授学生在需要时主动使用。",
+                    "当学生主动使用替代工具时给予正向强化。逐步减少对高强度感官刺激的依赖。",
+                    "MEDIUM",
+                    List.of("SENSORY")
+            ));
+        } else if ("TANGIBLE".equals(topFunc)) {
+            list.add(new ReplacementBehaviorItem(
+                    "用适当方式表达需求",
+                    "教授学生使用图片交换系统（PECS）或简单语言来表达\"我想要...\"。",
+                    "当学生用适当方式表达时，立即满足需求并表扬。逐步引入等待和轮流。",
+                    "EASY",
+                    List.of("TANGIBLE")
+            ));
+        } else {
+            // 通用替代行为
+            list.add(new ReplacementBehaviorItem(
+                    "功能性沟通训练",
+                    "教授学生使用适当的沟通方式（语言、手势或图片）来表达需求和情绪。",
+                    "当学生使用适当沟通方式时立即回应和强化。",
+                    "MEDIUM",
+                    List.of()
+            ));
+        }
+
+        return list;
     }
 
     // ======================== 工具方法 ========================
-
-    private static String pct(long part, long total) {
-        if (total == 0) return "0%";
-        return Math.round(part * 100.0 / total) + "%";
-    }
 
     private static String truncate(String s, int maxLen) {
         if (s == null) return "";
@@ -369,7 +725,6 @@ public class AiReportService {
         }
     }
 
-    // Java 8 不能用 record
     private static class DateRange {
         final LocalDate start;
         final LocalDate end;

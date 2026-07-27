@@ -1,19 +1,22 @@
 openapi: 3.0.3
 info:
   title: 特殊教育课堂助手 API
-  version: 0.13.0
+  version: 0.14.0
   description: |
-    根据 V2 软件原型重写的接口契约，按“随班记录、训练计划、学生评估、我的、系统”五个页面模块组织。
-    当前采用白名单伪登录，业务接口使用 X-Teacher-Id: t001/t002/t003 确定当前教师；不接收 X-User-Id。
+    根据软件原型维护的接口契约，按“登录认证、随班记录、训练计划、学生评估、我的、系统”六个模块组织。
+    正式接口使用微信 code2Session 登录和 Bearer 会话令牌；X-Teacher-Id 仅保留在 dev/test 环境。
     所有响应统一使用 { code, message, data } 包体；code 为 0 表示成功。
-    AI 分析、学期报告、导出分享、学生管理、个人资料修改和退出登录暂不包含。
+    AppSecret、OpenID、微信临时 code 和原始 token 均不得写入前端、文档或日志。
 servers:
   - url: http://localhost:3000/api
     description: 本地开发环境
-security: []
+security:
+  - bearerAuth: []
 tags:
   - name: 系统
     description: 服务状态
+  - name: 登录认证
+    description: 微信登录、教师首次绑定和退出登录
   - name: 我的
     description: 当前用户、绑定学生和当前学生选择
   - name: 随班记录
@@ -27,6 +30,7 @@ paths:
   /health:
     get:
       tags: [系统]
+      security: []
       operationId: health
       summary: 服务健康检查
       description: 正式替代 Day3 任务草案中的 GET /api/test，供前端“测试后端连接”和首次联合联调使用。
@@ -43,9 +47,59 @@ paths:
                 data:
                   status: UP
 
+  /auth/wechat/login:
+    post:
+      tags: [登录认证]
+      security: []
+      operationId: wechatLogin
+      summary: 微信登录
+      description: |
+        前端通过 wx.login 获取一次性 code 后提交。已绑定微信直接登录；
+        首次登录必须同时提交由后端工具生成的一次性教师绑定码。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WechatLoginRequest'
+            example:
+              code: 微信临时登录凭证
+              bindingCode: ABCD-EFGH
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WechatLoginApiResponse'
+        '400':
+          $ref: '#/components/responses/WechatLoginValidationError'
+        '403':
+          $ref: '#/components/responses/WechatBindingRequired'
+        '409':
+          $ref: '#/components/responses/WechatBindingConflict'
+        '502':
+          $ref: '#/components/responses/WechatUpstreamError'
+        '503':
+          $ref: '#/components/responses/WechatNotConfigured'
+
+  /auth/logout:
+    post:
+      tags: [登录认证]
+      operationId: logout
+      summary: 退出当前设备
+      description: 注销当前 Bearer 会话；成功后前端删除本地 accessToken。
+      responses:
+        '200':
+          description: 退出成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptyApiResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedSession'
+
   /me:
-    parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [我的]
       operationId: getMyProfile
@@ -55,7 +109,7 @@ paths:
         requiresStudentSelection 为 true。只绑定一个学生时，后端可以自动设为当前学生。
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 查询成功
           content:
@@ -68,15 +122,13 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   /me/students:
-    parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [我的]
       operationId: listMyStudents
       summary: 查询当前用户绑定的学生
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 查询成功
           content:
@@ -89,8 +141,6 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   /me/current-student:
-    parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
     put:
       tags: [我的]
       operationId: updateCurrentStudent
@@ -106,7 +156,7 @@ paths:
               studentId: 1
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 切换成功
           content:
@@ -121,8 +171,6 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   /class-records:
-    parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [随班记录]
       operationId: listClassRecords
@@ -132,7 +180,7 @@ paths:
         - $ref: '#/components/parameters/RecordDate'
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 查询成功
           content:
@@ -164,7 +212,7 @@ paths:
               overallRemark: 今天精神状态较差。
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '201':
           description: 创建成功
           content:
@@ -179,8 +227,6 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   /class-records/behavior-options:
-    parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [随班记录]
       operationId: listBehaviorOptions
@@ -190,7 +236,7 @@ paths:
         - $ref: '#/components/parameters/OptionalEnvironmentCode'
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 查询成功
           content:
@@ -203,8 +249,6 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   /class-records/abc-tags:
-    parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [随班记录]
       operationId: listAbcQuickTags
@@ -220,13 +264,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/AbcTagDictionaryApiResponse'
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '500':
           $ref: '#/components/responses/InternalError'
 
   /class-records/summary:
-    parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [随班记录]
       operationId: getClassRecordSummary
@@ -240,7 +282,7 @@ paths:
         - $ref: '#/components/parameters/ReferenceDate'
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 查询成功
           content:
@@ -256,7 +298,6 @@ paths:
 
   /class-records/{classRecordId}:
     parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
       - $ref: '#/components/parameters/ClassRecordId'
     get:
       tags: [随班记录]
@@ -264,7 +305,7 @@ paths:
       summary: 查询课堂信息和行为卡片次数
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 查询成功
           content:
@@ -292,7 +333,7 @@ paths:
               overallRemark: 下午注意力下降。
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 保存成功
           content:
@@ -308,7 +349,6 @@ paths:
 
   /class-records/{classRecordId}/behavior-records/quick:
     parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
       - $ref: '#/components/parameters/ClassRecordId'
     post:
       tags: [随班记录]
@@ -325,7 +365,7 @@ paths:
               behaviorCode: B006
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '201':
           description: 创建成功
           content:
@@ -341,7 +381,6 @@ paths:
 
   /class-records/{classRecordId}/behavior-records/supplement:
     parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
       - $ref: '#/components/parameters/ClassRecordId'
     post:
       tags: [随班记录]
@@ -358,7 +397,7 @@ paths:
               occurredAt: '2026-07-17T09:12:45+08:00'
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '201':
           description: 创建成功
           content:
@@ -374,7 +413,6 @@ paths:
 
   /class-records/{classRecordId}/behavior-records:
     parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
       - $ref: '#/components/parameters/ClassRecordId'
     get:
       tags: [随班记录]
@@ -384,7 +422,7 @@ paths:
         - $ref: '#/components/parameters/BehaviorCode'
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 按发生时间升序返回
           content:
@@ -400,7 +438,6 @@ paths:
 
   /behavior-records/{recordId}:
     parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
       - $ref: '#/components/parameters/BehaviorRecordId'
     get:
       tags: [随班记录]
@@ -408,7 +445,7 @@ paths:
       summary: 查询一条详细记录
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 查询成功
           content:
@@ -428,7 +465,7 @@ paths:
       description: 前端根据记录的 detailSaved 决定是否先显示确认框。
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 删除成功
           content:
@@ -444,7 +481,6 @@ paths:
 
   /behavior-records/{recordId}/details:
     parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
       - $ref: '#/components/parameters/BehaviorRecordId'
     put:
       tags: [随班记录]
@@ -476,7 +512,7 @@ paths:
               assistanceResultText: 一次语言提示后返回座位。
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 保存成功
           content:
@@ -491,8 +527,6 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   /student-evaluation/statistics:
-    parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [学生评估]
       operationId: getStudentEvaluationStatistics
@@ -506,7 +540,7 @@ paths:
         - $ref: '#/components/parameters/ReferenceDate'
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 查询成功
           content:
@@ -521,8 +555,6 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   /student-evaluation/abc-distribution:
-    parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [学生评估]
       operationId: getAbcFunctionDistribution
@@ -545,15 +577,13 @@ paths:
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '404':
           $ref: '#/components/responses/ResourceNotFound'
         '500':
           $ref: '#/components/responses/InternalError'
 
   /student-evaluation/behavior-description-trend:
-    parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [学生评估]
       operationId: getBehaviorDescriptionTrend
@@ -585,22 +615,74 @@ paths:
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /student-evaluation/daily-evaluation:
+    get:
+      tags: [学生评估]
+      operationId: getDailyEvaluation
+      summary: 查询指定日期的六维度学生评估
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 查询成功；尚未填写时六个维度返回空值
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyEvaluationApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedSession'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags: [学生评估]
+      operationId: saveDailyEvaluation
+      summary: 保存指定日期的六维度学生评估
+      description: 按当前教师主动选择的学生和 recordDate 幂等新增或覆盖；六个维度均可为空。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DailyEvaluation'
+      responses:
+        '200':
+          description: 保存成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptyApiResponse'
+        '400':
+          $ref: '#/components/responses/BusinessValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedSession'
         '404':
           $ref: '#/components/responses/ResourceNotFound'
         '500':
           $ref: '#/components/responses/InternalError'
 
   /training-plan/categories:
-    parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [训练计划]
       operationId: listTrainingGoalCategories
       summary: 查询训练目标分类
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 查询成功
           content:
@@ -613,8 +695,6 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   /training-plan/library:
-    parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [训练计划]
       operationId: listTrainingGoalLibrary
@@ -636,7 +716,7 @@ paths:
             maxLength: 64
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 查询成功
           content:
@@ -651,8 +731,6 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   /training-plan/goals-progress:
-    parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [训练计划]
       operationId: getTrainingGoalsProgress
@@ -675,7 +753,7 @@ paths:
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '404':
           $ref: '#/components/responses/ResourceNotFound'
         '500':
@@ -683,7 +761,6 @@ paths:
 
   /training-plan/goals/{standardNumber}/records:
     parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
       - name: standardNumber
         in: path
         required: true
@@ -715,15 +792,13 @@ paths:
         '400':
           $ref: '#/components/responses/BusinessValidationError'
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '404':
           $ref: '#/components/responses/ResourceNotFound'
         '500':
           $ref: '#/components/responses/InternalError'
 
   /training-plan/items:
-    parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
     get:
       tags: [训练计划]
       operationId: listTrainingPlanItems
@@ -749,7 +824,7 @@ paths:
             $ref: '#/components/schemas/TrainingStatus'
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 查询成功
           content:
@@ -764,8 +839,6 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   /training-plan/items/standard:
-    parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
     post:
       tags: [训练计划]
       operationId: assignStandardTrainingGoals
@@ -784,7 +857,7 @@ paths:
                   initialLevel: D
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '201':
           description: 激活成功
           content:
@@ -801,8 +874,6 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   /training-plan/items/custom:
-    parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
     post:
       tags: [训练计划]
       operationId: createCustomTrainingGoal
@@ -818,7 +889,7 @@ paths:
               initialLevel: C
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '201':
           description: 创建成功
           content:
@@ -834,7 +905,6 @@ paths:
 
   /training-plan/items/{itemId}:
     parameters:
-      - $ref: '#/components/parameters/TeacherIdHeader'
       - $ref: '#/components/parameters/TrainingPlanItemId'
     patch:
       tags: [训练计划]
@@ -853,7 +923,7 @@ paths:
               status: IN_PROGRESS
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 更新成功
           content:
@@ -880,7 +950,7 @@ paths:
             default: false
       responses:
         '401':
-          $ref: '#/components/responses/UnauthorizedTeacher'
+          $ref: '#/components/responses/UnauthorizedSession'
         '200':
           description: 删除成功
           content:
@@ -897,16 +967,14 @@ paths:
           $ref: '#/components/responses/InternalError'
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+      description: POST /auth/wechat/login 返回的随机会话令牌
+
   parameters:
-    TeacherIdHeader:
-      name: X-Teacher-Id
-      in: header
-      required: true
-      description: 白名单教师 ID；当前仅允许 t001、t002、t003
-      schema:
-        type: string
-        enum: [t001, t002, t003]
-      example: t001
     RecordDate:
       name: recordDate
       in: query
@@ -1020,6 +1088,14 @@ components:
             data:
               $ref: '#/components/schemas/HealthResponse'
 
+    WechatLoginApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/WechatLoginResponse'
+
     MyProfileApiResponse:
       allOf:
         - $ref: '#/components/schemas/SuccessResponse'
@@ -1113,6 +1189,14 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/BehaviorDescriptionTrend'
+
+    DailyEvaluationApiResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/DailyEvaluation'
 
     BehaviorCardMutationResultApiResponse:
       allOf:
@@ -1212,13 +1296,46 @@ components:
           type: string
           enum: [UP]
 
+    WechatLoginRequest:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: wx.login 返回的一次性临时凭证
+        bindingCode:
+          type: string
+          maxLength: 64
+          nullable: true
+          description: 仅未绑定微信首次登录时填写
+
+    WechatLoginResponse:
+      type: object
+      required: [accessToken, tokenType, expiresAt, newlyBound, profile]
+      properties:
+        accessToken:
+          type: string
+          description: 仅在本次响应中返回，后续通过 Authorization Bearer 携带
+        tokenType:
+          type: string
+          enum: [Bearer]
+        expiresAt:
+          type: string
+          format: date-time
+        newlyBound:
+          type: boolean
+        profile:
+          $ref: '#/components/schemas/MyProfile'
+
     ErrorResponse:
       type: object
       required: [code, message, data]
       properties:
         code:
           type: integer
-          enum: [40001, 40002, 40101, 40401, 40901, 40902, 50000]
+          enum: [40001, 40002, 40010, 40011, 40101, 40102, 40301, 40401, 40901, 40902, 40903, 50000, 50201, 50301]
         message:
           type: string
           minLength: 1
@@ -2234,6 +2351,48 @@ components:
           items:
             $ref: '#/components/schemas/BehaviorDescriptionTrendItem'
 
+    DailyEvaluation:
+      type: object
+      required: [recordDate]
+      properties:
+        studentId:
+          type: integer
+          format: int64
+          readOnly: true
+        recordDate:
+          type: string
+          format: date
+        emotion:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: 情绪行为
+        adaptation:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: 社会适应能力
+        social:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: 社会交往能力
+        selfMgmt:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: 自我行为管理
+        language:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: 语言理解及表达
+        focus:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: 自身及共同专注力
+
     ClassRecordSummaryPeriod:
       type: string
       enum: [WEEKLY, MONTHLY]
@@ -2511,15 +2670,65 @@ components:
             $ref: '#/components/schemas/GoalRecordItem'
 
   responses:
-    UnauthorizedTeacher:
-      description: 缺少或无法识别白名单教师身份
+    UnauthorizedSession:
+      description: Bearer 登录状态缺失、无效或已过期
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            code: 40101
-            message: 未识别的教师身份
+            code: 40102
+            message: 登录状态无效或已过期
+            data: null
+    WechatLoginValidationError:
+      description: 微信 code 或教师绑定码无效
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 40010
+            message: 微信登录凭证无效或已使用
+            data: null
+    WechatBindingRequired:
+      description: 当前微信尚未关联教师
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 40301
+            message: 该微信尚未关联教师，请输入一次性教师绑定码
+            data: null
+    WechatBindingConflict:
+      description: 微信或教师身份已被其他关联占用
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 40903
+            message: 该教师已经关联其他微信
+            data: null
+    WechatUpstreamError:
+      description: 微信 code2Session 服务暂时不可用
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 50201
+            message: 微信登录服务暂时不可用
+            data: null
+    WechatNotConfigured:
+      description: 后端未配置微信 AppID 或 AppSecret
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 50301
+            message: 微信登录尚未完成服务端配置
             data: null
     ValidationError:
       description: 请求参数不合法
