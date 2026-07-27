@@ -22,6 +22,52 @@ CREATE TABLE IF NOT EXISTS app_user (
   UNIQUE KEY uk_app_user_teacher_id (teacher_id)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS wechat_identity (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  app_id VARCHAR(32) NOT NULL,
+  openid VARCHAR(64) NOT NULL,
+  unionid VARCHAR(64) NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  last_login_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_wechat_identity_app_openid (app_id, openid),
+  UNIQUE KEY uk_wechat_identity_app_user (app_id, user_id),
+  KEY idx_wechat_identity_user (user_id),
+  KEY idx_wechat_identity_unionid (unionid),
+  CONSTRAINT fk_wechat_identity_user
+    FOREIGN KEY (user_id) REFERENCES app_user (id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS teacher_binding_code (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  code_hash CHAR(64) NOT NULL,
+  expires_at DATETIME(3) NOT NULL,
+  consumed_at DATETIME(3) NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_teacher_binding_code_hash (code_hash),
+  KEY idx_teacher_binding_code_user_state (user_id, consumed_at, expires_at),
+  CONSTRAINT fk_teacher_binding_code_user
+    FOREIGN KEY (user_id) REFERENCES app_user (id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS auth_session (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  token_hash CHAR(64) NOT NULL,
+  expires_at DATETIME(3) NOT NULL,
+  revoked_at DATETIME(3) NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_auth_session_token_hash (token_hash),
+  KEY idx_auth_session_user_state (user_id, revoked_at, expires_at),
+  KEY idx_auth_session_expiry (expires_at),
+  CONSTRAINT fk_auth_session_user
+    FOREIGN KEY (user_id) REFERENCES app_user (id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS student (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   student_code VARCHAR(16) NOT NULL,
@@ -227,6 +273,8 @@ CREATE TABLE IF NOT EXISTS class_record (
   overall_remark VARCHAR(1000) NULL,
   PRIMARY KEY (id),
   KEY idx_class_record_student_date (student_id, record_date),
+  KEY idx_class_record_student_date_dimensions
+    (student_id, record_date, course_code, environment_code),
   KEY idx_class_record_creator_student (creator_id, student_id),
   KEY idx_class_record_course (course_code),
   KEY idx_class_record_environment (environment_code),
@@ -267,6 +315,8 @@ CREATE TABLE IF NOT EXISTS behavior_record (
   KEY idx_behavior_record_stage (stage_code),
   KEY idx_behavior_record_function (function_code),
   KEY idx_behavior_record_status (status_code),
+  KEY idx_behavior_record_reporting
+    (class_record_id, detail_saved, function_code, status_code),
   CONSTRAINT chk_behavior_record_duration
     CHECK (duration_minutes IS NULL OR duration_minutes > 0),
   CONSTRAINT fk_behavior_record_class_record
@@ -440,3 +490,5 @@ CREATE TABLE IF NOT EXISTS daily_evaluation (
 ) ENGINE=InnoDB;
 
 INSERT IGNORE INTO schema_migration (version) VALUES ('2.0.0');
+INSERT IGNORE INTO schema_migration (version) VALUES ('3.0.0');
+INSERT IGNORE INTO schema_migration (version) VALUES ('3.1.0');

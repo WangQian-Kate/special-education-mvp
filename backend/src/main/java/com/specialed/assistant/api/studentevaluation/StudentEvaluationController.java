@@ -1,6 +1,7 @@
 package com.specialed.assistant.api.studentevaluation;
 
 import com.specialed.assistant.auth.CurrentUserId;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -68,7 +69,7 @@ public class StudentEvaluationController {
     @PutMapping("/daily-evaluation")
     public void saveDailyEvaluation(
             @CurrentUserId Long userId,
-            @RequestBody DailyEvaluationEntity body
+            @Valid @RequestBody DailyEvaluationEntity body
     ) {
         service.saveDailyEvaluation(userId, body);
     }

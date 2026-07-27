@@ -14,6 +14,17 @@ server:
   servlet:
     context-path: /api
 
+auth:
+  dev-teacher-header-enabled: false
+
+wechat:
+  app-id: ${WECHAT_APP_ID:}
+  app-secret: ${WECHAT_APP_SECRET:}
+  code-session-url: ${WECHAT_CODE_SESSION_URL:https://api.weixin.qq.com/sns/jscode2session}
+  connect-timeout-seconds: ${WECHAT_CONNECT_TIMEOUT_SECONDS:5}
+  request-timeout-seconds: ${WECHAT_REQUEST_TIMEOUT_SECONDS:8}
+  session-duration-days: ${AUTH_SESSION_DURATION_DAYS:7}
+
 # ===== AI 配置 =====
 ai:
   base-url: ${AI_BASE_URL:https://api.anthropic.com/v1/messages}
