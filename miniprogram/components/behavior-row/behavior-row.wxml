@@ -23,13 +23,13 @@
     <text>{{behavior.name}}</text>
     <text class="br-arrow">{{_expanded ? '▼' : '▶'}}</text>
   </view>
-  <view wx:if="{{_expanded}}" wx:for="{{behavior.subBehaviors}}" wx:for-item="sub" wx:key="code" class="br-row sub-row {{readonly ? 'br-row-tap' : ''}}" bindtap="{{readonly ? 'onSubNameTap' : ''}}" data-sub="{{sub.name}}" data-sub-code="{{sub.code}}">
-    <view class="br-sub-name" catchtap="{{readonly ? '' : 'onSubNameTap'}}" data-sub="{{sub.name}}" data-sub-code="{{sub.code}}">{{sub.name}}</view>
+  <view wx:if="{{_expanded}}" wx:for="{{behavior.subBehaviors}}" wx:for-item="sub" wx:key="code" class="br-row sub-row {{readonly ? 'br-row-tap' : ''}}" bindtap="{{readonly ? 'onSubNameTap' : ''}}" data-sub="{{sub.name}}" data-sub-label="{{sub.label}}" data-sub-code="{{sub.code}}">
+    <view class="br-sub-name" catchtap="{{readonly ? '' : 'onSubNameTap'}}" data-sub="{{sub.name}}" data-sub-label="{{sub.label}}" data-sub-code="{{sub.code}}">{{sub.name}}</view>
     <view wx:for="{{['incomplete','assisted','independent']}}" wx:for-item="s" wx:key="*this" class="br-col">
       <view class="br-ops">
-        <view wx:if="{{!readonly}}" class="br-btn minus" data-sub="{{sub.name}}" data-status="{{s}}" data-delta="-1" catchtap="onStatusChange">−</view>
-        <view class="br-num {{fmt.count(behavior.counts[sub.name], s) ? '' : 'zero'}}" data-sub="{{sub.name}}" data-status="{{s}}" data-count="{{fmt.count(behavior.counts[sub.name], s)}}" catchtap="{{readonly ? '' : 'onStatusTap'}}">{{fmt.count(behavior.counts[sub.name], s)}}</view>
-        <view wx:if="{{!readonly}}" class="br-btn plus s-{{s}}" data-sub="{{sub.name}}" data-status="{{s}}" data-delta="1" catchtap="onStatusChange">+</view>
+        <view wx:if="{{!readonly}}" class="br-btn minus" data-sub="{{sub.name}}" data-sub-label="{{sub.label}}" data-status="{{s}}" data-delta="-1" catchtap="onStatusChange">−</view>
+        <view class="br-num {{fmt.count(behavior.counts[sub.name], s) ? '' : 'zero'}}" data-sub="{{sub.name}}" data-sub-label="{{sub.label}}" data-status="{{s}}" data-count="{{fmt.count(behavior.counts[sub.name], s)}}" catchtap="{{readonly ? '' : 'onStatusTap'}}">{{fmt.count(behavior.counts[sub.name], s)}}</view>
+        <view wx:if="{{!readonly}}" class="br-btn plus s-{{s}}" data-sub="{{sub.name}}" data-sub-label="{{sub.label}}" data-status="{{s}}" data-delta="1" catchtap="onStatusChange">+</view>
       </view>
     </view>
   </view>

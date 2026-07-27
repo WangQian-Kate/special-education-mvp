@@ -12,6 +12,10 @@ mybatis:
 auth:
   dev-teacher-header-enabled: ${AUTH_DEV_TEACHER_HEADER_ENABLED:true}
 
+wechat:
+  app-id: wxcc6d1fbadbb44db1
+  app-secret: 8e5d625b2473a33fed238ab899fd7b33
+
 # ===== AI 配置（智谱清言 GLM-4） =====
 ai:
   base-url: ${AI_BASE_URL:https://open.bigmodel.cn/api/paas/v4/chat/completions}

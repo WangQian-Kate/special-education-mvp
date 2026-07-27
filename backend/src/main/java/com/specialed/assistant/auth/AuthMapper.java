@@ -28,4 +28,12 @@ public interface AuthMapper {
     Long findActiveSessionUserId(@Param("tokenHash") String tokenHash,
                                  @Param("now") LocalDateTime now);
     int revokeSession(@Param("tokenHash") String tokenHash, @Param("now") LocalDateTime now);
+
+    int nextTeacherSeq();
+    int nextStudentSeq();
+    int insertTeacher(OnboardingParams params);
+    int insertStudent(OnboardingParams params);
+    int insertUserStudent(OnboardingParams params);
+    int setCurrentStudent(OnboardingParams params);
+    int seedTrainingGoals(@Param("studentId") Long studentId);
 }

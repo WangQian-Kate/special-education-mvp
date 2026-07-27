@@ -52,4 +52,29 @@ public final class ProfileModels {
             @NotNull @Positive Long studentId
     ) {
     }
+
+    public record StudentDetail(
+            Long id, String studentCode, String name, Gender gender, Integer age,
+            String className, String disabilityType, String remark,
+            String socialAdaptation, String selfManagement, String cognitiveLevel,
+            String languageComprehension, String expressionAbility, String hobbies
+    ) {}
+
+    public record UpdateStudentRequest(
+            String name, Gender gender, Integer age, String className,
+            String disabilityType, String remark,
+            String socialAdaptation, String selfManagement, String cognitiveLevel,
+            String languageComprehension, String expressionAbility, String hobbies
+    ) {}
+
+    public record CreateStudentRequest(
+            String name, Gender gender, Integer age, String className,
+            String disabilityType, String remark,
+            String socialAdaptation, String selfManagement, String cognitiveLevel,
+            String languageComprehension, String expressionAbility, String hobbies
+    ) {}
+
+    public record UpdateProfileRequest(
+            String name, String school, String role, String position
+    ) {}
 }

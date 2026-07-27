@@ -84,4 +84,51 @@ public class ProfileService {
         return new StudentSummary(student.getId(), student.getStudentCode(), student.getName(), gender, student.getAge(),
                 student.getClassName(), student.getDisabilityType(), student.getRemark());
     }
+
+    public StudentDetail getStudentDetail(Long userId, Long studentId) { requireUser(userId); return toDetail(requireStudent(studentId)); }
+    public StudentDetail updateStudent(Long userId, Long studentId, UpdateStudentRequest r) {
+        requireUser(userId); StudentEntity s = requireStudent(studentId);
+        if (r.name() != null) s.setName(r.name()); if (r.gender() != null) s.setGender(r.gender().name());
+        if (r.age() != null) s.setAge(r.age()); if (r.className() != null) s.setClassName(r.className());
+        if (r.disabilityType() != null) s.setDisabilityType(r.disabilityType());
+        if (r.remark() != null) s.setRemark(r.remark());
+        if (r.socialAdaptation() != null) s.setSocialAdaptation(r.socialAdaptation());
+        if (r.selfManagement() != null) s.setSelfManagement(r.selfManagement());
+        if (r.cognitiveLevel() != null) s.setCognitiveLevel(r.cognitiveLevel());
+        if (r.languageComprehension() != null) s.setLanguageComprehension(r.languageComprehension());
+        if (r.expressionAbility() != null) s.setExpressionAbility(r.expressionAbility());
+        if (r.hobbies() != null) s.setHobbies(r.hobbies());
+        mapper.updateStudent(s); return toDetail(mapper.findStudentById(studentId));
+    }
+    public StudentSummary createStudent(Long userId, UpdateStudentRequest r) {
+        requireUser(userId); StudentEntity s = new StudentEntity();
+        s.setStudentCode("s"+String.format("%03d",System.currentTimeMillis()%1000));
+        s.setName(r.name()); s.setGender(r.gender()!=null?r.gender().name():null); s.setAge(r.age());
+        s.setClassName(r.className()); s.setDisabilityType(r.disabilityType()); s.setRemark(r.remark());
+        s.setSocialAdaptation(r.socialAdaptation()); s.setSelfManagement(r.selfManagement());
+        s.setCognitiveLevel(r.cognitiveLevel()); s.setLanguageComprehension(r.languageComprehension());
+        s.setExpressionAbility(r.expressionAbility()); s.setHobbies(r.hobbies());
+        mapper.insertStudent(s);
+        mapper.insertUserStudent(userId, s.getId());
+        mapper.upsertCurrentStudent(userId, s.getId()); return toSummary(s);
+    }
+    public void updateProfile(Long userId, UpdateProfileRequest r) {
+        UserEntity u = requireUser(userId); if (r.name() != null) u.setName(r.name());
+        if (r.school() != null) u.setSchool(r.school());
+        if (r.role() != null) { u.setRole(r.role()); u.setPosition(r.position()); }
+        mapper.updateUser(u);
+    }
+
+    private StudentDetail toDetail(StudentEntity s) {
+        Gender g = s.getGender() == null ? null : Gender.valueOf(s.getGender());
+        return new StudentDetail(s.getId(), s.getStudentCode(), s.getName(), g, s.getAge(),
+                s.getClassName(), s.getDisabilityType(), s.getRemark(), s.getSocialAdaptation(),
+                s.getSelfManagement(), s.getCognitiveLevel(), s.getLanguageComprehension(),
+                s.getExpressionAbility(), s.getHobbies());
+    }
+    private StudentEntity requireStudent(Long id) {
+        StudentEntity s = mapper.findStudentById(id);
+        if (s == null) throw new BusinessException(HttpStatus.NOT_FOUND, ErrorCode.RESOURCE_NOT_FOUND, "学生不存在");
+        return s;
+    }
 }

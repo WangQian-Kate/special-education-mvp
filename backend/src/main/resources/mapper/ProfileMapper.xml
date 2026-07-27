@@ -22,34 +22,64 @@
         <result property="className" column="class_name"/>
         <result property="disabilityType" column="disability_type"/>
         <result property="remark" column="remark"/>
+        <result property="socialAdaptation" column="social_adaptation"/>
+        <result property="selfManagement" column="self_management"/>
+        <result property="cognitiveLevel" column="cognitive_level"/>
+        <result property="languageComprehension" column="language_comprehension"/>
+        <result property="expressionAbility" column="expression_ability"/>
+        <result property="hobbies" column="hobbies"/>
     </resultMap>
 
     <select id="findUser" resultMap="UserMap">
         SELECT id, teacher_id, avatar, name, school, position, role
-        FROM app_user
-        WHERE id = #{userId}
+        FROM app_user WHERE id = #{userId}
     </select>
 
     <select id="findBoundStudents" resultMap="StudentMap">
-        SELECT s.id, s.student_code, s.name, s.gender, s.age, s.class_name, s.disability_type, s.remark
-        FROM app_user_student aus
+        SELECT s.* FROM app_user_student aus
         JOIN student s ON s.id = aus.student_id
-        WHERE aus.user_id = #{userId}
-        ORDER BY s.id
+        WHERE aus.user_id = #{userId} ORDER BY s.id
     </select>
 
     <select id="findCurrentStudent" resultMap="StudentMap">
-        SELECT s.id, s.student_code, s.name, s.gender, s.age, s.class_name, s.disability_type, s.remark
-        FROM app_user_current_student current_student
-        JOIN student s ON s.id = current_student.student_id
-        WHERE current_student.user_id = #{userId}
+        SELECT s.* FROM app_user_current_student cs
+        JOIN student s ON s.id = cs.student_id
+        WHERE cs.user_id = #{userId}
     </select>
+
+    <select id="findStudentById" resultMap="StudentMap">
+        SELECT * FROM student WHERE id = #{id}
+    </select>
+
+    <update id="updateStudent">
+        UPDATE student SET name=#{name}, gender=#{gender}, age=#{age}, class_name=#{className},
+          disability_type=#{disabilityType}, remark=#{remark},
+          social_adaptation=#{socialAdaptation}, self_management=#{selfManagement},
+          cognitive_level=#{cognitiveLevel}, language_comprehension=#{languageComprehension},
+          expression_ability=#{expressionAbility}, hobbies=#{hobbies}
+        WHERE id=#{id}
+    </update>
+
+    <insert id="insertStudent" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO student (student_code, name, gender, age, class_name, disability_type, remark,
+          social_adaptation, self_management, cognitive_level, language_comprehension, expression_ability, hobbies)
+        VALUES (#{studentCode}, #{name}, #{gender}, #{age}, #{className}, #{disabilityType}, #{remark},
+          #{socialAdaptation}, #{selfManagement}, #{cognitiveLevel}, #{languageComprehension}, #{expressionAbility}, #{hobbies})
+    </insert>
+
+    <update id="updateUser">
+        UPDATE app_user SET name=#{name}, school=#{school}, role=#{role}, position=#{position} WHERE id=#{id}
+    </update>
 
     <select id="existsBinding" resultType="boolean">
         SELECT COUNT(*) &gt; 0
         FROM app_user_student
         WHERE user_id = #{userId} AND student_id = #{studentId}
     </select>
+
+    <insert id="insertUserStudent">
+        INSERT INTO app_user_student (user_id, student_id) VALUES (#{userId}, #{studentId})
+    </insert>
 
     <insert id="upsertCurrentStudent">
         INSERT INTO app_user_current_student (user_id, student_id)

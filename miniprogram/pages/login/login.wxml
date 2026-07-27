@@ -1,21 +1,115 @@
-<view class="login-page flex-column">
+<!-- 启动页 -->
+<view class="splash" wx:if="{{step === 'splash'}}">
+  <view class="splash-logo" bindtap="onDevTap">特</view>
+  <view class="splash-title">特教课堂助手</view>
+  <view class="splash-sub">Special Education Assistant</view>
+  <view class="loading-dot"></view>
+</view>
+
+<!-- 微信登录 -->
+<view class="login-card" wx:if="{{step === 'login'}}">
+  <image class="avatar" src="/images/avatar-default.png" mode="aspectFill" />
+  <view class="nickname">特教课堂助手</view>
+  <view class="hint">申请使用你的微信头像和昵称</view>
+  <button class="wechat-btn" bindtap="handleWechatLogin" loading="{{submitting}}">
+    <text wx:if="{{!submitting}}">微信授权登录</text>
+    <text wx:else>登录中…</text>
+  </button>
+  <view class="dev-link" bindtap="onDevTap">开发模式</view>
+</view>
+
+<!-- 完善个人信息 -->
+<scroll-view scroll-y class="onboard-scroll" wx:if="{{step === 'teacher'}}">
+  <view class="ob-header">
+    <view class="ob-title">完善个人信息</view>
+    <view class="ob-sub">以便我们为您提供更好的教学支持</view>
+  </view>
+  <view class="ob-card">
+    <view class="field-label">姓名</view>
+    <input class="field-input" value="{{form.teacherName}}" bindinput="onFieldInput" data-field="teacherName" placeholder="请输入姓名" />
+  </view>
+  <view class="ob-card">
+    <view class="field-label">学校</view>
+    <input class="field-input" value="{{form.school}}" bindinput="onFieldInput" data-field="school" placeholder="请输入学校名称" />
+  </view>
+  <view class="ob-card">
+    <view class="field-label">角色</view>
+    <picker mode="selector" range="{{roleOptions}}" value="{{roleIndex}}" bindchange="onRoleChange">
+      <view class="field-picker">{{roleOptions[roleIndex]}}</view>
+    </picker>
+  </view>
+  <button class="ob-next" bindtap="onNextStep">下一步</button>
+</scroll-view>
+
+<!-- 填写学生信息 -->
+<scroll-view scroll-y class="onboard-scroll" wx:if="{{step === 'student'}}">
+  <view class="ob-header">
+    <view class="ob-title">填写孩子信息</view>
+    <view class="ob-sub">请完善孩子的详细信息</view>
+  </view>
+  <view class="ob-card">
+    <view class="field-label">姓名</view>
+    <input class="field-input" value="{{form.studentName}}" bindinput="onFieldInput" data-field="studentName" placeholder="请输入孩子姓名" />
+  </view>
+  <view class="ob-row">
+    <view class="ob-card half">
+      <view class="field-label">年龄</view>
+      <input class="field-input" type="number" value="{{form.studentAge}}" bindinput="onFieldInput" data-field="studentAge" placeholder="请输入" />
+    </view>
+    <view class="ob-card half">
+      <view class="field-label">性别</view>
+      <picker mode="selector" range="{{genderOptions}}" value="{{genderIndex}}" bindchange="onGenderChange">
+        <view class="field-picker">{{genderOptions[genderIndex]}}</view>
+      </picker>
+    </view>
+  </view>
+  <view class="ob-card">
+    <view class="field-label">班级</view>
+    <input class="field-input" value="{{form.studentClassName}}" bindinput="onFieldInput" data-field="studentClassName" placeholder="请输入班级" />
+  </view>
+  <view class="ob-card">
+    <view class="field-label">障碍类型（可多选）</view>
+    <view class="checkbox-grid">
+      <view class="checkbox-item {{disabilityChecks.ASD ? 'on' : ''}}" data-code="ASD" bindtap="onDisabilityToggle">孤独症谱系障碍（ASD）</view>
+      <view class="checkbox-item {{disabilityChecks.ID ? 'on' : ''}}" data-code="ID" bindtap="onDisabilityToggle">智力障碍</view>
+      <view class="checkbox-item {{disabilityChecks.ADHD ? 'on' : ''}}" data-code="ADHD" bindtap="onDisabilityToggle">注意缺陷多动障碍</view>
+      <view class="checkbox-item {{disabilityChecks.SLD ? 'on' : ''}}" data-code="SLD" bindtap="onDisabilityToggle">言语语言障碍</view>
+      <view class="checkbox-item {{disabilityChecks.LD ? 'on' : ''}}" data-code="LD" bindtap="onDisabilityToggle">学习障碍</view>
+      <view class="checkbox-item {{disabilityChecks.DD ? 'on' : ''}}" data-code="DD" bindtap="onDisabilityToggle">发育迟缓</view>
+      <view class="checkbox-item {{disabilityChecks.EBD ? 'on' : ''}}" data-code="EBD" bindtap="onDisabilityToggle">情绪行为障碍</view>
+      <view class="checkbox-item {{disabilityChecks.CP ? 'on' : ''}}" data-code="CP" bindtap="onDisabilityToggle">脑瘫</view>
+    </view>
+  </view>
+  <view class="ob-card">
+    <view class="field-label">当前能力等级</view>
+    <view wx:for="{{abilityFields}}" wx:key="key" class="ability-row">
+      <text class="ability-label">{{item.label}}</text>
+      <view class="ability-opts">
+        <view wx:for="{{['较弱','一般','良好']}}" wx:for-item="lv" wx:key="*this"
+          class="ability-chip {{form[item.key] === lv ? 'on' : ''}}" data-key="{{item.key}}" data-val="{{lv}}" bindtap="onAbilityTap">{{lv}}</view>
+      </view>
+    </view>
+  </view>
+  <view class="ob-card">
+    <view class="field-label">爱好</view>
+    <input class="field-input" value="{{form.hobbies}}" bindinput="onFieldInput" data-field="hobbies" placeholder="选填" />
+  </view>
+  <view class="ob-card">
+    <view class="field-label">备注</view>
+    <input class="field-input" value="{{form.studentRemark}}" bindinput="onFieldInput" data-field="studentRemark" placeholder="选填" />
+  </view>
+  <button class="ob-next" bindtap="handleSubmit" loading="{{submitting}}">{{submitting ? '注册中…' : '注册并登录'}}</button>
+</scroll-view>
+
+<!-- 开发模式：白名单登录 -->
+<view class="login-page flex-column" wx:if="{{step === 'dev'}}">
   <view class="logo-area flex-column flex-center">
     <view class="logo flex-center">特</view>
     <view class="app-name">特教课堂助手</view>
-    <view class="app-sub">Special Education Assistant · MVP</view>
+    <view class="app-sub">开发模式 · 选择身份进入</view>
   </view>
-
-  <view class="tip">开发阶段 · 选择身份进入（白名单伪登录）</view>
-
   <view class="teacher-list">
-    <view
-      class="teacher-item card flex-row"
-      wx:for="{{teachers}}"
-      wx:key="id"
-      data-index="{{index}}"
-      hover-class="btn-hover"
-      bindtap="handleSelect"
-    >
+    <view class="teacher-item card flex-row" wx:for="{{teachers}}" wx:key="id" data-index="{{index}}" hover-class="btn-hover" bindtap="handleDevSelect">
       <view class="avatar flex-center">{{item.name[0]}}</view>
       <view class="info flex-column">
         <view class="name">{{item.name}}</view>
@@ -23,12 +117,5 @@
       </view>
       <view class="arrow">›</view>
     </view>
-  </view>
-
-  <view class="ping-area flex-column flex-center">
-    <button class="ping-btn" size="mini" bindtap="handlePing">测试后端连接</button>
-    <view class="ping-status ok" wx:if="{{pingStatus === 'ok'}}">✓ 后端连通</view>
-    <view class="ping-status fail" wx:if="{{pingStatus === 'fail'}}">✗ 连接失败</view>
-    <view class="base-url">{{baseUrl}}</view>
   </view>
 </view>

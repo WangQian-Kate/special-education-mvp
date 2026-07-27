@@ -1,16 +1,28 @@
 // api/plan.js
-// 训练计划域接口封装（阶段二 mock，阶段三接后端）
+// 训练计划域接口封装
 const request = require('../utils/request');
 const { get } = request;
 
 /**
  * 查询训练目标关联的行为记录列表
  * GET /training-plan/goals/{standardNumber}/records?limit=10
- * @param {number} standardNumber 训练目标编号
- * @param {number} limit 返回条数，默认 10
- * @returns {Promise<{standardNumber, goalText, totalCount, records}>}
  */
 const getGoalRecords = (standardNumber, limit = 10) =>
   get(`/training-plan/goals/${standardNumber}/records`, { limit });
 
-module.exports = { getGoalRecords };
+/**
+ * 获取学生训练计划条目列表
+ * GET /training-plan/items
+ */
+const getPlanItems = () => get('/training-plan/items');
+
+/**
+ * 更新单条训练目标
+ * PATCH /training-plan/items/{itemId}
+ * @param {number} itemId
+ * @param {Object} patch { currentLevel?, phase?, status? }
+ */
+const updatePlanItem = (itemId, patch) =>
+  request.request({ url: `/training-plan/items/${itemId}`, method: 'PATCH', data: patch });
+
+module.exports = { getGoalRecords, getPlanItems, updatePlanItem };

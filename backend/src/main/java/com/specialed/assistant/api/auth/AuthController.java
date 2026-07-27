@@ -1,6 +1,7 @@
 package com.specialed.assistant.api.auth;
 
 import com.specialed.assistant.auth.AuthService;
+import com.specialed.assistant.auth.OnboardingParams;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,6 +25,12 @@ public class AuthController {
     @PostMapping("/wechat/login")
     public WechatLoginResponse login(@Valid @RequestBody WechatLoginRequest request) {
         return service.login(request);
+    }
+
+    @PostMapping("/onboarding")
+    public WechatLoginResponse onboard(@RequestBody String raw) {
+        OnboardingParams params = service.parseOnboardingParams(raw);
+        return service.onboard(params);
     }
 
     @PostMapping("/logout")

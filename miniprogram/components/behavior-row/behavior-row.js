@@ -18,22 +18,24 @@ Component({
   methods: {
     onStatusChange(e) {
       var sub = e.currentTarget.dataset.sub || '';
+      var subLabel = e.currentTarget.dataset.subLabel || sub;
       var status = e.currentTarget.dataset.status;
       var delta = Number(e.currentTarget.dataset.delta);
       this.triggerEvent('statuschange', {
         behaviorName: this.properties.behavior.name,
-        subBehavior: sub, status: status, delta: delta
+        subBehavior: sub, subLabel: subLabel, status: status, delta: delta
       });
     },
 
     onStatusTap(e) {
       var sub = e.currentTarget.dataset.sub || '';
+      var subLabel = e.currentTarget.dataset.subLabel || sub;
       var status = e.currentTarget.dataset.status;
       var count = Number(e.currentTarget.dataset.count);
       if (!count) return;
       this.triggerEvent('statustap', {
         behaviorName: this.properties.behavior.name,
-        subBehavior: sub, status: status, count: count
+        subBehavior: sub, subLabel: subLabel, status: status, count: count
       });
     },
 
@@ -51,6 +53,7 @@ Component({
         behaviorCode: this.properties.behavior.code,
         behaviorName: this.properties.behavior.name,
         subBehavior: e.currentTarget.dataset.sub,
+        subLabel: e.currentTarget.dataset.subLabel || e.currentTarget.dataset.sub,
         subBehaviorCode: e.currentTarget.dataset.subCode || ''
       });
     }

@@ -10,6 +10,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -41,6 +42,64 @@ public class AuthService {
         this.wechatClient = wechatClient;
         this.properties = properties;
         this.profileService = profileService;
+    }
+
+    public OnboardingParams parseOnboardingParams(String raw) {
+        try {
+            return new ObjectMapper().readValue(raw, OnboardingParams.class);
+        } catch (Exception e) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_ERROR,
+                    "请求体格式不正确: " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    public WechatLoginResponse onboard(OnboardingParams params) {
+        WechatCodeSession wechatSession = wechatClient.exchange(params.getWechatCode().trim());
+        LocalDateTime now = LocalDateTime.now();
+
+        // 1. 检查微信是否已绑定
+        Long existingUserId = mapper.findUserIdByWechatIdentity(properties.getAppId(), wechatSession.openId());
+        if (existingUserId != null) {
+            throw new BusinessException(HttpStatus.CONFLICT, ErrorCode.WECHAT_TEACHER_ALREADY_BOUND,
+                    "该微信已关联教师账号，请直接登录");
+        }
+
+        // 2. 生成教师ID
+        String teacherId = "t" + String.format("%03d", mapper.nextTeacherSeq());
+
+        // 3. 创建教师用户（中文角色名 → DB枚举值）
+        String mappedRole = mapRole(params.getRole());
+        params.setTeacherId(teacherId);
+        params.setPosition(params.getRole());
+        params.setRole(mappedRole);
+        params.setTeacherName(params.getTeacherName());
+        mapper.insertTeacher(params);
+
+        // 4. 创建学生（性别映射）
+        params.setStudentCode(generateStudentCode());
+        if ("男".equals(params.getStudentGender())) params.setStudentGender("MALE");
+        else if ("女".equals(params.getStudentGender())) params.setStudentGender("FEMALE");
+        mapper.insertStudent(params);
+
+        // 5. 关联教师-学生 + 种子训练目标
+        mapper.insertUserStudent(params);
+        mapper.setCurrentStudent(params);
+        mapper.seedTrainingGoals(params.getStudentId());
+
+        // 6. 绑定微信
+        mapper.insertWechatIdentity(params.getUserId(), properties.getAppId(),
+                wechatSession.openId(), wechatSession.unionId(), now);
+
+        // 7. 生成会话
+        String token = newAccessToken();
+        String tokenHash = sha256(token);
+        LocalDateTime expiresAt = now.plusDays(properties.getSessionDurationDays());
+        mapper.insertSession(params.getUserId(), tokenHash, expiresAt, now);
+
+        MyProfile profile = profileService.getProfile(params.getUserId());
+        return new WechatLoginResponse(token, "Bearer",
+                expiresAt.atOffset(SHANGHAI_OFFSET), true, profile);
     }
 
     @Transactional
@@ -145,6 +204,21 @@ public class AuthService {
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("当前 Java 环境不支持 SHA-256", exception);
         }
+    }
+
+    private String mapRole(String chineseRole) {
+        return switch (chineseRole) {
+            case "影子老师" -> "SHADOW_TEACHER";
+            case "资源教师" -> "RESOURCE_TEACHER";
+            case "班主任" -> "RESOURCE_TEACHER";
+            case "家长" -> "PARENT";
+            default -> "SHADOW_TEACHER";
+        };
+    }
+
+    private String generateStudentCode() {
+        int next = mapper.nextStudentSeq();
+        return "s" + String.format("%03d", next);
     }
 
     private BusinessException unauthorized() {

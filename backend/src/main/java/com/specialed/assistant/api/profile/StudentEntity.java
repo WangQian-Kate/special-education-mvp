@@ -9,6 +9,12 @@ public class StudentEntity {
     private String className;
     private String disabilityType;
     private String remark;
+    private String socialAdaptation;
+    private String selfManagement;
+    private String cognitiveLevel;
+    private String languageComprehension;
+    private String expressionAbility;
+    private String hobbies;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -26,4 +32,16 @@ public class StudentEntity {
     public void setDisabilityType(String disabilityType) { this.disabilityType = disabilityType; }
     public String getRemark() { return remark; }
     public void setRemark(String remark) { this.remark = remark; }
+    public String getSocialAdaptation() { return socialAdaptation; }
+    public void setSocialAdaptation(String v) { this.socialAdaptation = v; }
+    public String getSelfManagement() { return selfManagement; }
+    public void setSelfManagement(String v) { this.selfManagement = v; }
+    public String getCognitiveLevel() { return cognitiveLevel; }
+    public void setCognitiveLevel(String v) { this.cognitiveLevel = v; }
+    public String getLanguageComprehension() { return languageComprehension; }
+    public void setLanguageComprehension(String v) { this.languageComprehension = v; }
+    public String getExpressionAbility() { return expressionAbility; }
+    public void setExpressionAbility(String v) { this.expressionAbility = v; }
+    public String getHobbies() { return hobbies; }
+    public void setHobbies(String v) { this.hobbies = v; }
 }

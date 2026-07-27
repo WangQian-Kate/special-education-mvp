@@ -17,13 +17,14 @@ function initWkLineChart(canvas, width, height, dpr) {
   canvas.setChart(chart); wkLineChart = chart;
   chart.setOption({
     grid: { left: 44, right: 16, top: 20, bottom: 36 },
-    xAxis: { type: 'category', data: ['一','二','三','四','五'], axisLabel: { fontSize: 10, color: '#9ca3af' }, axisLine: { lineStyle: { color: '#e5e7eb' } } },
+    xAxis: { type: 'category', data: ['一','二','三','四','五','六','日'], axisLabel: { fontSize: 10, color: '#9ca3af' }, axisLine: { lineStyle: { color: '#e5e7eb' } } },
     yAxis: { type: 'value', minInterval: 1, axisLabel: { fontSize: 10, color: '#9ca3af' }, splitLine: { lineStyle: { color: '#f3f4f6' } } },
-    legend: { data: ['总次数','独立','未完成'], bottom: 0, textStyle: { fontSize: 10, color: '#9ca3af' } },
+    legend: { data: ['总次数','独立','辅助','未完成'], bottom: 0, textStyle: { fontSize: 10, color: '#9ca3af' } },
     series: [
-      { name: '总次数', type: 'line', data: [0,0,0,0,0], smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { color: '#5B9BD5', width: 2 }, itemStyle: { color: '#5B9BD5' } },
-      { name: '独立', type: 'line', data: [0,0,0,0,0], smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { color: '#22c55e', width: 2 }, itemStyle: { color: '#22c55e' } },
-      { name: '未完成', type: 'line', data: [0,0,0,0,0], smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { color: '#5B9BD5', width: 1.5, type: 'dashed' }, itemStyle: { color: '#5B9BD5' } }
+      { name: '总次数', type: 'line', data: [0,0,0,0,0,0,0], smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { color: '#5B9BD5', width: 2 }, itemStyle: { color: '#5B9BD5' } },
+      { name: '独立', type: 'line', data: [0,0,0,0,0,0,0], smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { color: '#22c55e', width: 2 }, itemStyle: { color: '#22c55e' } },
+      { name: '辅助', type: 'line', data: [0,0,0,0,0,0,0], smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { color: '#f59e0b', width: 2 }, itemStyle: { color: '#f59e0b' } },
+      { name: '未完成', type: 'line', data: [0,0,0,0,0,0,0], smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { color: '#5B9BD5', width: 1.5, type: 'dashed' }, itemStyle: { color: '#5B9BD5' } }
     ]
   });
   return chart;
@@ -52,9 +53,7 @@ var SUB_SHORTEN = {
   '主动创作，内容与要求一致': '内容与要求一致',
   '安静聆听同伴介绍作品想法': '听同伴介绍作品',
   '听完介绍后给予恰当评价': '给予恰当评价',
-  '关注课堂提问简单问题': '关注简单提问',
   '主动合适方式回应提问': '合适方式回应提问',
-  '关注课堂提问复杂问题': '关注复杂提问',
   '安静聆听同伴展示作品': '聆听同伴展示',
   '主动配合老师整理用具': '配合老师整理',
   '主动配合组长整理用具': '配合组长整理',
@@ -90,6 +89,7 @@ function groupByModule(items) {
         return {
           code: s.code,
           name: SUB_SHORTEN[s.label] || s.label,
+          label: s.label,
           displayOrder: s.displayOrder,
           performanceOptions: s.performanceOptions || []
         };
@@ -216,6 +216,15 @@ Page({
     try {
       // 每次都重新拉当日全部课堂记录，确保增量更新同步
       this.dayRecords = await recordApi.getDayRecords(this.data.date);
+      // 构建 label→name 映射表
+      var subNameMap = {};
+      modules.forEach(function (mod) {
+        mod.behaviors.forEach(function (beh) {
+          (beh.subBehaviors || []).forEach(function (s) {
+            subNameMap[s.label] = s.name;
+          });
+        });
+      });
       var countMap = {};
       var dayRecords = this.dayRecords || [];
       for (var i = 0; i < dayRecords.length; i++) {
@@ -229,7 +238,7 @@ Page({
               var recs = await recordApi.listBehaviorRecords(dayRecords[i].id, c.behaviorCode);
               (recs || []).forEach(function (r) {
                 var st = (r.statusCode || 'incomplete').toLowerCase();
-                var subKey = r.subBehaviorCode || '';
+                var subKey = subNameMap[r.subBehaviorCode] || r.subBehaviorCode || '';
                 // 子行为计数：countMap[parentCode][subName] = { incomplete, assisted, independent }
                 if (subKey) {
                   if (!countMap[c.behaviorCode][subKey]) countMap[c.behaviorCode][subKey] = { incomplete: 0, assisted: 0, independent: 0 };
@@ -337,8 +346,12 @@ Page({
       return counts;
     }
     // 有子行为：按子行为名称拆分计数
-    var subMap = {};
-    beh.subBehaviors.forEach(function (s) { subMap[s.code] = s.name; });
+    var subCodeMap = {};
+    var subLabelMap = {};
+    beh.subBehaviors.forEach(function (s) {
+      subCodeMap[s.code] = s.name;
+      subLabelMap[s.label] = s.name;
+    });
     var counts = {};
     beh.subBehaviors.forEach(function (s) {
       counts[s.name] = { incomplete: 0, assisted: 0, independent: 0 };
@@ -346,7 +359,7 @@ Page({
     (recs || []).forEach(function (r) {
       var st = (r.statusCode || 'incomplete').toLowerCase();
       if (st !== 'incomplete' && st !== 'assisted' && st !== 'independent') st = 'incomplete';
-      var subName = subMap[r.subBehaviorCode] || (r.subBehaviorCode || '');
+      var subName = subLabelMap[r.subBehaviorCode] || subCodeMap[r.subBehaviorCode] || (r.subBehaviorCode || '');
       if (subName && counts[subName]) {
         counts[subName][st] = (counts[subName][st] || 0) + 1;
       }
@@ -404,7 +417,7 @@ Page({
 
     if (d.delta > 0) {
       this.ensureClassRecord().then(function (cid) {
-        recordApi.quickAddBehavior(cid, behCode, d.subBehavior || null, d.status).catch(function (err) {
+        recordApi.quickAddBehavior(cid, behCode, d.subLabel || d.subBehavior || null, d.status).catch(function (err) {
           wx.showToast({ title: '记录失败: ' + ((err && err.message) || '网络异常'), icon: 'none' });
         });
       }).catch(function () {});
@@ -416,7 +429,7 @@ Page({
         (recs || []).forEach(function (r) {
           var st = (r.statusCode || 'incomplete').toLowerCase();
           var sub = r.subBehaviorCode || '';
-          var matchSub = !d.subBehavior || sub === d.subBehavior;
+          var matchSub = !d.subBehavior || sub === d.subLabel || sub === d.subBehavior;
           if (st === d.status && matchSub && (!target || r.id > target.id)) target = r;
         });
         if (!target) return;
@@ -608,7 +621,7 @@ Page({
       });
     });
     this.setData({
-      abcVisible: true, abcPerfOptions: perfOpts, abcSubBehaviorCode: d.subBehavior || '',
+      abcVisible: true, abcPerfOptions: perfOpts, abcSubBehaviorCode: d.subLabel || d.subBehavior || '',
       abcBehavior: { behaviorCode: d.behaviorCode || '', behaviorLabel: d.subBehavior + '（' + d.behaviorName + '）' }
     });
   },
@@ -641,10 +654,12 @@ Page({
         if (beh.code !== d.behaviorCode) return beh;
         var counts = {};
         if (beh.subBehaviors && beh.subBehaviors.length) {
+          var labelToName = {};
           (beh.subBehaviors || []).forEach(function (sub) {
             counts[sub.name] = { ...(beh.counts[sub.name] || { incomplete: 0, assisted: 0, independent: 0 }) };
+            labelToName[sub.label] = sub.name;
           });
-          var key = d.subBehavior || '';
+          var key = labelToName[d.subBehavior] || d.subBehavior || '';
           if (key && counts[key]) counts[key][d.status] = Math.max(0, (counts[key][d.status] || 0) + d.delta);
         } else {
           counts = { incomplete: (beh.counts.incomplete || 0), assisted: (beh.counts.assisted || 0), independent: (beh.counts.independent || 0) };
@@ -766,8 +781,9 @@ Page({
         if (!chart) { setTimeout(updateWkChart, 300); return; }
         var lineTotal = dailyTrend.map(function (d) { return d.recordCount || 0; });
         var lineInd = dailyTrend.map(function (d) { return d.independentCount || 0; });
+        var lineAss = dailyTrend.map(function (d) { return d.assistedCount || 0; });
         var lineInc = dailyTrend.map(function (d) { return d.incompleteCount || 0; });
-        try { chart.setOption({ series: [{ data: lineTotal }, { data: lineInd }, { data: lineInc }] }); } catch (_) {}
+        try { chart.setOption({ series: [{ data: lineTotal }, { data: lineInd }, { data: lineAss }, { data: lineInc }] }); } catch (_) {}
       };
       updateWkChart();
 
@@ -780,7 +796,7 @@ Page({
       }) : [];
 
       // 高频行为 TOP6（带三色状态拆分）
-      var top6base = items.slice().sort(function (a, b) { return b.count - a.count; }).slice(0, 6);
+      var top6base = items.filter(function (i) { return i.count > 0; }).sort(function (a, b) { return b.count - a.count; }).slice(0, 6);
       var top6 = top6base.map(function (i) {
         var t = (i.incompleteCount||0) + (i.assistedCount||0) + (i.independentCount||0) || 1;
         return {

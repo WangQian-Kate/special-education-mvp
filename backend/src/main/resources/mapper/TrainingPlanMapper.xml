@@ -175,6 +175,12 @@
             SELECT 1 FROM behavior_training_goal relation
             WHERE relation.standard_number = #{standardNumber}
               AND relation.behavior_code = behavior.behavior_code
+              AND (relation.sub_behavior_code = behavior.sub_behavior_code
+                   OR (relation.sub_behavior_code IS NULL AND behavior.sub_behavior_code IS NULL)
+                   OR (relation.sub_behavior_code IS NOT NULL AND behavior.sub_behavior_code IS NOT NULL
+                       AND EXISTS (SELECT 1 FROM behavior_catalog_option opt
+                                   WHERE opt.code = relation.sub_behavior_code
+                                     AND opt.label = behavior.sub_behavior_code)))
           )
     </select>
 
@@ -201,6 +207,12 @@
             SELECT 1 FROM behavior_training_goal relation
             WHERE relation.standard_number = #{standardNumber}
               AND relation.behavior_code = behavior.behavior_code
+              AND (relation.sub_behavior_code = behavior.sub_behavior_code
+                   OR (relation.sub_behavior_code IS NULL AND behavior.sub_behavior_code IS NULL)
+                   OR (relation.sub_behavior_code IS NOT NULL AND behavior.sub_behavior_code IS NOT NULL
+                       AND EXISTS (SELECT 1 FROM behavior_catalog_option opt
+                                   WHERE opt.code = relation.sub_behavior_code
+                                     AND opt.label = behavior.sub_behavior_code)))
           )
         ORDER BY behavior.occurred_at DESC, behavior.id DESC
         LIMIT #{limit}

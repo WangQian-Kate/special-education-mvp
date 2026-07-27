@@ -1,8 +1,29 @@
 // utils/store.js
-// 轻量全局状态：teacherId 持久化，教师/学生资料由后端实时返回
+// 轻量全局状态：accessToken + teacherId 持久化，教师/学生资料由后端实时返回
 
+const KEY_ACCESS_TOKEN = 'accessToken';
 const KEY_TEACHER_ID = 'teacherId';
 const LEGACY_KEY_TEACHER = 'teacher';
+
+function getAccessToken() {
+  var app = getApp();
+  if (app && app.globalData.accessToken) return app.globalData.accessToken;
+  var token = wx.getStorageSync(KEY_ACCESS_TOKEN) || '';
+  if (app && token) app.globalData.accessToken = token;
+  return token;
+}
+
+function setAccessToken(token) {
+  var app = getApp();
+  if (app) app.globalData.accessToken = token;
+  wx.setStorageSync(KEY_ACCESS_TOKEN, token);
+}
+
+function clearAccessToken() {
+  var app = getApp();
+  if (app) app.globalData.accessToken = '';
+  wx.removeStorageSync(KEY_ACCESS_TOKEN);
+}
 
 /** 获取当前白名单教师 ID，并迁移旧版 teacher 对象缓存 */
 function getTeacherId() {
@@ -33,10 +54,19 @@ function setTeacherId(teacherId) {
   wx.removeStorageSync(LEGACY_KEY_TEACHER);
 }
 
+var ROLE_MAP = { 'SHADOW_TEACHER': '影子老师', 'RESOURCE_TEACHER': '资源教师', 'PARENT': '家长' };
+var DISABILITY_MAP = { 'ASD': '孤独症谱系障碍', 'ID': '智力障碍', 'ADHD': '注意缺陷多动障碍', 'SLD': '言语语言障碍', 'LD': '学习障碍', 'DD': '发育迟缓', 'EBD': '情绪行为障碍', 'CP': '脑瘫' };
+
 /** 保存后端 /me 返回的当前教师和学生资料 */
 function setProfile(profile) {
-  const app = getApp();
+  var app = getApp();
   if (!app) return;
+  if (profile && profile.user) {
+    profile.user.roleLabel = profile.user.position || ROLE_MAP[profile.user.role] || profile.user.role;
+  }
+  if (profile && profile.currentStudent && profile.currentStudent.disabilityType) {
+    profile.currentStudent.disabilityLabel = profile.currentStudent.disabilityType.split(',').map(function (c) { return DISABILITY_MAP[c.trim()] || c.trim(); }).join('、');
+  }
   app.globalData.teacher = profile && profile.user ? profile.user : null;
   app.globalData.currentStudent = profile && profile.currentStudent ? profile.currentStudent : null;
 
@@ -68,4 +98,4 @@ function clearIdentity() {
   wx.removeStorageSync(LEGACY_KEY_TEACHER);
 }
 
-module.exports = { getTeacherId, setTeacherId, getProfile, setProfile, clearIdentity };
+module.exports = { getAccessToken, setAccessToken, clearAccessToken, getTeacherId, setTeacherId, getProfile, setProfile, clearIdentity };

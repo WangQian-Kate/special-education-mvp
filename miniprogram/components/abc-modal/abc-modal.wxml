@@ -31,7 +31,7 @@
     </view>
 
     <!-- 下方可滚动：详情表单 -->
-    <scroll-view scroll-y enhanced show-scrollbar="{{false}}" class="abc-body" wx:if="{{currentRecordId}}">
+    <view class="abc-body" wx:if="{{currentRecordId}}">
         <view class="form-item">
           <view class="form-label">持续时间（分钟）</view>
           <picker mode="selector" range="{{durationOptions}}" value="{{durationIndex}}" bindchange="onDurationChange">
@@ -42,56 +42,17 @@
 
         <view class="form-item">
           <view class="form-label">A · 行为前因</view>
-          <view wx:if="{{abcAntecedentOpts.length}}" class="perf-list">
-            <block wx:for="{{abcAntecedentOpts}}" wx:key="code">
-              <view wx:if="{{!item.requiresCustomText}}" class="perf-row">
-                <view class="perf-check {{antecedentChecks[item.code] ? 'on' : ''}}" data-code="{{item.code}}" bindtap="onAntecedentToggle">{{antecedentChecks[item.code] ? '✓' : ''}}</view>
-                <text class="perf-label" data-code="{{item.code}}" bindtap="onAntecedentToggle">{{item.label}}</text>
-              </view>
-            </block>
-            <view class="perf-row">
-              <view class="perf-check {{antecedentChecks['_A_OTHER_'] ? 'on' : ''}}" data-code="_A_OTHER_" bindtap="onAntecedentToggle">{{antecedentChecks['_A_OTHER_'] ? '✓' : ''}}</view>
-              <text class="perf-label" data-code="_A_OTHER_" bindtap="onAntecedentToggle">其它</text>
-            </view>
-            <view class="perf-other">
-              <input class="perf-input" value="{{antecedentOtherText}}" bindinput="onAntecedentOtherInput" placeholder="请补充具体前因..." maxlength="500" />
-            </view>
-          </view>
-          <textarea wx:else class="form-textarea" value="{{form.antecedentText}}" data-field="antecedentText" bindinput="onFormInput" placeholder="其它：补充前因描述（选填）" maxlength="500" />
+          <textarea class="form-textarea" value="{{form.antecedentText}}" data-field="antecedentText" bindinput="onFormInput" placeholder="记录行为发生前的情况..." maxlength="500" />
         </view>
 
         <view class="form-item">
           <view class="form-label">B · 行为表现</view>
-          <view wx:if="{{perfChecks.length}}" class="perf-list">
-            <view wx:for="{{perfChecks}}" wx:key="code" class="perf-row">
-              <view class="perf-check {{item.checked ? 'on' : ''}}" data-index="{{index}}" bindtap="onPerfToggle">{{item.checked ? '✓' : ''}}</view>
-              <text class="perf-label" data-index="{{index}}" bindtap="onPerfToggle">{{item.label}}</text>
-            </view>
-            <view wx:if="{{otherText !== undefined}}" class="perf-other">
-              <input class="perf-input" value="{{otherText}}" bindinput="onOtherTextInput" placeholder="请填写具体表现..." maxlength="500" />
-            </view>
-          </view>
-          <textarea wx:else class="form-textarea" value="{{form.behaviorDescription}}" data-field="behaviorDescription" bindinput="onFormInput" placeholder="记录具体行为表现..." maxlength="500" />
+          <textarea class="form-textarea" value="{{form.behaviorDescription}}" data-field="behaviorDescription" bindinput="onFormInput" placeholder="记录具体行为表现..." maxlength="500" />
         </view>
 
         <view class="form-item">
           <view class="form-label">C · 行为后果</view>
-          <view wx:if="{{abcConsequenceOpts.length}}" class="perf-list">
-            <block wx:for="{{abcConsequenceOpts}}" wx:key="code">
-              <view wx:if="{{!item.requiresCustomText}}" class="perf-row">
-                <view class="perf-check {{consequenceChecks[item.code] ? 'on' : ''}}" data-code="{{item.code}}" bindtap="onConsequenceToggle">{{consequenceChecks[item.code] ? '✓' : ''}}</view>
-                <text class="perf-label" data-code="{{item.code}}" bindtap="onConsequenceToggle">{{item.label}}</text>
-              </view>
-            </block>
-            <view class="perf-row">
-              <view class="perf-check {{consequenceChecks['_C_OTHER_'] ? 'on' : ''}}" data-code="_C_OTHER_" bindtap="onConsequenceToggle">{{consequenceChecks['_C_OTHER_'] ? '✓' : ''}}</view>
-              <text class="perf-label" data-code="_C_OTHER_" bindtap="onConsequenceToggle">其它</text>
-            </view>
-            <view class="perf-other">
-              <input class="perf-input" value="{{consequenceOtherText}}" bindinput="onConsequenceOtherInput" placeholder="请补充具体后果..." maxlength="500" />
-            </view>
-          </view>
-          <textarea wx:else class="form-textarea" value="{{form.consequenceText}}" data-field="consequenceText" bindinput="onFormInput" placeholder="其它：补充后果描述（选填）" maxlength="500" />
+          <textarea class="form-textarea" value="{{form.consequenceText}}" data-field="consequenceText" bindinput="onFormInput" placeholder="记录行为发生后的结果..." maxlength="500" />
         </view>
 
         <!-- ========== 折叠面板：行为功能，辅助方式与辅助结果 ========== -->
@@ -135,6 +96,6 @@
         </view>
 
         <button class="abc-save" bindtap="onSave" disabled="{{saving}}">{{saving ? '保存中…' : '保存更新'}}</button>
-    </scroll-view>
+    </view>
   </view>
 </view>

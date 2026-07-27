@@ -56,4 +56,49 @@
         UPDATE auth_session SET revoked_at = #{now}
         WHERE token_hash = #{tokenHash} AND revoked_at IS NULL
     </update>
+
+    <!-- onboarding: 下一个教师编号 -->
+    <select id="nextTeacherSeq" resultType="int">
+        SELECT COALESCE(MAX(CAST(SUBSTRING(teacher_id, 2) AS UNSIGNED)), 0) + 1 FROM app_user
+    </select>
+
+    <!-- onboarding: 下一个学生编号 -->
+    <select id="nextStudentSeq" resultType="int">
+        SELECT COALESCE(MAX(CAST(SUBSTRING(student_code, 2) AS UNSIGNED)), 0) + 1 FROM student
+    </select>
+
+    <!-- onboarding: 为新学生初始化训练目标 -->
+    <insert id="seedTrainingGoals">
+        INSERT IGNORE INTO student_training_goal (student_id, goal_id, initial_level, current_level, phase, status)
+        SELECT #{studentId}, id, 'C', 'C', 1, 'NOT_STARTED'
+        FROM training_goal WHERE goal_type = 'STANDARD'
+    </insert>
+
+    <!-- onboarding: 创建教师用户 -->
+    <insert id="insertTeacher" useGeneratedKeys="true" keyProperty="userId" keyColumn="id"
+            parameterType="com.specialed.assistant.auth.OnboardingParams">
+        INSERT INTO app_user (teacher_id, name, school, position, role)
+        VALUES (#{teacherId}, #{teacherName}, #{school}, #{position}, #{role})
+    </insert>
+
+    <!-- onboarding: 创建学生 -->
+    <insert id="insertStudent" useGeneratedKeys="true" keyProperty="studentId" keyColumn="id"
+            parameterType="com.specialed.assistant.auth.OnboardingParams">
+        INSERT INTO student (student_code, name, gender, age, class_name, disability_type, remark,
+          social_adaptation, self_management, cognitive_level, language_comprehension, expression_ability, hobbies)
+        VALUES (#{studentCode}, #{studentName}, #{studentGender}, #{studentAge}, #{studentClassName}, #{disabilityType}, #{studentRemark},
+          #{socialAdaptation}, #{selfManagement}, #{cognitiveLevel}, #{languageComprehension}, #{expressionAbility}, #{hobbies})
+    </insert>
+
+    <!-- onboarding: 关联教师-学生 -->
+    <insert id="insertUserStudent">
+        INSERT INTO app_user_student (user_id, student_id) VALUES (#{userId}, #{studentId})
+    </insert>
+
+    <!-- onboarding: 设为当前学生 -->
+    <insert id="setCurrentStudent">
+        INSERT INTO app_user_current_student (user_id, student_id)
+        VALUES (#{userId}, #{studentId})
+        ON DUPLICATE KEY UPDATE student_id = VALUES(student_id)
+    </insert>
 </mapper>

@@ -267,7 +267,7 @@ Component({
       const checked = this.data.assistances.filter(function (a) { return a.checked; });
       var perfLabels = this.data.perfChecks.filter(function (c) { return c.checked && !c.custom; }).map(function (c) { return c.label; });
       if (this.data.otherText && this.data.otherText.trim()) perfLabels.push(this.data.otherText.trim());
-      var behDesc = perfLabels.join('、') || null;
+      var behDesc = perfLabels.join('、') || f.behaviorDescription || null;
       this.setData({ saving: true });
       try {
         // 收集 A/C 标签勾选（"其它"输入框有字=已选，自动映射为真实 OTHER code）

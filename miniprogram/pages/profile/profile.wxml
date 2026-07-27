@@ -1,27 +1,136 @@
 <view class="container">
-  <!-- 教师信息 -->
-  <view class="card teacher-card flex-row" wx:if="{{teacher}}">
-    <view class="avatar flex-center">{{teacher.name[0]}}</view>
-    <view class="info flex-column">
+  <!-- 教师信息卡片 -->
+  <view class="profile-card" wx:if="{{teacher}}">
+    <view class="avatar">{{teacher.name[0]}}</view>
+    <view class="profile-info">
       <view class="name">{{teacher.name}}</view>
-      <view class="desc">{{teacher.school}} · {{teacher.position}}</view>
+      <view class="meta">{{teacher.school}}</view>
+      <view class="meta-role">{{teacher.roleLabel || teacher.position}}</view>
     </view>
   </view>
 
-  <!-- 当前学生由 GET /me 返回 -->
-  <view class="card student-card" wx:if="{{currentStudent}}">
-    <view class="student-label">正在记录学生</view>
-    <view class="student-name">{{currentStudent.name}}（{{currentStudent.age}}岁）</view>
-    <view class="student-meta">{{currentStudent.className}} · {{currentStudent.studentCode}}</view>
+  <!-- 学生信息卡片 -->
+  <view class="card section" wx:if="{{currentStudent}}" bindtap="onStudentTap">
+    <view class="sec-title">当前学生</view>
+    <view class="student-row">
+      <text class="student-name">{{currentStudent.name}}</text>
+      <text class="student-badge">{{currentStudent.gender === 'MALE' ? '男' : '女'}} · {{currentStudent.age}}岁</text>
+    </view>
+    <view class="student-meta">{{currentStudent.className || '未设置班级'}}</view>
+    <view class="student-meta">{{currentStudent.disabilityLabel || currentStudent.disabilityType || '未设置障碍类型'}}</view>
   </view>
 
   <!-- 菜单 -->
-  <view class="menu card">
-    <view class="menu-item flex-row" hover-class="btn-hover" bindtap="handleSwitch">
-      <text class="menu-label">切换身份（伪登录）</text>
-      <text class="menu-arrow">›</text>
+  <view class="card menu">
+    <view class="menu-item" bindtap="onSwitchStudentTap">
+      <text class="menu-label">切换学生</text><text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="onEditProfileTap">
+      <text class="menu-label">修改个人资料</text><text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="handleLogout">
+      <text class="menu-label">退出登录</text><text class="menu-arrow">›</text>
     </view>
   </view>
 
-  <view class="version">MVP 开发版 · 白名单联调</view>
+  <view class="version">特殊教育智能辅助系统 · MVP</view>
+</view>
+
+<!-- ========== 弹窗：学生详情 ========== -->
+<view class="popup-mask" wx:if="{{detailVisible}}" bindtap="onDetailClose">
+  <view class="popup-panel" catchtap="noop">
+    <view class="popup-header">
+      <text class="popup-title">学生详情</text>
+      <text class="popup-close" bindtap="onDetailClose">✕</text>
+    </view>
+    <scroll-view scroll-y class="popup-body">
+      <view class="ob-card"><view class="field-label">姓名</view><input class="field-input" value="{{editingStudent.name}}" bindinput="onEditField" data-field="name" /></view>
+      <view class="ob-row"><view class="ob-card half"><view class="field-label">年龄</view><input class="field-input" type="number" value="{{editingStudent.age}}" bindinput="onEditField" data-field="age" /></view><view class="ob-card half"><view class="field-label">性别</view><picker mode="selector" range="{{genderOpts}}" value="{{editingStudent._genderIdx}}" bindchange="onEditGender"><view class="field-picker">{{genderOpts[editingStudent._genderIdx]}}</view></picker></view></view>
+      <view class="ob-card"><view class="field-label">班级</view><input class="field-input" value="{{editingStudent.className}}" bindinput="onEditField" data-field="className" /></view>
+      <view class="ob-card"><view class="field-label">障碍类型（可多选）</view>
+        <view class="checkbox-grid">
+          <view wx:for="{{disabilityOptions}}" wx:key="code" class="checkbox-item {{detailDisabilityChecks[item.code] ? 'on' : ''}}" data-code="{{item.code}}" bindtap="onDetailDisabilityToggle">{{item.label}}</view>
+        </view>
+      </view>
+      <view class="ob-card"><view class="field-label">当前能力等级</view>
+        <view wx:for="{{abilityFields}}" wx:key="key" class="ability-row">
+          <text class="ability-label">{{item.label}}</text>
+          <view class="ability-opts">
+            <view wx:for="{{['较弱','一般','良好']}}" wx:for-item="lv" wx:key="*this" class="ability-chip {{editingStudent[item.key] === lv ? 'on' : ''}}" data-key="{{item.key}}" data-val="{{lv}}" bindtap="onEditAbility">{{lv}}</view>
+          </view>
+        </view>
+      </view>
+      <view class="ob-card"><view class="field-label">爱好</view><input class="field-input" value="{{editingStudent.hobbies}}" bindinput="onEditField" data-field="hobbies" placeholder="选填" /></view>
+      <view class="ob-card"><view class="field-label">备注</view><input class="field-input" value="{{editingStudent.remark}}" bindinput="onEditField" data-field="remark" placeholder="选填" /></view>
+      <button class="ob-save" bindtap="onSaveStudent" loading="{{saving}}">{{saving ? '保存中…' : '保存'}}</button>
+    </scroll-view>
+  </view>
+</view>
+
+<!-- ========== 弹窗：切换学生 ========== -->
+<view class="popup-mask" wx:if="{{switchVisible}}" bindtap="onSwitchClose">
+  <view class="popup-panel" catchtap="noop">
+    <view class="popup-header">
+      <text class="popup-title">切换学生</text>
+      <text class="popup-close" bindtap="onSwitchClose">✕</text>
+    </view>
+    <scroll-view scroll-y class="popup-body">
+      <view class="student-item" wx:for="{{studentList}}" wx:key="id" bindtap="onSelectStudent" data-id="{{item.id}}">
+        <text class="si-name">{{item.name}}</text>
+        <view class="si-radio {{item.id === currentStudent.id ? 'on' : ''}}"></view>
+      </view>
+      <view class="student-add" bindtap="onAddStudentTap">+ 新增学生</view>
+    </scroll-view>
+  </view>
+</view>
+
+<!-- ========== 弹窗：新增学生 ========== -->
+<view class="popup-mask" wx:if="{{addVisible}}" bindtap="onAddClose">
+  <view class="popup-panel" catchtap="noop">
+    <view class="popup-header">
+      <text class="popup-title">新增学生</text>
+      <text class="popup-close" bindtap="onAddClose">✕</text>
+    </view>
+    <scroll-view scroll-y class="popup-body">
+      <view class="ob-card"><view class="field-label">姓名</view><input class="field-input" value="{{newStudent.name}}" bindinput="onNewField" data-field="name" /></view>
+      <view class="ob-row"><view class="ob-card half"><view class="field-label">年龄</view><input class="field-input" type="number" value="{{newStudent.age}}" bindinput="onNewField" data-field="age" /></view><view class="ob-card half"><view class="field-label">性别</view><picker mode="selector" range="{{genderOpts}}" value="{{newStudent._genderIdx}}" bindchange="onNewGender"><view class="field-picker">{{genderOpts[newStudent._genderIdx]}}</view></picker></view></view>
+      <view class="ob-card"><view class="field-label">班级</view><input class="field-input" value="{{newStudent.className}}" bindinput="onNewField" data-field="className" /></view>
+      <view class="ob-card"><view class="field-label">障碍类型（可多选）</view>
+        <view class="checkbox-grid">
+          <view wx:for="{{disabilityOptions}}" wx:key="code" class="checkbox-item {{newDisabilityChecks[item.code] ? 'on' : ''}}" data-code="{{item.code}}" bindtap="onNewDisabilityToggle">{{item.label}}</view>
+        </view>
+      </view>
+      <view class="ob-card"><view class="field-label">当前能力等级</view>
+        <view wx:for="{{abilityFields}}" wx:key="key" class="ability-row">
+          <text class="ability-label">{{item.label}}</text>
+          <view class="ability-opts">
+            <view wx:for="{{['较弱','一般','良好']}}" wx:for-item="lv" wx:key="*this" class="ability-chip {{newStudent[item.key] === lv ? 'on' : ''}}" data-key="{{item.key}}" data-val="{{lv}}" bindtap="onNewAbility">{{lv}}</view>
+          </view>
+        </view>
+      </view>
+      <view class="ob-card"><view class="field-label">爱好</view><input class="field-input" value="{{newStudent.hobbies}}" bindinput="onNewField" data-field="hobbies" placeholder="选填" /></view>
+      <view class="ob-card"><view class="field-label">备注</view><input class="field-input" value="{{newStudent.remark}}" bindinput="onNewField" data-field="remark" placeholder="选填" /></view>
+      <button class="ob-save" bindtap="onCreateStudent" loading="{{saving}}">{{saving ? '创建中…' : '创建学生'}}</button>
+    </scroll-view>
+  </view>
+</view>
+
+<!-- ========== 弹窗：修改个人资料 ========== -->
+<view class="popup-mask" wx:if="{{profileVisible}}" bindtap="onProfileClose">
+  <view class="popup-panel" catchtap="noop">
+    <view class="popup-header">
+      <text class="popup-title">修改个人资料</text>
+      <text class="popup-close" bindtap="onProfileClose">✕</text>
+    </view>
+    <view class="popup-body" style="padding: 28rpx;">
+      <view class="ob-card"><view class="field-label">姓名</view><input class="field-input" value="{{editingProfile.name}}" bindinput="onProfileField" data-field="name" /></view>
+      <view class="ob-card"><view class="field-label">学校</view><input class="field-input" value="{{editingProfile.school}}" bindinput="onProfileField" data-field="school" /></view>
+      <view class="ob-card"><view class="field-label">角色</view>
+        <picker mode="selector" range="{{roleOptions}}" value="{{editingProfile._roleIdx}}" bindchange="onEditRole">
+          <view class="field-picker">{{roleOptions[editingProfile._roleIdx]}}</view>
+        </picker>
+      </view>
+      <button class="ob-save" bindtap="onSaveProfile" loading="{{saving}}">{{saving ? '保存中…' : '保存'}}</button>
+    </view>
+  </view>
 </view>

@@ -12,7 +12,7 @@ const store = require('./store');
 const ENV = 'tunnel';
 const BASE_URLS = {
   local: 'http://localhost:3000/api',
-  tunnel: 'https://27029b63.r40.cpolar.top/api'
+  tunnel: 'https://4e389b4e.r40.cpolar.top/api'
 };
 const BASE_URL = BASE_URLS[ENV];
 
@@ -26,6 +26,7 @@ function handleUnauthorized() {
   if (redirecting) return;
   redirecting = true;
   store.clearIdentity();
+  store.clearAccessToken();
   wx.reLaunch({ url: '/pages/login/login' });
   setTimeout(() => { redirecting = false; }, 1000);
 }
@@ -38,20 +39,23 @@ function handleUnauthorized() {
  * 约定的响应包体（需与后端对齐）：{ code: 0, message: 'ok', data: {...} }
  */
 function request({ url, method = 'GET', data = {}, showLoading = false, hideError = false }) {
+  const accessToken = store.getAccessToken();
   const teacherId = store.getTeacherId();
   if (showLoading) wx.showLoading({ title: '加载中', mask: true });
 
   return new Promise((resolve, reject) => {
+    var headers = { 'Content-Type': 'application/json' };
+    if (accessToken) {
+      headers['Authorization'] = 'Bearer ' + accessToken;
+    } else if (teacherId) {
+      headers['X-Teacher-Id'] = teacherId;
+    }
     wx.request({
       url: BASE_URL + url,
       method,
       data,
       timeout: TIMEOUT,
-      header: {
-        'Content-Type': 'application/json',
-        // 白名单伪登录：后端按此 ID 识别教师，正式登录接入后此处换 token
-        'X-Teacher-Id': teacherId
-      },
+      header: headers,
       success(res) {
         const body = res.data || {};
         // 白名单身份失效：统一拦截，清身份回登录页
