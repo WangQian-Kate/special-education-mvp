@@ -78,6 +78,12 @@ CREATE TABLE IF NOT EXISTS student (
   disability_type VARCHAR(64) NULL,
   support_goal VARCHAR(255) NULL,
   remark VARCHAR(500) NULL,
+  social_adaptation VARCHAR(16) NULL COMMENT '社会适应能力',
+  self_management VARCHAR(16) NULL COMMENT '自我管理能力',
+  cognitive_level VARCHAR(16) NULL COMMENT '认知水平',
+  language_comprehension VARCHAR(16) NULL COMMENT '语言理解',
+  expression_ability VARCHAR(16) NULL COMMENT '表达能力',
+  hobbies VARCHAR(500) NULL COMMENT '爱好',
   PRIMARY KEY (id),
   UNIQUE KEY uk_student_student_code (student_code)
 ) ENGINE=InnoDB;
