@@ -1,0 +1,325 @@
+/* components/ai-report/ai-report.wxss */
+/* SEAT 框架 AI 分析报告样式 */
+
+.seat-report {
+  font-size: 24rpx;
+  color: var(--color-text);
+}
+
+/* 通用 section */
+.section {
+  margin-bottom: 28rpx;
+}
+
+.sec-header {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 16rpx;
+  padding-bottom: 8rpx;
+  border-bottom: 2rpx solid #e5e7eb;
+}
+
+.sec-icon {
+  font-size: 28rpx;
+}
+
+.sec-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* ===== 1. 行为功能假设 ===== */
+.function-card {
+  background: #f8fafc;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  border-left: 6rpx solid var(--color-primary);
+}
+
+.function-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.function-label {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.confidence-badge {
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+}
+
+.confidence-text {
+  font-size: 20rpx;
+  color: #fff;
+  font-weight: 600;
+}
+
+.function-reasoning {
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #4b5563;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 12rpx;
+}
+
+.function-meta {
+  display: flex;
+  gap: 24rpx;
+}
+
+.meta-item {
+  font-size: 20rpx;
+  color: #9ca3af;
+}
+
+/* ===== 2. 因果链分析 ===== */
+.chain-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.chain-item {
+  background: #fffbeb;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  border: 1rpx solid #fde68a;
+}
+
+.chain-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+}
+
+.chain-label {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #92400e;
+  min-width: 64rpx;
+  flex-shrink: 0;
+}
+
+.chain-value {
+  font-size: 24rpx;
+  color: #78350f;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chain-arrow {
+  text-align: center;
+  font-size: 24rpx;
+  color: #d97706;
+  margin: 4rpx 0;
+  padding-left: 76rpx;
+}
+
+.chain-maintain {
+  margin-top: 12rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx dashed #fde68a;
+  display: flex;
+  gap: 8rpx;
+}
+
+.maintain-label {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #b45309;
+  flex-shrink: 0;
+}
+
+.maintain-text {
+  font-size: 22rpx;
+  color: #92400e;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chain-ids {
+  margin-top: 8rpx;
+}
+
+.ids-text {
+  font-size: 18rpx;
+  color: #9ca3af;
+}
+
+/* ===== 3. 前因干预策略 ===== */
+.intervention-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.intervention-item {
+  background: #f0fdf4;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  border: 1rpx solid #bbf7d0;
+}
+
+.intervention-name {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #166534;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.intervention-desc {
+  font-size: 24rpx;
+  color: #15803d;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 8rpx;
+}
+
+.intervention-rationale {
+  display: flex;
+  gap: 4rpx;
+  margin-bottom: 8rpx;
+}
+
+.rationale-label {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #166534;
+  flex-shrink: 0;
+}
+
+.rationale-text {
+  font-size: 22rpx;
+  color: #4b5563;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.intervention-targets {
+  display: flex;
+  gap: 8rpx;
+  flex-wrap: wrap;
+}
+
+.target-tag {
+  font-size: 18rpx;
+  color: #166534;
+  background: #dcfce7;
+  padding: 2rpx 12rpx;
+  border-radius: 12rpx;
+}
+
+/* ===== 4. 替代行为 ===== */
+.replacement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.replacement-item {
+  background: #eff6ff;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  border: 1rpx solid #bfdbfe;
+}
+
+.replacement-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.replacement-target {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #1e40af;
+  flex: 1;
+}
+
+.difficulty-badge {
+  padding: 2rpx 14rpx;
+  border-radius: 12rpx;
+  flex-shrink: 0;
+}
+
+.difficulty-EASY {
+  background: #dcfce7;
+}
+
+.difficulty-MEDIUM {
+  background: #fef3c7;
+}
+
+.difficulty-HARD {
+  background: #fee2e2;
+}
+
+.difficulty-text {
+  font-size: 20rpx;
+  font-weight: 600;
+}
+
+.difficulty-EASY .difficulty-text {
+  color: #166534;
+}
+
+.difficulty-MEDIUM .difficulty-text {
+  color: #92400e;
+}
+
+.difficulty-HARD .difficulty-text {
+  color: #991b1b;
+}
+
+.replacement-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
+}
+
+.replacement-label {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #1e40af;
+  min-width: 96rpx;
+  flex-shrink: 0;
+}
+
+.replacement-value {
+  font-size: 24rpx;
+  color: #374151;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ===== 免责声明 ===== */
+.disclaimer {
+  margin-top: 24rpx;
+  padding: 16rpx;
+  background: #f9fafb;
+  border-radius: 12rpx;
+  border: 1rpx dashed #d1d5db;
+}
+
+.disclaimer-text {
+  font-size: 20rpx;
+  color: #9ca3af;
+  line-height: 1.6;
+}

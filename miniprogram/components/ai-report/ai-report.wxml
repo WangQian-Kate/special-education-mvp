@@ -1,0 +1,111 @@
+<!-- components/ai-report/ai-report.wxml -->
+<!-- SEAT 框架 AI 分析报告 -->
+<view class="seat-report" wx:if="{{report}}">
+
+  <!-- ===== 1. 行为功能假设 ===== -->
+  <view class="section">
+    <view class="sec-header">
+      <text class="sec-icon">🎯</text>
+      <text class="sec-title">行为功能假设</text>
+    </view>
+    <view class="function-card">
+      <view class="function-top">
+        <text class="function-label">{{report.hypothesizedFunction.functionLabel}}</text>
+        <view class="confidence-badge" style="background:{{confidenceColor}}">
+          <text class="confidence-text">置信度：{{confidenceText}} {{report.hypothesizedFunction.confidence}}</text>
+        </view>
+      </view>
+      <text class="function-reasoning">{{report.hypothesizedFunction.reasoning}}</text>
+      <view class="function-meta">
+        <text class="meta-item">样本量：{{report.hypothesizedFunction.sampleSize}}条</text>
+        <text class="meta-item">模式一致性：{{report.hypothesizedFunction.patternConsistency}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 2. 因果链分析 ===== -->
+  <view class="section" wx:if="{{report.causalChainAnalysis && report.causalChainAnalysis.length}}">
+    <view class="sec-header">
+      <text class="sec-icon">🔗</text>
+      <text class="sec-title">因果链分析</text>
+    </view>
+    <view class="chain-list">
+      <view class="chain-item" wx:for="{{report.causalChainAnalysis}}" wx:key="index">
+        <view class="chain-row">
+          <text class="chain-label">前因</text>
+          <text class="chain-value">{{item.antecedent}}</text>
+        </view>
+        <view class="chain-arrow">↓</view>
+        <view class="chain-row">
+          <text class="chain-label">行为</text>
+          <text class="chain-value">{{item.behavior}}</text>
+        </view>
+        <view class="chain-arrow">↓</view>
+        <view class="chain-row">
+          <text class="chain-label">结果</text>
+          <text class="chain-value">{{item.consequence}}</text>
+        </view>
+        <view class="chain-maintain">
+          <text class="maintain-label">维持机制：</text>
+          <text class="maintain-text">{{item.maintainingCycle}}</text>
+        </view>
+        <view class="chain-ids" wx:if="{{item.recordIds && item.recordIds.length}}">
+          <text class="ids-text">关联记录：{{item.recordIds}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 3. 前因干预策略 ===== -->
+  <view class="section" wx:if="{{report.antecedentInterventions && report.antecedentInterventions.length}}">
+    <view class="sec-header">
+      <text class="sec-icon">🛡️</text>
+      <text class="sec-title">前因干预策略</text>
+    </view>
+    <view class="intervention-list">
+      <view class="intervention-item" wx:for="{{report.antecedentInterventions}}" wx:key="index">
+        <text class="intervention-name">{{item.strategy}}</text>
+        <text class="intervention-desc">{{item.description}}</text>
+        <view class="intervention-rationale">
+          <text class="rationale-label">依据：</text>
+          <text class="rationale-text">{{item.rationale}}</text>
+        </view>
+        <view class="intervention-targets" wx:if="{{item.targetFunctions && item.targetFunctions.length}}">
+          <text class="target-tag" wx:for="{{item.targetFunctions}}" wx:key="*this" wx:for-item="func">{{func}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 4. 替代行为 ===== -->
+  <view class="section" wx:if="{{report.replacementBehaviors && report.replacementBehaviors.length}}">
+    <view class="sec-header">
+      <text class="sec-icon">🔄</text>
+      <text class="sec-title">替代行为训练</text>
+    </view>
+    <view class="replacement-list">
+      <view class="replacement-item" wx:for="{{report.replacementBehaviors}}" wx:key="index">
+        <view class="replacement-top">
+          <text class="replacement-target">{{item.targetBehavior}}</text>
+          <view class="difficulty-badge difficulty-{{item.difficultyLevel}}">
+            <text class="difficulty-text">{{item.difficultyLevel}}</text>
+          </view>
+        </view>
+        <view class="replacement-row">
+          <text class="replacement-label">教学策略</text>
+          <text class="replacement-value">{{item.teachingStrategy}}</text>
+        </view>
+        <view class="replacement-row">
+          <text class="replacement-label">强化计划</text>
+          <text class="replacement-value">{{item.reinforcementPlan}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 人工审核提醒 ===== -->
+  <view class="disclaimer">
+    <text class="disclaimer-text">本报告由AI基于输入的结构化观察数据自动生成，不包含任何医学诊断，不能替代专业评估。请资源教师、影子老师及相关专业人员在实施干预建议前，结合学生实际日常表现进行人工审核与调整。</text>
+  </view>
+
+</view>

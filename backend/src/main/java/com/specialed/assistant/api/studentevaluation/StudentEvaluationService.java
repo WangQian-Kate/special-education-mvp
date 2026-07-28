@@ -58,7 +58,7 @@ public class StudentEvaluationService {
                 studentId, period, current.start(), current.end(), comparison.start(), comparison.end(), overview,
                 rawOverview.getBehaviorRecordCount(), mergeBehaviorTrends(currentBehaviors, previousBehaviors),
                 period == EvaluationPeriod.WEEKLY ? buildDailyTrends(current, daily) : List.of(),
-                period == EvaluationPeriod.MONTHLY ? buildWeeklyBreakdown(current, daily) : List.of(),
+                (period == EvaluationPeriod.MONTHLY || period == EvaluationPeriod.SEMESTER) ? buildWeeklyBreakdown(current, daily) : List.of(),
                 mapper.countCourses(studentId, current.start(), current.end()).stream()
                         .map(this::toCourseStatistics).toList(),
                 mapper.countEnvironments(studentId, current.start(), current.end()).stream()
@@ -269,6 +269,7 @@ public class StudentEvaluationService {
             }
             case MONTHLY -> new PeriodRange(referenceDate.withDayOfMonth(1),
                     referenceDate.with(TemporalAdjusters.lastDayOfMonth()));
+            case SEMESTER -> resolveSemesterRange(referenceDate);
         };
     }
 
@@ -280,7 +281,39 @@ public class StudentEvaluationService {
                 LocalDate start = current.start().minusMonths(1);
                 yield new PeriodRange(start, start.with(TemporalAdjusters.lastDayOfMonth()));
             }
+            case SEMESTER -> {
+                // 对比上一个学期：春季(2-6月) -> 上年秋季(9-1月)，秋季(9-1月) -> 当年春季(2-6月)
+                int currentMonth = current.start().getMonthValue();
+                if (currentMonth == 2) {
+                    LocalDate prevStart = current.start().minusYears(1).withMonth(9).withDayOfMonth(1);
+                    LocalDate prevEnd = current.start().minusMonths(1).with(TemporalAdjusters.lastDayOfMonth());
+                    yield new PeriodRange(prevStart, prevEnd);
+                } else {
+                    LocalDate prevStart = current.start().minusMonths(7).withDayOfMonth(1);
+                    LocalDate prevEnd = prevStart.plusMonths(4).with(TemporalAdjusters.lastDayOfMonth());
+                    yield new PeriodRange(prevStart, prevEnd);
+                }
+            }
         };
+    }
+
+    /**
+     * 根据参考日期计算学期范围。
+     * 规则：春季学期 2-6月，秋季学期 9-次年1月。7-8月归入刚结束的春季学期。
+     */
+    private PeriodRange resolveSemesterRange(LocalDate ref) {
+        int month = ref.getMonthValue();
+        int year = ref.getYear();
+        if (month >= 2 && month <= 6) {
+            return new PeriodRange(LocalDate.of(year, 2, 1), LocalDate.of(year, 6, 30));
+        } else if (month >= 9) {
+            return new PeriodRange(LocalDate.of(year, 9, 1), LocalDate.of(year + 1, 1, 31));
+        } else if (month == 1) {
+            return new PeriodRange(LocalDate.of(year - 1, 9, 1), LocalDate.of(year, 1, 31));
+        } else {
+            // 7-8月归入当年春季学期
+            return new PeriodRange(LocalDate.of(year, 2, 1), LocalDate.of(year, 6, 30));
+        }
     }
 
     private record PeriodRange(LocalDate start, LocalDate end) { }

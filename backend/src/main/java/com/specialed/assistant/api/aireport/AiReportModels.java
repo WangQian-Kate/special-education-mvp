@@ -15,7 +15,7 @@ public final class AiReportModels {
 
     /** AI 报告请求 */
     public record AiReportRequest(
-            @NotBlank @Size(max = 16) String period,       // WEEKLY | MONTHLY
+            @NotBlank @Size(max = 16) String period,       // WEEKLY | MONTHLY | SEMESTER
             @NotNull LocalDate referenceDate               // 参考日期
     ) {
     }

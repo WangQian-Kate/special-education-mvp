@@ -9,7 +9,7 @@ const store = require('./store');
  * - local  : 开发者工具（需在工具详情里勾选"不校验合法域名"）
  * - tunnel : 内网穿透 HTTPS 地址（真机预览用，等后端提供后填入）
  */
-const ENV = 'tunnel';
+const ENV = 'local';
 const BASE_URLS = {
   local: 'http://localhost:3000/api',
   tunnel: 'https://4e389b4e.r40.cpolar.top/api'
@@ -38,7 +38,7 @@ function handleUnauthorized() {
  *
  * 约定的响应包体（需与后端对齐）：{ code: 0, message: 'ok', data: {...} }
  */
-function request({ url, method = 'GET', data = {}, showLoading = false, hideError = false }) {
+function request({ url, method = 'GET', data = {}, showLoading = false, hideError = false, timeout }) {
   const accessToken = store.getAccessToken();
   const teacherId = store.getTeacherId();
   if (showLoading) wx.showLoading({ title: '加载中', mask: true });
@@ -54,7 +54,7 @@ function request({ url, method = 'GET', data = {}, showLoading = false, hideErro
       url: BASE_URL + url,
       method,
       data,
-      timeout: TIMEOUT,
+      timeout: timeout || TIMEOUT,
       header: headers,
       success(res) {
         const body = res.data || {};

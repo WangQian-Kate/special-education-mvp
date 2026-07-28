@@ -7,7 +7,7 @@ public final class StudentEvaluationModels {
     private StudentEvaluationModels() {
     }
 
-    public enum EvaluationPeriod { DAILY, WEEKLY, MONTHLY }
+    public enum EvaluationPeriod { DAILY, WEEKLY, MONTHLY, SEMESTER }
     public enum TrendDirection { UP, DOWN, STABLE }
 
     public record EvaluationOverview(

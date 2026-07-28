@@ -55,8 +55,8 @@ public class AiReportService {
         this.model = model;
         this.maxTokens = maxTokens;
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(5000);
-        factory.setReadTimeout(30000);
+        factory.setConnectTimeout(10000);
+        factory.setReadTimeout(60000);
         this.restClient = RestClient.builder()
                 .requestFactory(factory)
                 .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
@@ -66,7 +66,17 @@ public class AiReportService {
     // ======================== 主入口 ========================
 
     public AiReportResponse generate(Long userId, String period, LocalDate referenceDate) {
-        String dateLabel = "WEEKLY".equalsIgnoreCase(period) ? "本周" : "本月";
+        String dateLabel;
+        if ("WEEKLY".equalsIgnoreCase(period)) {
+            dateLabel = "本周";
+        } else if ("MONTHLY".equalsIgnoreCase(period)) {
+            dateLabel = "本月";
+        } else if ("SEMESTER".equalsIgnoreCase(period)) {
+            int month = (referenceDate != null ? referenceDate.getMonthValue() : LocalDate.now().getMonthValue());
+            dateLabel = (month >= 2 && month <= 6) ? "本学期（春季）" : "本学期（秋季）";
+        } else {
+            dateLabel = "本周期";
+        }
 
         try {
             if (userId == null) throw new IllegalArgumentException("userId 为空");
@@ -104,7 +114,7 @@ public class AiReportService {
 
                 if (apiKey != null && !apiKey.isEmpty()) {
                     try {
-                        return callAi(dateLabel, rangeLabel, stats, records);
+                        return callAi(dateLabel, rangeLabel, period, stats, records);
                     } catch (Exception e) {
                         log.warn("AI调用失败，回落模板报告: {}", e.getMessage());
                     }
@@ -201,21 +211,25 @@ public class AiReportService {
 
     // ======================== AI API 调用 ========================
 
-    private AiReportResponse callAi(String dateLabel, String rangeLabel,
+    private AiReportResponse callAi(String dateLabel, String rangeLabel, String period,
                                     List<BehaviorStatItem> stats,
                                     List<BehaviorRecordItem> records) {
-        String prompt = buildPrompt(dateLabel, rangeLabel, stats, records);
+        String prompt = buildPrompt(dateLabel, rangeLabel, period, stats, records);
 
         String reqJson = "{\"model\":\"" + model + "\",\"max_tokens\":" + maxTokens
                 + ",\"messages\":[{\"role\":\"user\",\"content\":" + JSON.valueToTree(prompt).toString() + "}]}";
 
-        String response = restClient.post()
+        // 使用 byte[] 接收响应，兼容智谱清言等返回 application/octet-stream 的 API
+        byte[] rawBytes = restClient.post()
                 .uri(baseUrl)
                 .header("Authorization", "Bearer " + apiKey)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(reqJson)
                 .retrieve()
-                .body(String.class);
+                .body(byte[].class);
+
+        String response = new String(rawBytes, java.nio.charset.StandardCharsets.UTF_8);
+        log.info("AI API 响应长度: {} 字符", response.length());
 
         return parseResponse(response, records);
     }
@@ -377,7 +391,7 @@ public class AiReportService {
 
     // ======================== Prompt 构建（SEAT 框架） ========================
 
-    private String buildPrompt(String dateLabel, String rangeLabel,
+    private String buildPrompt(String dateLabel, String rangeLabel, String period,
                                List<BehaviorStatItem> stats,
                                List<BehaviorRecordItem> records) {
         StringBuilder sb = new StringBuilder();
@@ -495,7 +509,10 @@ public class AiReportService {
         }
 
         sb.append("\n详细ABC行为记录（共").append(records.size()).append("条）：\n");
-        int maxRecords = Math.min(records.size(), 50);
+        // 使用 period 参数判断是否为学期报告，而非字符串匹配
+        boolean isSemester = "SEMESTER".equalsIgnoreCase(period);
+        // 学期报告增加记录限制到200条，以提供更全面的分析样本
+        int maxRecords = Math.min(records.size(), isSemester ? 200 : 50);
         for (int i = 0; i < maxRecords; i++) {
             BehaviorRecordItem r = records.get(i);
             sb.append("记录").append(r.recordId())
@@ -520,7 +537,15 @@ public class AiReportService {
             sb.append("\n");
         }
 
-        sb.append("\n请根据以上数据，使用 SEAT 框架生成").append(dateLabel).append("行为功能分析报告 JSON：");
+        if (isSemester) {
+            sb.append("\n请根据以上数据，使用 SEAT 框架生成").append(dateLabel).append("行为功能分析报告 JSON：");
+            sb.append("\n注意：这是学期级别的综合报告，数据量较大。请重点关注：");
+            sb.append("\n1. 整个学期的行为功能变化趋势（而非单周波动）");
+            sb.append("\n2. 跨月份的模式稳定性");
+            sb.append("\n3. 干预效果的长期表现");
+        } else {
+            sb.append("\n请根据以上数据，使用 SEAT 框架生成").append(dateLabel).append("行为功能分析报告 JSON：");
+        }
         return sb.toString();
     }
 
@@ -720,8 +745,29 @@ public class AiReportService {
             return new DateRange(
                     ref.withDayOfMonth(1),
                     ref.with(TemporalAdjusters.lastDayOfMonth()));
+        } else if ("SEMESTER".equals(upper)) {
+            return resolveSemesterRange(ref);
         } else {
             throw new IllegalArgumentException("不支持的周期类型：" + period);
+        }
+    }
+
+    /**
+     * 根据参考日期计算学期范围。
+     * 规则：春季学期 2-6月，秋季学期 9-次年1月。7-8月归入刚结束的春季学期。
+     */
+    private DateRange resolveSemesterRange(LocalDate ref) {
+        int month = ref.getMonthValue();
+        int year = ref.getYear();
+        if (month >= 2 && month <= 6) {
+            return new DateRange(LocalDate.of(year, 2, 1), LocalDate.of(year, 6, 30));
+        } else if (month >= 9) {
+            return new DateRange(LocalDate.of(year, 9, 1), LocalDate.of(year + 1, 1, 31));
+        } else if (month == 1) {
+            return new DateRange(LocalDate.of(year - 1, 9, 1), LocalDate.of(year, 1, 31));
+        } else {
+            // 7-8月归入当年春季学期
+            return new DateRange(LocalDate.of(year, 2, 1), LocalDate.of(year, 6, 30));
         }
     }
 

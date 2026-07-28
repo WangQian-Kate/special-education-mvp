@@ -68,15 +68,76 @@
   </block>
 
   <!-- ==================== 学期 ==================== -->
-  <block wx:elif="{{view === 'semester'}}">
+  <block wx:elif="{{view === 'semester' && !empty}}">
     <view class="card section"><view class="sec-title">学期概览</view>
-      <view class="ov-grid"><view class="ov-i"><text class="ov-v">{{overview.behaviorRecordCount}}</text><text class="ov-l">行为记录</text></view>
-      <view class="ov-i"><text class="ov-v">{{overview.abcRecordCount}}</text><text class="ov-l">ABC详录</text></view>
-      <view class="ov-i"><text class="ov-v">{{overview.remarkCount}}</text><text class="ov-l">备注</text></view></view>
+      <view class="ov-grid">
+        <view class="ov-i"><text class="ov-v">{{overview.behaviorRecordCount || totalCount}}</text><text class="ov-l">记录总次数</text></view>
+        <view class="ov-i"><text class="ov-v">{{overview.observationCourseCount || 0}}</text><text class="ov-l">涉及课程</text></view>
+        <view class="ov-i"><text class="ov-v">{{items.length}}</text><text class="ov-l">涉及行为</text></view>
+        <view class="ov-i"><text class="ov-v">{{overview.trainingGoalCount || 0}}</text><text class="ov-l">训练目标</text></view>
+      </view>
     </view>
-    <view class="card section"><view class="block-title">AI 学期总结</view>
-      <ai-card type="info" title="学期总评" content="六大能力维度均有提升，平均进步20%。" />
-      <ai-card type="warn" title="薄弱环节" content="专注力+14%，集体课参与度58%，建议加强感统训练。" />
-      <ai-card type="success" title="下学期建议" content="引入同伴支持策略提升社交互动。" /></view>
+
+    <!-- 状态分布 -->
+    <view class="card section">
+      <view class="sec-title">完成状态分布</view>
+      <view class="dist-row">
+        <view class="dist-head">
+          <text class="dist-label">未完成</text>
+          <text class="dist-count">{{statusDist.incomplete}}次</text>
+        </view>
+        <view class="dist-bar-wrap">
+          <view class="dist-bar dist-inc" style="width:{{totalCount > 0 ? statusDist.incomplete / totalCount * 100 : 0}}%"></view>
+        </view>
+      </view>
+      <view class="dist-row">
+        <view class="dist-head">
+          <text class="dist-label">辅助完成</text>
+          <text class="dist-count">{{statusDist.assisted}}次</text>
+        </view>
+        <view class="dist-bar-wrap">
+          <view class="dist-bar dist-ass" style="width:{{totalCount > 0 ? statusDist.assisted / totalCount * 100 : 0}}%"></view>
+        </view>
+      </view>
+      <view class="dist-row">
+        <view class="dist-head">
+          <text class="dist-label">独立完成</text>
+          <text class="dist-count">{{statusDist.independent}}次</text>
+        </view>
+        <view class="dist-bar-wrap">
+          <view class="dist-bar dist-ind" style="width:{{totalCount > 0 ? statusDist.independent / totalCount * 100 : 0}}%"></view>
+        </view>
+      </view>
+    </view>
+
+    <!-- AI 三维度分析报告 -->
+    <view class="card section" wx:if="{{aiReport}}">
+      <view class="block-title">🤖 AI 学期分析</view>
+      <view wx:if="{{aiReport.behaviorChanges && aiReport.behaviorChanges.length}}" class="ai-group">
+        <text class="ai-group-title">📊 行为变化与趋势</text>
+        <ai-card wx:for="{{aiReport.behaviorChanges}}" wx:key="title" type="info" title="{{item.title}}" content="{{item.content}}" />
+      </view>
+      <view wx:if="{{aiReport.attentionConcerns && aiReport.attentionConcerns.length}}" class="ai-group">
+        <text class="ai-group-title">⚠️ 关注提醒</text>
+        <ai-card wx:for="{{aiReport.attentionConcerns}}" wx:key="title" type="warn" title="{{item.title}}" content="{{item.content}}" />
+      </view>
+      <view wx:if="{{aiReport.alternativeSuggestions && aiReport.alternativeSuggestions.length}}" class="ai-group">
+        <text class="ai-group-title">💡 下学期建议</text>
+        <ai-card wx:for="{{aiReport.alternativeSuggestions}}" wx:key="title" type="success" title="{{item.title}}" content="{{item.content}}" />
+      </view>
+    </view>
+    <view class="card section" wx:elif="{{aiReportLoading}}">
+      <view class="block-title">🤖 AI 学期分析</view>
+      <view class="empty-tip">AI 分析生成中，请稍候…</view>
+    </view>
+    <view class="card section" wx:else>
+      <view class="block-title">🤖 AI 学期分析</view>
+      <view class="empty-tip">暂无AI分析数据</view>
+    </view>
+  </block>
+
+  <!-- 学期无数据 -->
+  <block wx:elif="{{view === 'semester' && empty}}">
+    <view class="card empty-tip">本学期暂无观察记录</view>
   </block>
 </view>

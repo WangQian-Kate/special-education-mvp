@@ -47,4 +47,25 @@ function formatTime(isoStr) {
   return m ? m[1] : isoStr;
 }
 
-module.exports = { today, nowHhmm, formatIsoCst, isFutureTime, formatTime };
+/**
+ * 根据当前日期判断所属学期，返回学期起始日期（用于传给后端 referenceDate 参数）。
+ * 规则：春季 2-6月，秋季 9-次年1月，7-8月归入春季。
+ * @returns {{ start: string, end: string, label: string }}
+ */
+function currentSemester() {
+  var now = new Date();
+  var year = now.getFullYear();
+  var month = now.getMonth() + 1;
+
+  if (month >= 2 && month <= 6) {
+    return { start: year + '-02-01', end: year + '-06-30', label: '春季学期' };
+  } else if (month >= 9) {
+    return { start: year + '-09-01', end: (year + 1) + '-01-31', label: '秋季学期' };
+  } else if (month === 1) {
+    return { start: (year - 1) + '-09-01', end: year + '-01-31', label: '秋季学期' };
+  } else {
+    return { start: year + '-02-01', end: year + '-06-30', label: '春季学期' };
+  }
+}
+
+module.exports = { today, nowHhmm, formatIsoCst, isFutureTime, formatTime, currentSemester };

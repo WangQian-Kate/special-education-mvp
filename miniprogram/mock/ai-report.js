@@ -91,7 +91,41 @@ var monthlyReport = {
   ]
 };
 
+var semesterReport = {
+  behaviorChanges: [
+    {
+      title: '学期数据概览',
+      content: '观察周期：本学期。累计行为记录覆盖整个学期，重点关注行为功能的长期趋势与模式稳定性。当前为 Mock 数据，后端接口返回后将展示真实分析结果。'
+    },
+    {
+      title: '学期行为趋势分析',
+      content: '本学期重点关注以下方面：\n1. 整个学期的行为功能变化趋势（而非单周波动）\n2. 跨月份的模式稳定性\n3. 干预效果的长期表现\n\n建议持续积累ABC观察记录，以获得更精准的学期级分析。'
+    }
+  ],
+  attentionConcerns: [
+    {
+      title: '数据量影响分析精度',
+      content: '学期报告的分析质量取决于ABC观察记录的积累量。建议每天至少完成2-3条行为记录，覆盖不同课程和场景，以确保分析结果的代表性。'
+    },
+    {
+      title: '人工审核提醒',
+      content: '本报告由AI基于输入的结构化观察数据自动生成，不包含任何医学诊断，不能替代专业评估。请资源教师、影子老师及相关专业人员在实施干预建议前，结合学生实际日常表现进行人工审核与调整。'
+    }
+  ],
+  alternativeSuggestions: [
+    {
+      title: '下学期干预方向',
+      content: '建议基于本学期数据分析，在下学期重点关注行为功能变化趋势，持续积累ABC观察记录以优化干预方案。\n依据：学期级别的分析需要足够的数据量支撑，建议保持每日记录习惯。'
+    },
+    {
+      title: '加强跨场景泛化观察',
+      content: '建议在下学期增加对不同课程、不同环境的观察记录，特别是非主科课程和课间活动场景。\n依据：行为功能的跨情境一致性是评估干预效果的重要指标。'
+    }
+  ]
+};
+
 module.exports = {
   WEEKLY: weeklyReport,
-  MONTHLY: monthlyReport
+  MONTHLY: monthlyReport,
+  SEMESTER: semesterReport
 };
