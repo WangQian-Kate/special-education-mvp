@@ -278,4 +278,27 @@
         JOIN behavior_record br ON br.behavior_code = btg.behavior_code
         WHERE btg.standard_number = #{standardNumber}
     </select>
+
+    <insert id="insertChangeLog">
+        INSERT INTO training_goal_change_log (student_goal_id, standard_number, goal_text, changed_by, changed_at, field_name, old_value, new_value)
+        VALUES (#{studentGoalId}, #{standardNumber}, #{goalText}, #{changedBy}, #{changedAt}, #{fieldName}, #{oldValue}, #{newValue})
+    </insert>
+
+    <select id="findChangeLogs" resultType="com.specialed.assistant.api.trainingplan.TrainingGoalChangeLogEntity">
+        SELECT log.id, log.student_goal_id, log.standard_number, log.goal_text,
+               log.changed_by, log.changed_at, log.field_name, log.old_value, log.new_value
+        FROM training_goal_change_log log
+        JOIN student_training_goal stg ON stg.id = log.student_goal_id
+        WHERE log.standard_number = #{standardNumber} AND stg.student_id = #{studentId}
+        ORDER BY log.changed_at DESC LIMIT #{limit}
+    </select>
+
+    <select id="findRecentChanges" resultType="com.specialed.assistant.api.trainingplan.TrainingGoalChangeLogEntity">
+        SELECT log.id, log.student_goal_id, log.standard_number, log.goal_text,
+               log.changed_by, log.changed_at, log.field_name, log.old_value, log.new_value
+        FROM training_goal_change_log log
+        JOIN student_training_goal stg ON stg.id = log.student_goal_id
+        WHERE stg.student_id = #{studentId} AND log.changed_at >= #{since}
+        ORDER BY log.changed_at DESC LIMIT #{limit}
+    </select>
 </mapper>

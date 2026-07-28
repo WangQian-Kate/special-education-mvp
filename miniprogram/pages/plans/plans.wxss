@@ -303,3 +303,9 @@
   background: #dcfce7;
   color: #5CB85C;
 }
+
+.gr-tabs { display: flex; border-bottom: 2rpx solid #f3f4f6; margin-bottom: 16rpx; flex-shrink: 0; }
+.gr-tab { flex: 1; text-align: center; padding: 16rpx 0; font-size: 26rpx; color: #9ca3af; }
+.gr-tab.on { color: #5B9BD5; font-weight: 700; border-bottom: 3rpx solid #5B9BD5; margin-bottom: -2rpx; }
+.gr-history-label { font-size: 24rpx; color: #6b7280; margin-right: 16rpx; }
+.gr-history-change { font-size: 26rpx; color: #1f2937; font-weight: 600; }

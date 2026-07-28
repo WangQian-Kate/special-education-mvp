@@ -131,17 +131,16 @@
         </view>
         <view wx:if="{{!wkDailyTrend.length}}" class="empty-tip">暂无数据</view>
       </view>
-      <!-- 4. 训练目标完成情况 -->
-      <view class="card section"><view class="block-title">训练目标完成情况</view>
-        <view wx:for="{{wkGoalModules}}" wx:key="name" class="goal-mod">
-          <text class="goal-mod-name">{{item.name}}</text>
-          <view wx:for="{{item.goals}}" wx:for-item="g" wx:key="text" class="goal-row">
-            <text class="goal-text">{{g.text}}</text>
-            <text class="goal-stat ind">{{g.independent}}次独立</text>
-            <text class="goal-stat ass">{{g.assisted}}次辅助</text>
+      <!-- 4. 训练目标变化 -->
+      <view class="card section"><view class="block-title">训练目标变化</view>
+        <view wx:for="{{wkGoalChanges}}" wx:key="id" class="tr-row">
+          <view class="tr-info">
+            <text class="tr-name">{{item.standardNumber}} {{item.goalText}}</text>
+            <text class="tr-date">{{item.changedAt}}</text>
           </view>
+          <text class="tr-change">{{item.fieldLabel}}：{{item.oldValue}} → {{item.newValue}}</text>
         </view>
-        <view wx:if="{{!wkGoalModules.length}}" class="empty-tip">暂无训练目标数据</view>
+        <view wx:if="{{!wkGoalChanges.length}}" class="empty-tip">暂无变更记录</view>
       </view>
       <!-- 5. 课程维度统计 -->
       <view class="card section" wx:if="{{wkCourses.length}}"><view class="block-title">课程维度统计</view>
@@ -202,13 +201,21 @@
           <view class="ov-i"><text class="ov-v">{{wkOverview.observationCourseCount || 0}}</text><text class="ov-l">涉及课程</text></view>
         </view>
       </view>
-      <!-- 2. 月度状态变化（折线图：第1~4周独立完成率） -->
-      <view class="card section"><view class="block-title">月度状态变化</view>
-        <view class="chart-box" wx:if="{{wkWeeklyBreakdown.length}}">
+      <!-- 2. 每周记录趋势（三线） -->
+      <view class="card section" wx:if="{{wkWeeklyBreakdown.length}}"><view class="block-title">每周记录趋势</view>
+        <view class="chart-box">
+          <ec-canvas id="mo-trend-chart" canvas-id="mo-trend-chart" ec="{{ecMoTrend}}"></ec-canvas>
+        </view>
+      </view>
+      <!-- 3. 月度状态变化（独立率折线） -->
+      <view class="card section" wx:if="{{wkWeeklyBreakdown.length}}"><view class="block-title">月度状态变化</view>
+        <view class="chart-box">
           <ec-canvas id="mo-line-chart" canvas-id="mo-line-chart" ec="{{ecMoLine}}"></ec-canvas>
         </view>
-        <!-- 表格辅助：per-week 明细 -->
-        <view class="tbl" wx:if="{{wkWeeklyBreakdown.length}}">
+      </view>
+      <!-- 表格辅助：per-week 明细 -->
+      <view class="card section" wx:if="{{wkWeeklyBreakdown.length}}">
+        <view class="tbl">
           <view class="tbl-h"><text class="tbl-c1">周次</text><text class="tbl-c2">总数</text><text class="tbl-c2">独立</text><text class="tbl-c2">辅助</text><text class="tbl-c2">未完成</text><text class="tbl-c3">独立率</text></view>
           <view wx:for="{{wkWeeklyBreakdown}}" wx:key="week" class="tbl-r">
             <text class="tbl-c1">第{{item.week}}周</text>
@@ -223,30 +230,23 @@
       </view>
       <!-- 3. 训练目标变化 -->
       <view class="card section"><view class="block-title">训练目标变化</view>
-        <view wx:for="{{wkGoalModules}}" wx:key="name" class="goal-mod">
-          <text class="goal-mod-name">{{item.name}}</text>
-          <view wx:for="{{item.goals}}" wx:for-item="g" wx:key="text" class="goal-row">
-            <text class="goal-text">{{g.text}}</text>
-            <text class="goal-stat ass">第1周 辅助</text>
-            <text class="goal-stat ind">→ 第4周 独立</text>
+        <view wx:for="{{wkGoalChanges}}" wx:key="id" class="tr-row">
+          <view class="tr-info">
+            <text class="tr-name">{{item.standardNumber}} {{item.goalText}}</text>
+            <text class="tr-date">{{item.changedAt}}</text>
           </view>
+          <text class="tr-change">{{item.fieldLabel}}：{{item.oldValue}} → {{item.newValue}}</text>
         </view>
-        <view wx:if="{{!wkGoalModules.length}}" class="empty-tip">暂无训练目标数据</view>
+        <view wx:if="{{!wkGoalChanges.length}}" class="empty-tip">本月无变更记录</view>
       </view>
-      <!-- 4. 行为表现变化（behavior_description 频次趋势） -->
-      <!-- TODO 后端就绪：GET /student-evaluation/behavior-description-trend?period=MONTHLY -->
-      <view class="card section"><view class="block-title">行为表现变化</view>
-        <view wx:if="{{wkBehDescTrends.length}}">
-          <view wx:for="{{wkBehDescTrends}}" wx:key="description" class="tr-row">
-            <text class="tr-name">{{item.description}}</text>
-            <view class="tr-bar-bg"><view class="tr-bar" style="width:{{(item.totalCount / wkBehDescMax) * 100 || 0}}%;background:{{item.trend === 'DOWN' ? '#22c55e' : item.trend === 'UP' ? '#ef4444' : '#5B9BD5'}}"></view></view>
-            <text class="tr-count">{{item.totalCount}}次</text>
-            <text class="tr-chg {{item.trend === 'UP' ? 'up' : 'down'}}">{{item.trend === 'UP' ? '↑' : item.trend === 'DOWN' ? '↓' : '→'}}</text>
-          </view>
+      <!-- ABC 行为功能统计 -->
+      <view class="card section"><view class="block-title">ABC 行为功能统计</view>
+        <view wx:for="{{wkAbcDist}}" wx:key="label" class="tr-row">
+          <text class="tr-name">{{item.label}}</text>
+          <view class="tr-bar-bg"><view class="tr-bar" style="width:{{item.pct}}%"></view></view>
+          <text class="tr-count">{{item.pct}}%</text>
         </view>
-        <view wx:if="{{!wkBehDescTrends.length}}" class="empty-tip">
-          暂无行为表现数据<text style="font-size:20rpx;color:#c0c0c0;display:block">（需后端 behavior-description-trend 接口）</text>
-        </view>
+        <view wx:if="{{!wkAbcDist.length}}" class="empty-tip">暂无ABC数据</view>
       </view>
     </block>
   </block>

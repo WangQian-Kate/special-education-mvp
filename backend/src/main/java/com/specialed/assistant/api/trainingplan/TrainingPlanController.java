@@ -3,6 +3,7 @@ package com.specialed.assistant.api.trainingplan;
 import com.specialed.assistant.auth.CurrentUserId;
 import com.specialed.assistant.dto.ApiResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Size;
@@ -67,6 +68,24 @@ public class TrainingPlanController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate referenceDate
     ) {
         return service.goalsProgress(userId, period, referenceDate);
+    }
+
+    @GetMapping("/goals/{standardNumber}/history")
+    public List<TrainingGoalChangeLogEntity> goalHistory(
+            @CurrentUserId Long userId,
+            @PathVariable @Positive Integer standardNumber,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit
+    ) {
+        return service.getChangeLogs(userId, standardNumber, limit);
+    }
+
+    @GetMapping("/goals/changes/recent")
+    public List<TrainingGoalChangeLogEntity> recentChanges(
+            @CurrentUserId Long userId,
+            @RequestParam(defaultValue = "7") @Min(1) @Max(90) int days,
+            @RequestParam(defaultValue = "30") @Min(1) @Max(100) int limit
+    ) {
+        return service.getRecentChanges(userId, days, limit);
     }
 
     @GetMapping("/goals/{standardNumber}/records")

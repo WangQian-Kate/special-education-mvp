@@ -126,7 +126,10 @@
 .tr-row { display: flex; align-items: center; gap: 10rpx; padding: 6rpx 0; }
 .tr-name { width: 128rpx; font-size: 24rpx; color: var(--color-text); flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tr-bar-bg { flex: 1; height: 22rpx; background: #f3f4f6; border-radius: 11rpx; overflow: hidden; display: flex; }
-.tr-bar { height: 100%; border-radius: 11rpx; min-width: 6rpx; }
+.tr-bar { height: 100%; border-radius: 11rpx; min-width: 6rpx; background: #5B9BD5; }
+.tr-info { flex: 1; overflow: hidden; }
+.tr-date { font-size: 22rpx; color: #9ca3af; display: block; }
+.tr-change { font-size: 24rpx; color: #5B9BD5; font-weight: 600; white-space: nowrap; }
 .tr-count { font-size: 22rpx; font-weight: 700; color: var(--color-text); width: 56rpx; text-align: right; flex-shrink: 0; }
 
 .section { margin-bottom: 20rpx; }

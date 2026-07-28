@@ -10,6 +10,12 @@ const { get } = request;
 const getGoalRecords = (standardNumber, limit = 10) =>
   get(`/training-plan/goals/${standardNumber}/records`, { limit });
 
+const getGoalHistory = (standardNumber, limit = 20) =>
+  get(`/training-plan/goals/${standardNumber}/history`, { limit });
+
+const getRecentGoalChanges = (days = 7, limit = 30) =>
+  get('/training-plan/goals/changes/recent', { days, limit });
+
 /**
  * 获取学生训练计划条目列表
  * GET /training-plan/items
@@ -25,4 +31,4 @@ const getPlanItems = () => get('/training-plan/items');
 const updatePlanItem = (itemId, patch) =>
   request.request({ url: `/training-plan/items/${itemId}`, method: 'PATCH', data: patch });
 
-module.exports = { getGoalRecords, getPlanItems, updatePlanItem };
+module.exports = { getGoalRecords, getGoalHistory, getRecentGoalChanges, getPlanItems, updatePlanItem };

@@ -41,4 +41,12 @@ public interface TrainingPlanMapper {
     List<Map<String, Object>> findGoalBehaviorRecords(@Param("standardNumber") Integer standardNumber,
                                                        @Param("limit") int limit);
     int countGoalBehaviorRecords(@Param("standardNumber") Integer standardNumber);
+
+    int insertChangeLog(TrainingGoalChangeLogEntity log);
+    List<TrainingGoalChangeLogEntity> findChangeLogs(@Param("standardNumber") Integer standardNumber,
+                                                      @Param("studentId") Long studentId,
+                                                      @Param("limit") int limit);
+    List<TrainingGoalChangeLogEntity> findRecentChanges(@Param("studentId") Long studentId,
+                                                         @Param("since") java.time.LocalDateTime since,
+                                                         @Param("limit") int limit);
 }

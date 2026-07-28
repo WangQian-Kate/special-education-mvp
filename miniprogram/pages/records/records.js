@@ -1,6 +1,7 @@
 // pages/records/records.js
 // TAB1 随班记录：日/周/月三视图 + 新行为目录（v2.6：模块/行为/子行为/三状态）
 const recordApi = require('../../api/record');
+const planApi = require('../../api/plan');
 const {
   COURSES, ALL_DAY_COURSE, ENVIRONMENTS, COURSE_DEFAULT_ENV,
   DURATION_PRESETS, DEFAULT_DURATION, DURATION_MAX
@@ -31,15 +32,35 @@ function initWkLineChart(canvas, width, height, dpr) {
 }
 
 function initMoLineChart(canvas, width, height, dpr) {
-  if (!canvas || !width || !height) return null;  // ec-canvas 异步初始化时参数可能为空
+  if (!canvas || !width || !height) return null;
   var echarts = require('../../components/ec-canvas/echarts');
   var chart = echarts.init(canvas, null, { width: width, height: height, devicePixelRatio: dpr });
   canvas.setChart(chart); moLineChart = chart;
   chart.setOption({
     grid: { left: 44, right: 16, top: 16, bottom: 28 },
-    xAxis: { type: 'category', data: ['第1周','第2周','第3周','第4周'], axisLabel: { fontSize: 10, color: '#9ca3af' }, axisLine: { lineStyle: { color: '#e5e7eb' } } },
+    xAxis: { type: 'category', data: [], axisLabel: { fontSize: 10, color: '#9ca3af' }, axisLine: { lineStyle: { color: '#e5e7eb' } } },
     yAxis: { type: 'value', min: 0, max: 100, axisLabel: { fontSize: 10, color: '#9ca3af', formatter: '{value}%' }, splitLine: { lineStyle: { color: '#f3f4f6' } } },
-    series: [{ type: 'line', data: [0,0,0,0], smooth: true, symbol: 'circle', symbolSize: 6, lineStyle: { color: '#22c55e', width: 2.5 }, itemStyle: { color: '#22c55e' }, areaStyle: { color: 'rgba(34,197,94,0.08)' } }]
+    series: [{ type: 'line', data: [], smooth: true, symbol: 'circle', symbolSize: 6, lineStyle: { color: '#22c55e', width: 2.5 }, itemStyle: { color: '#22c55e' }, areaStyle: { color: 'rgba(34,197,94,0.08)' } }]
+  });
+  return chart;
+}
+
+var moTrendChart = null;
+function initMoTrendChart(canvas, width, height, dpr) {
+  if (!canvas || !width || !height) return null;
+  var echarts = require('../../components/ec-canvas/echarts');
+  var chart = echarts.init(canvas, null, { width: width, height: height, devicePixelRatio: dpr });
+  canvas.setChart(chart); moTrendChart = chart;
+  chart.setOption({
+    grid: { left: 44, right: 16, top: 20, bottom: 36 },
+    xAxis: { type: 'category', data: [], axisLabel: { fontSize: 10, color: '#9ca3af' }, axisLine: { lineStyle: { color: '#e5e7eb' } } },
+    yAxis: { type: 'value', minInterval: 1, axisLabel: { fontSize: 10, color: '#9ca3af' }, splitLine: { lineStyle: { color: '#f3f4f6' } } },
+    legend: { data: ['独立','辅助','未完成'], bottom: 0, textStyle: { fontSize: 10, color: '#9ca3af' } },
+    series: [
+      { name: '独立', type: 'line', data: [], smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { color: '#22c55e', width: 2 }, itemStyle: { color: '#22c55e' } },
+      { name: '辅助', type: 'line', data: [], smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { color: '#f59e0b', width: 2 }, itemStyle: { color: '#f59e0b' } },
+      { name: '未完成', type: 'line', data: [], smooth: true, symbol: 'circle', symbolSize: 5, lineStyle: { color: '#ef4444', width: 2 }, itemStyle: { color: '#ef4444' } }
+    ]
   });
   return chart;
 }
@@ -122,7 +143,7 @@ Page({
     wkDist: { incomplete: 0, assisted: 0, independent: 0 },
     wkPctIncomplete: 0, wkPctAssisted: 0, wkPctIndependent: 0,
     wkCourses: [], wkEnvs: [], wkTop6: [],
-    wkGoalCount: 0, wkGoalModules: [], wkDailyTrend: [], wkMaxDay: 1,
+    wkGoalCount: 0, wkGoalModules: [], wkGoalChanges: [], wkDailyTrend: [], wkMaxDay: 1,
     wkAbcDist: [],
     wkMaxTop: 1,
     wkWeeklyBreakdown: [],        // 月：per-week 状态拆分
@@ -130,6 +151,7 @@ Page({
     wkBehDescMax: 1,             // 月：行为表现最大频次（bar 宽度基准）
     ecWkLine: { onInit: initWkLineChart },
     ecMoLine: { onInit: initMoLineChart },
+    ecMoTrend: { onInit: initMoTrendChart },
     wkOffset: 0, wkWeekNum: 0, wkWeekRange: '', wkMonthLabel: '',
     evalFields: [
       { key: 'emotion', label: '情绪行为' },
@@ -201,9 +223,9 @@ Page({
       var catalog = await recordApi.getBehaviorCatalog(courseCode, envCode);
       var modules = groupByModule(catalog);
       if (this.isAllDay()) {
-        // 全天汇总：聚合当日所有 class_record 的计数
         modules = await this._aggregateAllDayCounts(modules);
       }
+      modules = this._sortModules(modules, courseCode, envCode);
       this.setData({ modules: modules });
     } catch (err) {
       wx.showToast({ title: '目录加载失败: ' + (err && (err.message || err.code) || '未知'), icon: 'none', duration: 3000 });
@@ -391,6 +413,30 @@ Page({
       note: '', noteSaveState: '', modules: []
     });
     await this.loadCatalog();
+  },
+
+  _sortModules(modules, courseCode, envCode) {
+    var top = null;
+    if (envCode === 'CORRIDOR' || envCode === 'STAIRWAY') {
+      top = '上下楼梯';
+    } else if (envCode === 'PLAYGROUND' || courseCode === 'PHYSICAL_EDUCATION' || courseCode === 'PHYSICAL_TRAINING') {
+      top = '运动';
+    } else if (courseCode === 'LUNCH') {
+      top = '用餐';
+    } else if (courseCode === 'BREAK') {
+      top = '课间休息';
+    }
+    // 午休去掉入校常识和离校常规
+    if (courseCode === 'NOON_REST') {
+      modules = modules.filter(function (m) { return m.name !== '入校常识' && m.name !== '离校常规'; });
+    }
+    if (!top) return modules;
+    var sorted = [];
+    var rest = [];
+    modules.forEach(function (m) {
+      if (m.name === top) sorted.push(m); else rest.push(m);
+    });
+    return sorted.concat(rest);
   },
 
   // ==================== 模块折叠 ====================
@@ -814,18 +860,37 @@ Page({
         var comp = that.selectComponent('#mo-line-chart');
         var chart = comp && comp.chart;
         if (!chart) { setTimeout(updateMoChart, 300); return; }
-        var moLineData = weeklyBreakdown.map(function (w) { return w.independentRate; });
-        try { chart.setOption({ series: [{ data: moLineData }] }); } catch (_) {}
+        var weeks = weeklyBreakdown.map(function (w) { return '第' + w.week + '周'; });
+        var rateData = weeklyBreakdown.map(function (w) { return w.independentRate; });
+        try { chart.setOption({ xAxis: { data: weeks }, series: [{ data: rateData }] }); } catch (_) {}
       };
       updateMoChart();
 
-      // ABC 分布（异步拉取）
+      var updateMoTrend = function () {
+        if (!weeklyBreakdown.length) return;
+        var comp = that.selectComponent('#mo-trend-chart');
+        var chart = comp && comp.chart;
+        if (!chart) { setTimeout(updateMoTrend, 300); return; }
+        var weeks = weeklyBreakdown.map(function (w) { return '第' + w.week + '周'; });
+        var ind = weeklyBreakdown.map(function (w) { return w.independentCount || 0; });
+        var ass = weeklyBreakdown.map(function (w) { return w.assistedCount || 0; });
+        var inc = weeklyBreakdown.map(function (w) { return w.incompleteCount || 0; });
+        try { chart.setOption({ xAxis: { data: weeks }, series: [{ data: ind }, { data: ass }, { data: inc }] }); } catch (_) {}
+      };
+      updateMoTrend();
+
+      // ABC 分布（异步拉取，按固定顺序）
+      var FUNC_ORDER = ['获取关注', '获取实物', '逃避/回避', '感觉刺激', '其他'];
       var abcDist = [];
       try {
         var abcRes = await recordApi.getAbcDistribution(period, ds);
-        abcDist = (abcRes && abcRes.items) ? abcRes.items.map(function (i) {
+        var abcRaw = (abcRes && abcRes.items) ? abcRes.items.map(function (i) {
           return { label: i.functionLabel || i.label, pct: i.percentage || 0 };
         }) : [];
+        abcDist = FUNC_ORDER.map(function (fn) {
+          var hit = abcRaw.filter(function (a) { return a.label === fn; })[0];
+          return hit || { label: fn, pct: 0 };
+        });
       } catch (e) { /* 静默 */ }
 
       var maxDay = Math.max.apply(null, dailyTrend.map(function (d) { return d.recordCount || 0; }).concat([1]));
@@ -841,15 +906,35 @@ Page({
         wkTop6: top6,
         wkCourses: crs, wkEnvs: envs,
         wkGoalCount: ov ? (ov.trainingGoalCount || 0) : 0,
-        wkGoalModules: [], wkDailyTrend: dailyTrend, wkMaxDay: maxDay,
+        wkGoalModules: [], wkGoalChanges: [], wkDailyTrend: dailyTrend, wkMaxDay: maxDay,
         wkAbcDist: abcDist,
         wkMaxTop: maxTop,
         wkWeeklyBreakdown: weeklyBreakdown,
         wkBehDescTrends: [], wkBehDescMax: 1
       });
+      this._loadGoalChanges();
     } catch (err) {
       this.setData({ wkLoading: false, wkEmpty: true });
     }
+  },
+
+  async _loadGoalChanges() {
+    try {
+      var list = await planApi.getRecentGoalChanges(7, 20);
+      var FM = { currentLevel: '当前评级', phase: '阶段', status: '状态' };
+      var SM = { 'NOT_STARTED': '未开始', 'IN_PROGRESS': '进行中', 'COMPLETED': '已完成' };
+      list = (list || []).map(function (item) {
+        return {
+          standardNumber: item.standardNumber,
+          goalText: item.goalText,
+          changedAt: item.changedAt ? item.changedAt.substring(0, 16).replace('T', ' ') : '',
+          fieldLabel: FM[item.fieldName] || item.fieldName,
+          oldValue: SM[item.oldValue] || item.oldValue || '无',
+          newValue: SM[item.newValue] || item.newValue || ''
+        };
+      });
+      this.setData({ wkGoalChanges: list });
+    } catch (err) {}
   },
 
   async _loadPerBehaviorStatus(top6) {

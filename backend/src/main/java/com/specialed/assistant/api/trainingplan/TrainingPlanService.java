@@ -171,9 +171,11 @@ public class TrainingPlanService {
         Long studentId = profileService.requireCurrentStudentId(userId);
         TrainingPlanItemEntity item = requireItem(itemId, studentId);
         validatePatch(patch);
+        logChange(item, patch, "currentLevel", "currentLevel", userId);
         if (patch.has("currentLevel")) {
             item.setCurrentLevel(readRequiredText(patch.get("currentLevel"), "currentLevel", 32));
         }
+        logChange(item, patch, "phase", "phase", userId);
         if (patch.has("phase")) {
             JsonNode phase = patch.get("phase");
             if (phase == null || !phase.canConvertToInt() || phase.intValue() < 1 || phase.intValue() > 3) {
@@ -181,6 +183,7 @@ public class TrainingPlanService {
             }
             item.setPhase(phase.intValue());
         }
+        logChange(item, patch, "status", "status", userId);
         if (patch.has("status")) {
             String status = readRequiredText(patch.get("status"), "status", 32);
             try {
@@ -191,6 +194,48 @@ public class TrainingPlanService {
         }
         mapper.updateItem(item);
         return toItem(requireItem(itemId, studentId));
+    }
+
+    public List<TrainingGoalChangeLogEntity> getChangeLogs(Long userId, Integer standardNumber, int limit) {
+        Long studentId = profileService.requireCurrentStudentId(userId);
+        return mapper.findChangeLogs(standardNumber, studentId, limit);
+    }
+
+    public List<TrainingGoalChangeLogEntity> getRecentChanges(Long userId, int days, int limit) {
+        Long studentId = profileService.requireCurrentStudentId(userId);
+        var since = java.time.LocalDateTime.now().minusDays(days);
+        return mapper.findRecentChanges(studentId, since, limit);
+    }
+
+    private void logChange(TrainingPlanItemEntity item, JsonNode patch, String field, String jsonKey, Long userId) {
+        if (!patch.has(jsonKey)) return;
+        String oldVal = switch (field) {
+            case "currentLevel" -> item.getCurrentLevel();
+            case "phase" -> String.valueOf(item.getPhase());
+            case "status" -> item.getStatus();
+            default -> null;
+        };
+        String newVal = switch (field) {
+            case "currentLevel" -> readRequiredText(patch.get(jsonKey), jsonKey, 32);
+            case "phase" -> String.valueOf(patch.get(jsonKey).intValue());
+            case "status" -> {
+                String s = readRequiredText(patch.get(jsonKey), jsonKey, 32);
+                try { yield TrainingStatus.valueOf(s).name(); }
+                catch (IllegalArgumentException e) { yield s; }
+            }
+            default -> null;
+        };
+        if (oldVal != null && oldVal.equals(newVal)) return;
+        var log = new TrainingGoalChangeLogEntity();
+        log.setStudentGoalId(item.getId());
+        log.setStandardNumber(item.getStandardNumber());
+        log.setGoalText(item.getGoalText());
+        log.setChangedBy(userId);
+        log.setChangedAt(java.time.LocalDateTime.now());
+        log.setFieldName(field);
+        log.setOldValue(oldVal);
+        log.setNewValue(newVal);
+        mapper.insertChangeLog(log);
     }
 
     @Transactional

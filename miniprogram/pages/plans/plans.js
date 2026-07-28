@@ -24,7 +24,10 @@ Page({
     goalRecordsVisible: false,
     goalRecordsTitle: '',
     goalRecords: [],
-    goalRecordsLoading: false
+    goalRecordsLoading: false,
+    goalActiveTab: 'records',
+    goalHistory: [],
+    goalHistoryLoading: false
   },
 
   async onLoad() {
@@ -118,18 +121,46 @@ Page({
     this.setData({
       goalRecordsVisible: true,
       goalRecordsTitle: '【' + standardNumber + '】' + goalText,
-      goalRecords: [],
-      goalRecordsLoading: true
+      goalRecords: [], goalRecordsLoading: true,
+      goalActiveTab: 'records', goalHistory: [], goalHistoryLoading: false
     });
     try {
       var res = await planApi.getGoalRecords(standardNumber, 10);
       var records = Array.isArray(res) ? res : (res && res.records ? res.records : []);
       this.setData({ goalRecords: records });
-    } catch (err) {
-      this.setData({ goalRecords: [] });
-    } finally {
-      this.setData({ goalRecordsLoading: false });
+    } catch (err) { this.setData({ goalRecords: [] }); }
+    finally { this.setData({ goalRecordsLoading: false }); }
+  },
+
+  async onGoalTabSwitch(e) {
+    var tab = e.currentTarget.dataset.tab;
+    if (tab === this.data.goalActiveTab) return;
+    this.setData({ goalActiveTab: tab });
+    if (tab === 'history' && !this.data.goalHistory.length) {
+      await this._loadGoalHistory();
     }
+  },
+
+  async _loadGoalHistory() {
+    this.setData({ goalHistoryLoading: true });
+    try {
+      var sn = this.data.goalRecordsTitle.match(/【(\d+)】/);
+      if (!sn) return;
+      var list = await planApi.getGoalHistory(parseInt(sn[1]), 20);
+      var FM = { currentLevel: '当前评级', phase: '阶段', status: '状态' };
+      var SM = { 'NOT_STARTED': '未开始', 'IN_PROGRESS': '进行中', 'COMPLETED': '已完成' };
+      list = (list || []).map(function (item) {
+        return {
+          id: item.id,
+          changedAt: item.changedAt ? item.changedAt.substring(0, 16).replace('T', ' ') : '',
+          fieldLabel: FM[item.fieldName] || item.fieldName,
+          oldValue: SM[item.oldValue] || item.oldValue || '无',
+          newValue: SM[item.newValue] || item.newValue || ''
+        };
+      });
+      this.setData({ goalHistory: list });
+    } catch (err) { this.setData({ goalHistory: [] }); }
+    finally { this.setData({ goalHistoryLoading: false }); }
   },
 
   onGoalRecordsClose() {

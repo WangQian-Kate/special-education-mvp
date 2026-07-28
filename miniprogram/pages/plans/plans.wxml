@@ -67,16 +67,24 @@ module.exports = { statusClass: function (s) { return map[s] || 'pending'; } };
 
   <!-- 训练目标关联记录弹窗 -->
   <view class="goal-records-mask" wx:if="{{goalRecordsVisible}}" bindtap="onGoalRecordsClose">
-    <view class="goal-records-panel" catchtap="{{null}}">
+    <view class="goal-records-panel" catchtap="noop">
       <view class="gr-header">
         <text class="gr-title">{{goalRecordsTitle}}</text>
         <text class="gr-close" bindtap="onGoalRecordsClose">✕</text>
       </view>
-      <view class="gr-subtitle" wx:if="{{!goalRecordsLoading}}">共 {{goalRecords.length}} 条关联记录</view>
-      <view class="gr-loading" wx:if="{{goalRecordsLoading}}">加载中…</view>
-      <scroll-view class="gr-list" scroll-y wx:if="{{!goalRecordsLoading}}">
-        <view class="gr-empty" wx:if="{{goalRecords.length === 0}}">暂无关联的行为记录</view>
-        <view class="gr-item" wx:for="{{goalRecords}}" wx:key="id">
+      <!-- tab 切换 -->
+      <view class="gr-tabs">
+        <view class="gr-tab {{goalActiveTab === 'records' ? 'on' : ''}}" bindtap="onGoalTabSwitch" data-tab="records">关联行为记录</view>
+        <view class="gr-tab {{goalActiveTab === 'history' ? 'on' : ''}}" bindtap="onGoalTabSwitch" data-tab="history">目标变更历史</view>
+      </view>
+      <!-- 行为记录 tab -->
+      <scroll-view class="gr-list" scroll-y wx:if="{{goalActiveTab === 'records'}}">
+        <view class="gr-loading" wx:if="{{goalRecordsLoading}}">加载中…</view>
+        <block wx:elif="{{goalRecords.length === 0}}">
+          <view class="gr-empty">暂无关联的行为记录</view>
+        </block>
+        <block wx:else>
+          <view class="gr-item" wx:for="{{goalRecords}}" wx:key="id">
           <view class="gr-item-row gr-item-meta">
             <text class="gr-date">📅 {{item.recordDate}}</text>
             <text class="gr-time">🕐 {{item.occurredTime}}</text>
@@ -93,7 +101,26 @@ module.exports = { statusClass: function (s) { return map[s] || 'pending'; } };
             <text class="gr-behavior-label">{{item.subBehaviorLabel ? item.subBehaviorLabel + ' · ' : ''}}{{item.behaviorLabel}}</text>
             <text class="gr-status s-{{item.statusCode}}">{{item.statusLabel}}</text>
           </view>
-        </view>
+          </view>
+        </block>
+      </scroll-view>
+      <!-- 变更历史 tab -->
+      <scroll-view class="gr-list" scroll-y wx:if="{{goalActiveTab === 'history'}}">
+        <view class="gr-loading" wx:if="{{goalHistoryLoading}}">加载中…</view>
+        <block wx:elif="{{goalHistory.length === 0}}">
+          <view class="gr-empty">暂无变更记录</view>
+        </block>
+        <block wx:else>
+          <view class="gr-item" wx:for="{{goalHistory}}" wx:key="id">
+          <view class="gr-item-row">
+            <text class="gr-date">📅 {{item.changedAt}}</text>
+          </view>
+          <view class="gr-item-row">
+            <text class="gr-history-label">{{item.fieldLabel}}</text>
+            <text class="gr-history-change">{{item.oldValue}} → {{item.newValue}}</text>
+          </view>
+          </view>
+        </block>
       </scroll-view>
     </view>
   </view>

@@ -8,7 +8,7 @@
 
 <!-- 微信登录 -->
 <view class="login-card" wx:if="{{step === 'login'}}">
-  <image class="avatar" src="/images/avatar-default.png" mode="aspectFill" />
+  <view class="avatar-placeholder">特</view>
   <view class="nickname">特教课堂助手</view>
   <view class="hint">申请使用你的微信头像和昵称</view>
   <button class="wechat-btn" bindtap="handleWechatLogin" loading="{{submitting}}">
