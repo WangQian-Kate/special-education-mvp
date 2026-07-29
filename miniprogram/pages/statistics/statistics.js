@@ -98,10 +98,29 @@ Page({
     statusDist: { incomplete: 0, assisted: 0, independent: 0 },
     // AI 三维度报告
     aiReport: null, aiReportLoading: false,
+    semesterOptions: [
+      { label: '2025年秋季学期 (9月-1月)', start: '2025-09-01' },
+      { label: '2026年春季学期 (2月-6月)', start: '2026-02-01' }
+    ],
+    semesterIndex: 1,
+  },
+
+  onLoad() {
+    var sem = currentSemester();
+    for (var i = 0; i < this.data.semesterOptions.length; i++) {
+      if (this.data.semesterOptions[i].start === sem.start) { this.setData({ semesterIndex: i }); break; }
+    }
   },
 
   onShow() { console.log('[statistics] onShow, view:', this.data.view); this.loadData(this.data.view); },
   onPullDownRefresh() { this.loadData(this.data.view).then(function () { wx.stopPullDownRefresh(); }); },
+
+  onSemesterChange(e) {
+    var idx = Number(e.detail.value);
+    if (idx === this.data.semesterIndex) return;
+    this.setData({ semesterIndex: idx });
+    this.loadSemester();
+  },
 
   onSwitchView(e) {
     var v = e.currentTarget.dataset.view;
@@ -218,7 +237,7 @@ Page({
   async loadSemester() {
     this.setData({ loading: true, empty: false });
     try {
-      var sem = currentSemester();
+      var sem = this.data.semesterOptions[this.data.semesterIndex];
       var refDate = sem.start;
       console.log('[statistics] loadSemester enter, refDate:', refDate);
       var stats = await recordApi.getEvaluationStats('SEMESTER', refDate);
@@ -231,6 +250,7 @@ Page({
       var assisted = ov ? (ov.assistedCount || 0) : 0;
       var independent = ov ? (ov.independentCount || 0) : 0;
 
+      console.log('[statistics] loadSemester done, items:', items.length, 'total:', total, 'ov:', !!ov);
       this.setData({
         loading: false,
         empty: !items.length && (!ov || !ov.behaviorRecordCount),

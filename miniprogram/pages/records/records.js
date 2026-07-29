@@ -171,14 +171,16 @@ Page({
     var t = today();
     this.dayRecords = []; this._epoch = 0; this._noteTimer = null; this._noteSaving = false; this._createPromise = null;
     this.setData({ date: t, todayStr: t });
-    // 恢复今日教师评价
     recordApi.getDailyEvaluation(t).then(function (data) {
       if (data) this.setData({ evaluation: data });
     }.bind(this)).catch(function () {});
     this.loadDay(t);
   },
 
-  onShow() { if (!store.getTeacherId()) wx.reLaunch({ url: '/pages/login/login' }); },
+  onShow() {
+    if (!store.getAccessToken() && !store.getTeacherId()) { wx.reLaunch({ url: '/pages/login/login' }); return; }
+    this.loadDay(this.data.date);
+  },
   onHide() { this._flushNote(); },
   onUnload() { this._flushNote(); },
 
@@ -208,6 +210,7 @@ Page({
       var myRec = (list || []).filter(function (r) { return r.courseCode === curCode; }).pop();
       console.log('[records] loadDay curCode:', curCode, 'myRec:', myRec && myRec.id);
       if (myRec) await this.bindRecord(myRec.id, epoch);
+      else this.setData({ classRecordId: null });
     } catch (err) {
       if (epoch !== this._epoch) return;
       this.dayRecords = [];
@@ -222,11 +225,11 @@ Page({
     try {
       var catalog = await recordApi.getBehaviorCatalog(courseCode, envCode);
       var modules = groupByModule(catalog);
-      if (this.isAllDay()) {
-        modules = await this._aggregateAllDayCounts(modules);
-      }
       modules = this._sortModules(modules, courseCode, envCode);
-      this.setData({ modules: modules });
+      this.setData({ modules: modules, loading: false });
+      if (this.isAllDay()) {
+        this._aggregateAllDayCounts(modules);
+      }
     } catch (err) {
       wx.showToast({ title: '目录加载失败: ' + (err && (err.message || err.code) || '未知'), icon: 'none', duration: 3000 });
       this.setData({ modules: [] });
@@ -279,11 +282,12 @@ Page({
           }
         } catch (e) { /* skip */ }
       }
-      modules.forEach(function (mod) {
+      var that = this;
+      for (var mi = 0; mi < modules.length; mi++) {
+        var mod = modules[mi];
         mod.behaviors.forEach(function (beh) {
           var mapData = countMap[beh.code] || { incomplete: 0, assisted: 0, independent: 0 };
           var counts = { incomplete: mapData.incomplete || 0, assisted: mapData.assisted || 0, independent: mapData.independent || 0 };
-          // 复制子行为计数
           if (beh.subBehaviors) {
             beh.subBehaviors.forEach(function (sub) {
               var subData = mapData[sub.name] || { incomplete: 0, assisted: 0, independent: 0 };
@@ -292,9 +296,10 @@ Page({
           }
           beh.counts = counts;
         });
-      });
+        that.setData({ modules: modules });
+        await new Promise(function (r) { setTimeout(r, 30); });
+      }
     } catch (e) { console.error('[records] _aggregateAllDayCounts error:', e); }
-    return modules;
   },
 
   async bindRecord(id, epoch) {
@@ -522,7 +527,7 @@ Page({
   async onDateChange(e) {
     var date = e.detail.value;
     if (date === this.data.date) return;
-    await this._flushNote(); this.setData({ date: date }); this.loadDay(date);
+    await this._flushNote(); this.setData({ date: date }); await this.loadDay(date);
   },
 
   async onCourseChange(e) {
@@ -835,10 +840,11 @@ Page({
 
       // 课程/环境统计（后端已提供）
       var crs = (stats && stats.courseStats) ? stats.courseStats.map(function (c) {
-        return { name: c.courseLabel, count: c.totalCount, independentRate: c.independentRate };
+        return { name: c.courseLabel, count: c.totalCount, ind: c.independentCount||0, ass: c.assistedCount||0, inc: c.incompleteCount||0, rate: c.independentRate };
       }) : [];
       var envs = (stats && stats.environmentStats) ? stats.environmentStats.map(function (e) {
-        return { name: e.environmentLabel, count: e.count };
+        var total = e.count || 1;
+        return { name: e.environmentLabel, count: total, ind: e.independentCount||0, ass: e.assistedCount||0, inc: e.incompleteCount||0, rate: Math.round((e.independentCount||0) / total * 100) };
       }) : [];
 
       // 高频行为 TOP6（带三色状态拆分）

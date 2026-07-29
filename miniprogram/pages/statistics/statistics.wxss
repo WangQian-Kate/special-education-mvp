@@ -78,4 +78,6 @@ ec-canvas { width: 100%; height: 100%; display: block; }
 .dist-bar:empty { justify-content: flex-start; }
 .dist-ind { background: #10b981; }
 .dist-ass { background: #f59e0b; }
-.dist-inc { background: #ef4444; }
+.dist-inc { background: #5B9BD5; }
+
+.semester-picker { font-size: 28rpx; font-weight: 600; color: #5B9BD5; text-align: center; padding: 8rpx 0; }

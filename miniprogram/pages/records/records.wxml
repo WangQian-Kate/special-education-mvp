@@ -144,14 +144,14 @@
       </view>
       <!-- 5. 课程维度统计 -->
       <view class="card section" wx:if="{{wkCourses.length}}"><view class="block-title">课程维度统计</view>
-        <view class="tbl"><view class="tbl-h"><text class="tbl-c1">课程</text><text class="tbl-c2">记录数</text><text class="tbl-c3">独立率</text></view>
-          <view wx:for="{{wkCourses}}" wx:key="name" class="tbl-r"><text class="tbl-c1">{{item.name}}</text><text class="tbl-c2">{{item.count}}</text><text class="tbl-c3">{{item.independentRate}}%</text></view>
+        <view class="tbl"><view class="tbl-h"><text class="tbl-c1">课程</text><text class="tbl-c2">总数</text><text class="tbl-c2">独立</text><text class="tbl-c2">辅助</text><text class="tbl-c2">未完成</text><text class="tbl-c3">独立率</text></view>
+          <view wx:for="{{wkCourses}}" wx:key="name" class="tbl-r"><text class="tbl-c1">{{item.name}}</text><text class="tbl-c2">{{item.count}}</text><text class="tbl-c2">{{item.ind}}</text><text class="tbl-c2">{{item.ass}}</text><text class="tbl-c2">{{item.inc}}</text><text class="tbl-c3">{{item.rate}}%</text></view>
         </view>
       </view>
       <!-- 6. 环境维度统计 -->
       <view class="card section" wx:if="{{wkEnvs.length}}"><view class="block-title">环境维度统计</view>
-        <view class="tbl"><view class="tbl-h"><text class="tbl-c1">环境</text><text class="tbl-c2">记录数</text></view>
-          <view wx:for="{{wkEnvs}}" wx:key="name" class="tbl-r"><text class="tbl-c1">{{item.name}}</text><text class="tbl-c2">{{item.count}}</text></view>
+        <view class="tbl"><view class="tbl-h"><text class="tbl-c1">环境</text><text class="tbl-c2">总数</text><text class="tbl-c2">独立</text><text class="tbl-c2">辅助</text><text class="tbl-c2">未完成</text><text class="tbl-c3">独立率</text></view>
+          <view wx:for="{{wkEnvs}}" wx:key="name" class="tbl-r"><text class="tbl-c1">{{item.name}}</text><text class="tbl-c2">{{item.count}}</text><text class="tbl-c2">{{item.ind}}</text><text class="tbl-c2">{{item.ass}}</text><text class="tbl-c2">{{item.inc}}</text><text class="tbl-c3">{{item.rate}}%</text></view>
         </view>
       </view>
       <!-- 7. 高频行为统计（三色堆叠条） -->

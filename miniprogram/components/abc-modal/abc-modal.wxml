@@ -1,5 +1,5 @@
 <view wx:if="{{visible}}" class="abc-mask" bindtap="onClose" catchtouchmove="noop">
-  <view class="abc-panel {{records.length ? 'has-records' : 'no-records'}}" catchtap="noop">
+  <view class="abc-panel {{records.length ? 'has-records' : 'no-records'}}" catchtap="noop" catchtouchmove="noop">
     <!-- 头部 -->
     <view class="abc-header">
       <view class="abc-title">{{behavior.behaviorLabel}} · 详细记录</view>
@@ -31,7 +31,7 @@
     </view>
 
     <!-- 下方可滚动：详情表单 -->
-    <view class="abc-body" wx:if="{{currentRecordId}}">
+    <scroll-view scroll-y enhanced show-scrollbar="{{false}}" class="abc-body" wx:if="{{currentRecordId}}">
         <view class="form-item">
           <view class="form-label">持续时间（分钟）</view>
           <picker mode="selector" range="{{durationOptions}}" value="{{durationIndex}}" bindchange="onDurationChange">
@@ -96,6 +96,6 @@
         </view>
 
         <button class="abc-save" bindtap="onSave" disabled="{{saving}}">{{saving ? '保存中…' : '保存更新'}}</button>
-    </view>
+    </scroll-view>
   </view>
 </view>

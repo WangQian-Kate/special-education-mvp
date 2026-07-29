@@ -68,7 +68,14 @@
   </block>
 
   <!-- ==================== 学期 ==================== -->
-  <block wx:elif="{{view === 'semester' && !empty}}">
+  <block wx:elif="{{view === 'semester'}}">
+    <view class="card section" style="padding:20rpx 28rpx">
+      <picker mode="selector" range="{{semesterOptions}}" range-key="label" value="{{semesterIndex}}" bindchange="onSemesterChange">
+        <view class="semester-picker">{{semesterOptions[semesterIndex].label}} ▾</view>
+      </picker>
+    </view>
+    <view wx:if="{{empty}}" class="card empty-tip">本学期暂无观察记录</view>
+    <block wx:if="{{!empty}}">
     <view class="card section"><view class="sec-title">学期概览</view>
       <view class="ov-grid">
         <view class="ov-i"><text class="ov-v">{{overview.behaviorRecordCount || totalCount}}</text><text class="ov-l">记录总次数</text></view>
@@ -134,10 +141,8 @@
       <view class="block-title">🤖 AI 学期分析</view>
       <view class="empty-tip">暂无AI分析数据</view>
     </view>
+    </block>
   </block>
 
-  <!-- 学期无数据 -->
-  <block wx:elif="{{view === 'semester' && empty}}">
-    <view class="card empty-tip">本学期暂无观察记录</view>
-  </block>
+
 </view>
