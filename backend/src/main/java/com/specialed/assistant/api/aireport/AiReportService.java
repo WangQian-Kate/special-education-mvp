@@ -106,7 +106,8 @@ public class AiReportService {
                                 r.getOccurredAt(), r.getDurationMinutes(), r.getStageLabel(),
                                 r.getAntecedentText(), r.getBehaviorDescription(), r.getConsequenceText(),
                                 r.getFunctionCode(), r.getFunctionLabel(), r.getAssistanceResultText(),
-                                r.getCourseLabel(), r.getEnvironmentLabel(), r.getRecordDate()));
+                                r.getCourseLabel(), r.getEnvironmentLabel(), r.getRecordDate(),
+                                r.getHasDetail() != null && r.getHasDetail()));
                     }
                 }
 
@@ -389,6 +390,29 @@ public class AiReportService {
         return text.trim();
     }
 
+    /**
+     * 语义感知截断：优先在句号/感叹号/问号处断开，保证语义完整。
+     * @param maxLen 最大字符数上限（放宽后的值）
+     */
+    private static String truncateAtSentence(String text, int maxLen) {
+        if (text == null || text.length() <= maxLen) return text;
+        // 在 [0, maxLen] 范围内从右往左找句子结束符
+        String searchRegion = text.substring(0, maxLen);
+        int lastBreak = -1;
+        for (int i = searchRegion.length() - 1; i >= 0; i--) {
+            char c = searchRegion.charAt(i);
+            if (c == '。' || c == '！' || c == '？' || c == '.' || c == '!' || c == '?') {
+                lastBreak = i + 1; // 包含结束符
+                break;
+            }
+        }
+        if (lastBreak > 0) {
+            return text.substring(0, lastBreak);
+        }
+        // 兜底：没有找到句子结束符，硬截断
+        return text.substring(0, maxLen);
+    }
+
     // ======================== Prompt 构建（SEAT 框架） ========================
 
     private String buildPrompt(String dateLabel, String rangeLabel, String period,
@@ -401,7 +425,17 @@ public class AiReportService {
         sb.append("你是专业的 BCBA（应用行为分析师），负责基于 ABC 行为记录推断学生的行为功能。\n\n");
         
         sb.append("# 核心任务\n");
-        sb.append("分析传入的 JSON 格式 ABC 行为记录，必须且只能将其归类为 SEAT 四大功能之一。\n\n");
+        sb.append("分析传入的行为记录，必须且只能将其归类为 SEAT 四大功能之一。\n\n");
+
+        // 数据说明（区分详录/快录两类记录）
+        sb.append("# 数据说明\n");
+        sb.append("输入记录分为两类：\n");
+        sb.append("1. 【详录】包含完整ABC信息（前因A、行为表现B、结果C、功能代码），可用于因果链分析和功能假设推断\n");
+        sb.append("2. 【快录】仅有行为名称、发生时间、课程环境等基础信息，可用于频次统计和趋势分析，但不可用于ABC因果推断\n\n");
+        sb.append("分析时请注意：\n");
+        sb.append("- 频次统计和趋势分析使用全部记录\n");
+        sb.append("- ABC因果链分析和功能假设推断仅基于【详录】记录\n");
+        sb.append("- 如果【详录】记录数量较少（<3条），请在reasoning中注明结论的局限性\n\n");
 
         // SEAT 框架说明与先验知识库（王骞老师要求）
         sb.append("# SEAT 框架说明与先验知识库\n\n");
@@ -508,31 +542,51 @@ public class AiReportService {
             }
         }
 
-        sb.append("\n详细ABC行为记录（共").append(records.size()).append("条）：\n");
+        // 统计详录/快录数量
+        long detailCount = records.stream().filter(BehaviorRecordItem::hasDetail).count();
+        long quickCount = records.size() - detailCount;
+        sb.append("\n行为记录（共").append(records.size()).append("条，详录").append(detailCount)
+                .append("条，快录").append(quickCount).append("条）：\n");
         // 使用 period 参数判断是否为学期报告，而非字符串匹配
         boolean isSemester = "SEMESTER".equalsIgnoreCase(period);
         // 学期报告增加记录限制到200条，以提供更全面的分析样本
         int maxRecords = Math.min(records.size(), isSemester ? 200 : 50);
         for (int i = 0; i < maxRecords; i++) {
             BehaviorRecordItem r = records.get(i);
-            sb.append("记录").append(r.recordId())
-                    .append("：").append(r.recordDate()).append(" ")
+            sb.append("记录").append(r.recordId());
+            if (r.hasDetail()) {
+                sb.append("【详录】");
+            } else {
+                sb.append("【快录】");
+            }
+            sb.append("：").append(r.recordDate()).append(" ")
                     .append(r.courseLabel()).append("/").append(r.environmentLabel())
                     .append("，行为：").append(r.behaviorLabel());
-            if (r.functionCode() != null && !r.functionCode().isEmpty()) {
-                sb.append("，功能代码：").append(r.functionCode());
-            }
-            if (r.antecedentText() != null && !r.antecedentText().isEmpty()) {
-                sb.append("，前因：").append(truncate(r.antecedentText(), 80));
-            }
-            if (r.behaviorDescription() != null && !r.behaviorDescription().isEmpty()) {
-                sb.append("，表现：").append(truncate(r.behaviorDescription(), 80));
-            }
-            if (r.consequenceText() != null && !r.consequenceText().isEmpty()) {
-                sb.append("，结果：").append(truncate(r.consequenceText(), 80));
-            }
-            if (r.assistanceResultText() != null && !r.assistanceResultText().isEmpty()) {
-                sb.append("，辅助效果：").append(truncate(r.assistanceResultText(), 60));
+            if (r.hasDetail()) {
+                // 详录：输出完整ABC信息（使用语义感知截断）
+                if (r.functionCode() != null && !r.functionCode().isEmpty()) {
+                    sb.append("，功能代码：").append(r.functionCode());
+                }
+                if (r.antecedentText() != null && !r.antecedentText().isEmpty()) {
+                    sb.append("，前因：").append(truncateAtSentence(r.antecedentText(), 200));
+                }
+                if (r.behaviorDescription() != null && !r.behaviorDescription().isEmpty()) {
+                    sb.append("，表现：").append(truncateAtSentence(r.behaviorDescription(), 200));
+                }
+                if (r.consequenceText() != null && !r.consequenceText().isEmpty()) {
+                    sb.append("，结果：").append(truncateAtSentence(r.consequenceText(), 200));
+                }
+                if (r.assistanceResultText() != null && !r.assistanceResultText().isEmpty()) {
+                    sb.append("，辅助效果：").append(truncateAtSentence(r.assistanceResultText(), 150));
+                }
+            } else {
+                // 快录：仅输出持续时间
+                if (r.durationMinutes() != null) {
+                    sb.append("，持续：").append(r.durationMinutes()).append("分钟");
+                }
+                if (r.stageLabel() != null && !r.stageLabel().isEmpty()) {
+                    sb.append("，阶段：").append(r.stageLabel());
+                }
             }
             sb.append("\n");
         }
@@ -559,17 +613,22 @@ public class AiReportService {
         ConfidenceResult cr = calculateConfidence(records, topFunc);
         String funcLabel = FUNCTION_LABELS.getOrDefault(topFunc, "未知");
 
+        // 统计详录/快录数量
+        long detailCount = records.stream().filter(BehaviorRecordItem::hasDetail).count();
+        long quickCount = records.size() - detailCount;
+
         // 2. 构建 reasoning
         StringBuilder reasoning = new StringBuilder();
-        reasoning.append(dateLabel).append("共").append(records.size()).append("条ABC记录。");
+        reasoning.append(dateLabel).append("共").append(records.size()).append("条行为记录");
+        reasoning.append("（详录").append(detailCount).append("条，快录").append(quickCount).append("条）。");
         if (!"UNKNOWN".equals(topFunc)) {
-            reasoning.append("其中").append(cr.sampleSize()).append("条标注为\"").append(funcLabel).append("\"功能，");
+            reasoning.append("其中").append(cr.sampleSize()).append("条详录标注为\"").append(funcLabel).append("\"功能，");
             reasoning.append("占比").append(Math.round(cr.patternConsistency() * 100)).append("%。");
         } else {
             reasoning.append("行为记录中缺少功能标注数据，无法进行有效推断。");
         }
-        if (cr.sampleSize() < 5) {
-            reasoning.append("样本有限，仅供参考。");
+        if (detailCount < 3) {
+            reasoning.append("详录样本有限（不足3条），推断结果仅供参考。建议继续积累ABC详录数据以获得更精准的分析。");
         }
         reasoning.append("当前为模板报告（未启用大模型），建议配置 API Key 获取更精准的分析。");
 

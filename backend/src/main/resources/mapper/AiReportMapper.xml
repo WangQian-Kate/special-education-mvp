@@ -4,7 +4,7 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.specialed.assistant.api.aireport.AiReportMapper">
 
-    <!-- 行为频次统计 -->
+    <!-- 行为频次统计（含全部记录，不限 detail_saved） -->
     <select id="countBehaviors"
             resultType="com.specialed.assistant.api.aireport.AiReportEntities$BehaviorStat">
         SELECT br.behavior_code,
@@ -15,12 +15,11 @@
         JOIN behavior_type bt ON bt.code = br.behavior_code
         WHERE cr.student_id = #{studentId}
           AND cr.record_date BETWEEN #{start} AND #{end}
-          AND br.detail_saved = TRUE
         GROUP BY br.behavior_code, bt.label
         ORDER BY count DESC
     </select>
 
-    <!-- 详细行为记录（仅 detail_saved=true 的 ABC 记录） -->
+    <!-- 行为记录（含详录和快录，通过 hasDetail 标记区分） -->
     <select id="findBehaviorRecords"
             resultType="com.specialed.assistant.api.aireport.AiReportEntities$BehaviorRecordRow">
         SELECT br.id                                     AS recordId,
@@ -30,6 +29,7 @@
                DATE_FORMAT(br.occurred_at, '%Y-%m-%dT%H:%i:%s+08:00') AS occurredAt,
                br.duration_minutes                       AS durationMinutes,
                bst.label                                 AS stageLabel,
+               (br.detail_saved = TRUE)                  AS hasDetail,
                NULLIF(CONCAT_WS(
                    '；',
                    NULLIF(TRIM(br.antecedent_text), ''),
@@ -94,7 +94,6 @@
         LEFT JOIN behavior_function_type bft ON bft.code = br.function_code
         WHERE cr.student_id = #{studentId}
           AND cr.record_date BETWEEN #{start} AND #{end}
-          AND br.detail_saved = TRUE
         ORDER BY br.occurred_at DESC
         LIMIT 200
     </select>

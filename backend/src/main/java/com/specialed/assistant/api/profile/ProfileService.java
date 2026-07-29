@@ -1,5 +1,6 @@
 package com.specialed.assistant.api.profile;
 
+import com.specialed.assistant.auth.AuthMapper;
 import com.specialed.assistant.exception.BusinessException;
 import com.specialed.assistant.exception.ErrorCode;
 import org.springframework.http.HttpStatus;
@@ -13,9 +14,11 @@ import static com.specialed.assistant.api.profile.ProfileModels.*;
 @Service
 public class ProfileService {
     private final ProfileMapper mapper;
+    private final AuthMapper authMapper;
 
-    public ProfileService(ProfileMapper mapper) {
+    public ProfileService(ProfileMapper mapper, AuthMapper authMapper) {
         this.mapper = mapper;
+        this.authMapper = authMapper;
     }
 
     @Transactional
@@ -85,9 +88,19 @@ public class ProfileService {
                 student.getClassName(), student.getDisabilityType(), student.getRemark());
     }
 
-    public StudentDetail getStudentDetail(Long userId, Long studentId) { requireUser(userId); return toDetail(requireStudent(studentId)); }
+    public StudentDetail getStudentDetail(Long userId, Long studentId) {
+        requireUser(userId);
+        if (!mapper.existsBinding(userId, studentId)) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, ErrorCode.RESOURCE_NOT_FOUND, "所选学生未与当前用户绑定");
+        }
+        return toDetail(requireStudent(studentId));
+    }
     public StudentDetail updateStudent(Long userId, Long studentId, UpdateStudentRequest r) {
-        requireUser(userId); StudentEntity s = requireStudent(studentId);
+        requireUser(userId);
+        if (!mapper.existsBinding(userId, studentId)) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, ErrorCode.RESOURCE_NOT_FOUND, "所选学生未与当前用户绑定");
+        }
+        StudentEntity s = requireStudent(studentId);
         if (r.name() != null) s.setName(r.name()); if (r.gender() != null) s.setGender(r.gender().name());
         if (r.age() != null) s.setAge(r.age()); if (r.className() != null) s.setClassName(r.className());
         if (r.disabilityType() != null) s.setDisabilityType(r.disabilityType());
@@ -102,7 +115,7 @@ public class ProfileService {
     }
     public StudentSummary createStudent(Long userId, UpdateStudentRequest r) {
         requireUser(userId); StudentEntity s = new StudentEntity();
-        s.setStudentCode("s"+String.format("%03d",System.currentTimeMillis()%1000));
+        s.setStudentCode("s"+String.format("%03d", authMapper.nextStudentSeq()));
         s.setName(r.name()); s.setGender(r.gender()!=null?r.gender().name():null); s.setAge(r.age());
         s.setClassName(r.className()); s.setDisabilityType(r.disabilityType()); s.setRemark(r.remark());
         s.setSocialAdaptation(r.socialAdaptation()); s.setSelfManagement(r.selfManagement());

@@ -82,7 +82,7 @@ public final class AiReportModels {
     ) {
     }
 
-    /** 数据聚合中间产物：单条详细行为记录 */
+    /** 数据聚合中间产物：单条行为记录（含详录/快录标记） */
     public record BehaviorRecordItem(
             Long recordId,
             Long classRecordId,
@@ -94,12 +94,13 @@ public final class AiReportModels {
             String antecedentText,
             String behaviorDescription,
             String consequenceText,
-            String functionCode,          // 新增：功能代码（SENSORY/ESCAPE/ATTENTION/TANGIBLE）
+            String functionCode,          // 功能代码（SENSORY/ESCAPE/ATTENTION/TANGIBLE）
             String functionLabel,
             String assistanceResultText,
             String courseLabel,
             String environmentLabel,
-            LocalDate recordDate
+            LocalDate recordDate,
+            boolean hasDetail             // 是否有ABC详录（detail_saved = TRUE）
     ) {
     }
 

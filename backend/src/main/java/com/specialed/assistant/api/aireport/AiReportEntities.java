@@ -39,6 +39,7 @@ public final class AiReportEntities {
         private String courseLabel;
         private String environmentLabel;
         private LocalDate recordDate;
+        private Boolean hasDetail;     // 是否有ABC详录（detail_saved = TRUE）
 
         public Long getRecordId() { return recordId; }
         public void setRecordId(Long v) { this.recordId = v; }
@@ -72,5 +73,7 @@ public final class AiReportEntities {
         public void setEnvironmentLabel(String v) { this.environmentLabel = v; }
         public LocalDate getRecordDate() { return recordDate; }
         public void setRecordDate(LocalDate v) { this.recordDate = v; }
+        public Boolean getHasDetail() { return hasDetail; }
+        public void setHasDetail(Boolean v) { this.hasDetail = v; }
     }
 }

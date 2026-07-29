@@ -250,8 +250,8 @@
                 LIMIT 1)                                                   AS subBehaviorLabel,
                br.status_code                                             AS statusCode,
                CASE br.status_code
-                   WHEN 'independent' THEN '独立完成'
-                   WHEN 'assisted' THEN '辅助完成'
+                   WHEN 'INDEPENDENT' THEN '独立完成'
+                   WHEN 'ASSISTED' THEN '辅助完成'
                    ELSE '未完成'
                END                                                         AS statusLabel,
                COALESCE(

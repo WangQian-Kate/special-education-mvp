@@ -55,6 +55,11 @@ public class AuthService {
 
     @Transactional
     public WechatLoginResponse onboard(OnboardingParams params) {
+        // 防御性校验：必填字段不允许为空
+        if (params.getWechatCode() == null || params.getWechatCode().isBlank()) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_ERROR,
+                    "缺少微信授权码（wechatCode）");
+        }
         WechatCodeSession wechatSession = wechatClient.exchange(params.getWechatCode().trim());
         LocalDateTime now = LocalDateTime.now();
 
