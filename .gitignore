@@ -17,3 +17,5 @@ dist/
 ai-module/scripts/
 __pycache__/
 backend/backups/
+scripts/tunnel/cpolar-guard.sh
+special-education-worktree/
