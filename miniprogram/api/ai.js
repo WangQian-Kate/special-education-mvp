@@ -11,6 +11,6 @@ const { post } = request;
  *   前端 statistics.js 中的 transformAiReport() 会将其转换为三维度格式（behaviorChanges/attentionConcerns/alternativeSuggestions）
  */
 const getAiReport = (period, referenceDate) =>
-  post('/ai/report', { period, referenceDate }, { hideError: true, timeout: 90000 });
+  post('/ai/report', { period, referenceDate }, { hideError: true, timeout: period === 'SEMESTER' ? 180000 : 90000 });
 
 module.exports = { getAiReport };

@@ -12,7 +12,7 @@ const store = require('./store');
 const ENV = 'tunnel';
 const BASE_URLS = {
   local: 'http://localhost:3000/api',
-  tunnel: 'https://69e0017e.r40.cpolar.top/api'
+  tunnel: 'https://1522559a.r20.vip.cpolar.cn/api'
 };
 const BASE_URL = BASE_URLS[ENV];
 

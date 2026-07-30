@@ -204,6 +204,8 @@ Page({
    * @param {string} [referenceDate] - 参考日期，用于确保统计和 AI 报告使用相同的日期范围
    */
   async _loadAiReport(period, referenceDate) {
+    if (this._aiLoading) return;
+    this._aiLoading = true;
     this.setData({ aiReport: null, aiReportLoading: true });
     try {
       var ds = referenceDate || today();
@@ -225,17 +227,21 @@ Page({
           report = aiMock.MONTHLY;
         }
       }
+      console.log('[statistics] setting aiReport to:', !!report, 'keys:', report && Object.keys(report));
       this.setData({ aiReport: report });
+      console.log('[statistics] aiReport set complete');
     } catch (err) {
       console.error('[statistics] _loadAiReport error:', err);
       this.setData({ aiReport: null });
     } finally {
+      this._aiLoading = false;
       this.setData({ aiReportLoading: false });
     }
   },
 
   async loadSemester() {
-    this.setData({ loading: true, empty: false });
+    this._aiLoading = false;
+    this.setData({ loading: true, empty: false, aiReport: null, aiReportLoading: false });
     try {
       var sem = this.data.semesterOptions[this.data.semesterIndex];
       var refDate = sem.start;
